@@ -52,10 +52,7 @@ body {
 
 /* ─── TOPBAR ─────────────────────────────── */
 .topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
+  padding: 14px 18px 12px;
   background: var(--surface);
   border: 1px solid var(--border-bright);
   border-radius: 20px;
@@ -63,6 +60,36 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.topbar-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.topbar-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.topbar-sub-label {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.topbar-sub-time {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
 }
 
 .topbar-left {
@@ -132,7 +159,7 @@ body {
   letter-spacing: 3px;
   color: var(--accent);
   text-transform: uppercase;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   opacity: 0.8;
 }
 
@@ -196,6 +223,15 @@ body {
   text-transform: uppercase;
   letter-spacing: 1px;
   min-width: 96px;
+  flex-shrink: 0;
+}
+
+.row-label-sm {
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-width: 72px;
   flex-shrink: 0;
 }
 
@@ -343,11 +379,17 @@ body {
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="topbar-left">
-      <div class="pulse-dot"></div>
-      <div class="location-label">Keravere</div>
+    <div class="topbar-main">
+      <div class="topbar-left">
+        <div class="pulse-dot"></div>
+        <div class="location-label">Keravere</div>
+      </div>
+      <div class="clock" id="clock">—</div>
     </div>
-    <div class="clock" id="clock">—</div>
+    <div class="topbar-sub">
+      <span class="topbar-sub-label">Uuendatud</span>
+      <span class="topbar-sub-time" id="last-updated">—</span>
+    </div>
   </div>
 
   <div class="stack">
@@ -359,9 +401,9 @@ body {
       <div class="wx-hero">
         <div>
           <div class="wx-temp-big warm loading" id="wx-temp">—</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:6px;">
-            tundub nagu <span class="val xs" id="wx-feels" style="color:var(--muted);">—</span>°
-            &nbsp;·&nbsp; kastepunkt <span class="val xs" id="wx-dew" style="color:var(--muted);">—</span>°
+          <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.9;">
+            <div>tundub nagu <span class="val xs" id="wx-feels" style="color:var(--muted);">—</span>°</div>
+            <div>kastepunkt <span class="val xs" id="wx-dew" style="color:var(--muted);">—</span>°</div>
           </div>
         </div>
         <div class="wx-hero-right">
@@ -431,27 +473,27 @@ body {
         <div class="card-title">Päike</div>
         <div class="row">
           <span class="row-icon">🌅</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Tõus</span>
+          <span class="row-label-sm">Tõus</span>
           <div class="row-right"><span class="val sm rise" id="sunrise-time">—</span></div>
         </div>
         <div class="row">
           <span class="row-icon">🌇</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Loojang</span>
+          <span class="row-label-sm">Loojang</span>
           <div class="row-right"><span class="val sm set" id="sunset-time">—</span></div>
         </div>
         <div class="row">
           <span class="row-icon">⏳</span>
-          <span class="row-label" style="min-width:0;font-size:9px;" id="sun-count-label">Loojanguni</span>
+          <span class="row-label-sm" id="sun-count-label">Loojanguni</span>
           <div class="row-right"><span class="val xs set" id="sun-countdown">—</span></div>
         </div>
         <div class="row">
           <span class="row-icon">☀️</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Valgust</span>
+          <span class="row-label-sm">Valgust</span>
           <div class="row-right"><span class="val xs rise" id="day-length">—</span></div>
         </div>
         <div class="row" style="margin-bottom:0">
           <span class="row-icon">Δ</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Eilsest</span>
+          <span class="row-label-sm">Eilsest</span>
           <div class="row-right"><span class="val xs rise" id="day-change">—</span></div>
         </div>
       </div>
@@ -465,7 +507,7 @@ body {
         </div>
         <div class="row" style="margin-bottom:0">
           <span class="row-icon">🌕</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Täiskuu</span>
+          <span class="row-label-sm">Täiskuu</span>
           <div class="row-right"><span class="val xs" id="moon-full">—</span></div>
         </div>
       </div>
@@ -477,22 +519,22 @@ body {
         <div class="card-title">Õietolm</div>
         <div class="row">
           <span class="row-icon">🌿</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Üldine</span>
+          <span class="row-label-sm">Üldine</span>
           <div class="row-right"><span class="val xs" id="pollen-overall">—</span></div>
         </div>
         <div class="row">
           <span class="row-icon">🌳</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Kask</span>
+          <span class="row-label-sm">Kask</span>
           <div class="row-right"><span class="val xs" id="pollen-birch">—</span></div>
         </div>
         <div class="row">
           <span class="row-icon">🌾</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Muru</span>
+          <span class="row-label-sm">Muru</span>
           <div class="row-right"><span class="val xs" id="pollen-grass">—</span></div>
         </div>
         <div class="row" style="margin-bottom:0">
           <span class="row-icon">🍃</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Lepp</span>
+          <span class="row-label-sm">Lepp</span>
           <div class="row-right"><span class="val xs" id="pollen-alder">—</span></div>
         </div>
       </div>
@@ -501,17 +543,17 @@ body {
         <div class="card-title">Virmalised</div>
         <div class="row">
           <span class="row-icon">✨</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Kp praegu</span>
+          <span class="row-label-sm">Kp praegu</span>
           <div class="row-right"><span class="val xs" id="kp-current">—</span></div>
         </div>
         <div class="row">
           <span class="row-icon">🗺️</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Tõenäosus</span>
+          <span class="row-label-sm">Tõenäosus</span>
           <div class="row-right"><span class="val xs" id="aurora-prob">—</span></div>
         </div>
         <div class="row" style="margin-bottom:0">
           <span class="row-icon">🕒</span>
-          <span class="row-label" style="min-width:0;font-size:9px;">Uuendus</span>
+          <span class="row-label-sm">Uuendus</span>
           <div class="row-right"><span style="font-size:9px;color:var(--muted);" id="aurora-updated">—</span></div>
         </div>
       </div>
@@ -637,6 +679,9 @@ function fetchWeatherAndForecast(){
       renderHourly(data.hourly);
       renderDaily(data.daily);
       updateRainStart(data.hourly);
+
+      var now2 = new Date();
+      byId('last-updated').textContent = pad(now2.getHours()) + ':' + pad(now2.getMinutes()) + ':' + pad(now2.getSeconds());
     }catch(e){}
   };
   xhr.send();
