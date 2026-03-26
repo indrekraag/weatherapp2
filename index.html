@@ -2,1359 +2,280 @@
 <html lang="et">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Ilmaradar – iPad Air</title>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.js"></script>
-
+<title>Ilmaradar – iPhone info</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e14; }
-  body {
-    --left-pad: 14px;
-    --sidebar-w: 276px;
-    --panel-gap: 14px;
-    --top-panels-top: 60px;
-    --right-pad: 14px;
-    position: fixed; inset: 0; color: #c8d8e8; font-family: 'Courier New', monospace;
-    display: flex; flex-direction: column; overflow: hidden;
-    -webkit-font-smoothing: antialiased; touch-action: manipulation;
-  }
-  #topbar {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    padding: 7px 14px;
-    background: #0d1520;
-    border-bottom: 1px solid #1e3050;
-    flex-shrink: 0;
-    min-height: 48px;
-  }
-  #title-block { display: flex; align-items: center; gap: 10px; justify-self: start; }
-  #radar-dot {
-    width: 9px; height: 9px; border-radius: 50%; background: #4af;
-    box-shadow: 0 0 8px #4af; animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%,100% { opacity:1; box-shadow:0 0 8px #4af; }
-    50% { opacity:.3; box-shadow:0 0 2px #4af; }
-  }
-  #title { font-size: 12px; letter-spacing: 3px; color: #7ab8d8; text-transform: uppercase; }
-  #timestamp { font-size: 10px; color: #69b8e6; letter-spacing: .8px; white-space: nowrap; justify-self: start; }
-  #status { font-size: 10px; color: #7a9ab8; letter-spacing: 1px; white-space: nowrap; min-width: 78px; text-align: right; justify-self: end; }
-  #clock {
-    font-size: 22px;
-    color: #f2f8ff;
-    letter-spacing: 1px;
-    font-weight: 700;
-    white-space: nowrap;
-    justify-self: center;
-    line-height: 1;
-  }
-
-  #map { flex: 1; width: 100%; position: relative; background: #0a1018; }
-  .leaflet-container { background: #0a1018; font-family: 'Courier New', monospace; }
-
-  .info-box {
-    background: rgba(8, 14, 22, 0.92); border: 1px solid #2a4060; border-radius: 9px;
-    padding: 9px 12px; width: var(--sidebar-w); min-width: var(--sidebar-w); max-width: var(--sidebar-w);
-    pointer-events: none; box-shadow: 0 3px 10px rgba(0,0,0,.2); overflow: hidden;
-  }
-  .box-title {
-    font-size: 12px; letter-spacing: 1.5px; color: #7ab0cc; text-transform: uppercase;
-    margin-bottom: 8px; padding: 0 0 5px 8px; border-bottom: 1px solid #2a3a4a;
-  }
-  .box-row { display: flex; align-items: baseline; gap: 7px; margin-bottom: 6px; white-space: nowrap; padding-left: 4px; }
-  .box-row:last-child { margin-bottom: 0; }
-  .box-icon { font-size: 14px; line-height: 1; width: 14px; text-align: center; flex-shrink: 0; }
-  .box-label { font-size: 11px; color: #8ab8d0; text-transform: uppercase; letter-spacing: .6px; min-width: 88px; }
-  .box-val { font-size: 16px; color: #e8f4ff; font-weight: bold; }
-  .box-unit { font-size: 11px; color: #7a9ab8; }
-  .box-note { font-size: 9px; color: #7a9ab8; }
-
-  #bottom-left {
-    position: fixed; top: var(--top-panels-top); left: var(--left-pad); z-index: 2000;
-    width: var(--sidebar-w);
-    pointer-events: none;
-  }
-
-  #bottom-left-inner{
-    width: var(--sidebar-w);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    transform-origin: top left;
-    will-change: transform;
-  }
-
-  #legend {
-    position: fixed; bottom: 40px; right: 14px; z-index: 2000;
-    background: rgba(8,14,22,.85); border: 1px solid #1e3050; border-radius: 5px;
-    padding: 7px 10px; pointer-events: none;
-  }
-  .leg-title {
-    font-size: 9px; letter-spacing: 2px; color: #6a90aa; text-transform: uppercase;
-    margin-bottom: 5px; padding-bottom: 4px; border-bottom: 1px solid #1a2a3a;
-  }
-  .leg-row { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; font-size: 10px; color: #8ab8cc; }
-  .leg-row:last-child { margin-bottom: 0; }
-  .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-  #controls {
-    background: #0d1520; border-top: 1px solid #1e3050; padding: 5px 12px;
-    display: flex; align-items: center; gap: 10px; flex-shrink: 0; height: 36px;
-  }
-  .btn {
-    background: #1a2a3a; border: 1px solid #2a4a6a; color: #7ab8d8; padding: 4px 12px;
-    border-radius: 4px; font-family: 'Courier New', monospace; font-size: 13px; cursor: pointer;
-    -webkit-tap-highlight-color: transparent; user-select: none; flex-shrink: 0;
-  }
-  .btn:active { background: #2a3a4a; }
-
-  #timeline {
-    flex: 1; height: 8px; background: #1e3050; border-radius: 4px; position: relative; cursor: pointer;
-  }
-  #timeline-fill {
-    height: 100%; background: linear-gradient(90deg, #1a6ab0, #4af); border-radius: 4px; width: 0%;
-  }
-  #timeline-thumb {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    width: 12px; height: 12px; background: #4af; border-radius: 50%;
-    margin-left: -6px; pointer-events: none;
-  }
-  #radar-end {
-    font-size: 10px; color: #7a9ab8; letter-spacing: 1px;
-    flex-shrink: 0; white-space: nowrap; min-width: 90px; text-align: right;
-  }
-
-  .c-rise { color: #f7bc57; }
-  .c-set { color: #f08d57; }
-  .c-temp { color: #ffd5a6; }
-  .c-wind { color: #8ed8ff; }
-  .c-ok { color: #92d7a6; }
-  .c-warn { color: #ffd96a; }
-  .c-bad { color: #ff8a8a; }
-
-
-  #forecast-strip {
-    position: fixed;
-    top: var(--top-panels-top);
-    left: calc(var(--left-pad) + var(--sidebar-w) - 4px);
-    right: var(--right-pad);
-    z-index: 1900;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 200px;
-    gap: var(--panel-gap);
-    align-items: stretch;
-    pointer-events: none;
-  }
-
-  .forecast-panel {
-    background: rgba(8, 14, 22, 0.94);
-    border: 1px solid #24384f;
-    border-radius: 9px;
-    box-shadow: 0 3px 10px rgba(0,0,0,.22);
-    overflow: hidden;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .forecast-head {
-    font-size: 10px;
-    letter-spacing: 1.3px;
-    color: #8fb9d4;
-    text-transform: uppercase;
-    font-weight: 700;
-    padding: 7px 10px 6px 10px;
-    border-bottom: 1px solid #223446;
-    background: rgba(255,255,255,0.02);
-  }
-
-  #hourly-chart-wrap {
-    height: 148px;
-    padding: 6px 10px 6px 10px;
-  }
-
-  #hourly-chart {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  #daily-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    min-height: 128px;
-  }
-
-  .daily-cell {
-    padding: 8px 5px 7px 5px;
-    text-align: center;
-    border-right: 1px solid rgba(36,56,79,.65);
-  }
-
-  .daily-cell:last-child { border-right: none; }
-
-  .d-day {
-    font-size: 10px;
-    color: #8fb6cc;
-    letter-spacing: .5px;
-    margin-bottom: 5px;
-    font-weight: 700;
-  }
-
-  .d-icon {
-    font-size: 14px;
-    line-height: 1;
-    margin-bottom: 7px;
-  }
-
-  .d-max {
-    font-size: 18px;
-    color: #eef7ff;
-    font-weight: 700;
-    line-height: 1.05;
-  }
-
-  .d-min {
-    font-size: 10px;
-    color: #9eb7cb;
-    line-height: 1.15;
-    margin-top: 2px;
-  }
-
-  .d-rain {
-    font-size: 9px;
-    color: #72bfe8;
-    margin-top: 6px;
-    line-height: 1.1;
-  }
-
-  @media (max-width: 1240px) {
-    body { --sidebar-w: 268px; --panel-gap: 8px; }
-    #forecast-strip {
-      grid-template-columns: minmax(0, 1fr) 212px;
-      gap: 6px;
-    }
-    #hourly-chart-wrap { height: 136px; }
-  }
-
-  @media (max-width: 1080px) {
-    body { --sidebar-w: 258px; --panel-gap: 8px; }
-    #forecast-strip {
-      grid-template-columns: minmax(0, 1fr) 198px;
-      gap: 5px;
-    }
-    #hourly-chart-wrap { height: 132px; }
-  }
-
-  @media (max-width: 900px) {
-    #forecast-strip { display: none; }
-
-    #legend { display: none; }
-    .info-box { min-width: 225px; padding: 12px 14px; }
-    .box-label { min-width: 92px; }
-  }
-
-#zoom-presets{
-position:fixed;
-bottom:84px;
-left:50%;
-transform:translateX(-50%);
-z-index:3000;
-display:flex;
-gap:8px;
-}
-
-.zoom-btn{
-background:#0d1520;
-border:1px solid #2a4a6a;
-color:#7ab8d8;
-padding:6px 12px;
-border-radius:6px;
-font-family:'Courier New',monospace;
-font-size:12px;
-cursor:pointer;
-}
-.zoom-btn:active{background:#1a2a3a;}
-
-.zoom-sep{
-width:1px;
-height:24px;
-background:#2a4a6a;
-align-self:center;
-opacity:.9;
-}
-
-.zoom-btn.active{
-background:#1a2a3a;
-box-shadow: inset 0 0 0 1px #4a88b6;
-color:#d7eefc;
-}
-
+:root{--bg:#07101a;--panel:rgba(8,14,22,.94);--panel2:rgba(12,20,30,.96);--border:#24415c;--text:#eef7ff;--muted:#8fb6cc;--warm:#ffd5a6;--cold:#8ed8ff;--ok:#92d7a6;--warn:#ffd96a;--bad:#ff8a8a;--rise:#f7bc57;--set:#f08d57}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:linear-gradient(180deg,#08111c 0%,#0b1624 100%);color:var(--text);font-family:"Courier New",monospace}
+body{min-height:100vh;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px calc(env(safe-area-inset-bottom,0px) + 12px)}
+.app{max-width:520px;margin:0 auto}
+.topbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin-bottom:10px;padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:rgba(8,14,22,.9);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.dot{width:9px;height:9px;border-radius:50%;background:#4af;box-shadow:0 0 10px #4af}
+.title{font-size:12px;letter-spacing:2px;color:#93c2de;text-transform:uppercase}
+.clock{font-size:16px;font-weight:700;white-space:nowrap}
+.stack{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.card-title{font-size:12px;letter-spacing:1.6px;color:#93c2de;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(36,65,92,.7)}
+.row{display:flex;align-items:baseline;gap:7px;margin-bottom:6px;white-space:nowrap}
+.row:last-child{margin-bottom:0}
+.icon{width:16px;text-align:center;font-size:15px;line-height:1}
+.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;min-width:88px}
+.val{font-size:18px;font-weight:700;color:var(--text)}
+.unit,.note{font-size:11px;color:var(--muted)}
+.warm{color:var(--warm)} .cold{color:var(--cold)} .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .rise{color:var(--rise)} .set{color:var(--set)}
+.small{font-size:13px}
+.subtle{color:var(--muted)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mini{background:var(--panel2);border:1px solid rgba(36,65,92,.7);border-radius:12px;padding:8px 8px 7px;text-align:center}
+.mini-day{font-size:10px;color:var(--muted);letter-spacing:.5px;margin-bottom:5px}
+.mini-icon{font-size:16px;line-height:1;margin-bottom:4px}
+.mini-main{font-size:20px;font-weight:700;line-height:1.1}
+.mini-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.scroll-x{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.scroll-x::-webkit-scrollbar{display:none}
+.hour{min-width:72px;background:var(--panel2);border:1px solid rgba(36,65,92,.7);border-radius:12px;padding:8px 6px;text-align:center}
+.hour-time{font-size:10px;color:var(--muted)}
+.hour-icon{font-size:16px;line-height:1;margin:4px 0}
+.hour-temp{font-size:18px;font-weight:700;line-height:1}
+.hour-wind,.hour-rain{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.15}
+.footer-note{font-size:10px;color:#7fa3bb;text-align:center;margin-top:8px}
 
 @media (max-width: 500px) {
   body {
-    zoom: 0.78;
+    padding: calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 12px);
+  }
+  .app {
+    max-width: 100%;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+  }
+  .card {
+    padding: 9px 10px;
+  }
+  .label {
+    min-width: 82px;
+    font-size: 10px;
+  }
+  .val {
+    font-size: 17px;
+  }
+  .small {
+    font-size: 12px;
+  }
+  .mini-main {
+    font-size: 18px;
+  }
+  .hour {
+    min-width: 66px;
+    padding: 8px 5px;
+  }
+  .hour-temp {
+    font-size: 16px;
   }
 }
 
 </style>
 </head>
 <body>
-
-<div id="topbar">
-  <div id="title-block">
-    <div id="radar-dot"></div>
-    <div id="title">Ilmaradar</div>
+<div class="app">
+  <div class="topbar">
+    <div class="dot"></div>
+    <div class="title">Ilmaradar · Keravere</div>
+    <div class="clock" id="clock">—</div>
   </div>
-  <div id="clock">—</div>
-  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px; justify-self:end;">
-    <div id="timestamp">Laadimine…</div>
-    <div id="status">—</div>
-  </div>
-</div>
 
-<div id="map"></div>
+  <div class="stack">
+    <div class="card">
+      <div class="card-title">Hetkeilm</div>
+      <div class="row"><span class="icon">🌡</span><span class="label">Temperatuur</span><span class="val warm" id="wx-temp">—</span><span class="unit">°C</span></div>
+      <div class="row"><span class="icon">◌</span><span class="label">Tundub nagu</span><span class="val warm" id="wx-feels">—</span><span class="unit">°C</span></div>
+      <div class="row"><span class="icon">💧</span><span class="label">Kastepunkt</span><span class="val warm" id="wx-dew">—</span><span class="unit">°C</span></div>
+      <div class="row"><span class="icon" id="wx-cond-icon">☀️</span><span class="label">Pilvisus</span><span class="val small" id="wx-cond">—</span></div>
+      <div class="row"><span class="icon">💨</span><span class="label">Tuul</span><span class="val cold" id="wx-wind">—</span><span class="unit">m/s</span><span class="unit" id="wx-dir">—</span></div>
+      <div class="row"><span class="icon">🌬</span><span class="label">Puhangud</span><span class="val cold" id="wx-gust">—</span><span class="unit">m/s</span></div>
+      <div class="row"><span class="icon">🌧</span><span class="label">Sadu</span><span class="val" id="wx-precip">—</span><span class="unit">mm/h</span></div>
+      <div class="row"><span class="icon">⦿</span><span class="label">Rõhk</span><span class="val small" id="wx-pressure">—</span><span class="unit">hPa</span><span class="val small" id="wx-pressure-trend">—</span></div>
+      <div class="row"><span class="icon">❄️</span><span class="label">Öökülm öösel</span><span class="val small ok" id="frost-warning">—</span></div>
+    </div>
 
-<div id="forecast-strip">
-  <div class="forecast-panel" id="hourly-panel">
-    <div class="forecast-head">TÄNA TUNNITI</div>
-    <div id="hourly-chart-wrap">
-      <svg id="hourly-chart"></svg>
+    <div class="card">
+      <div class="card-title">Täna tunniti</div>
+      <div class="scroll-x" id="hourly-strip"></div>
+      <div class="footer-note">Sademed algavad: <span id="rain-start" class="val small">—</span></div>
     </div>
-    <div style="padding:4px 10px 7px 10px;border-top:1px solid rgba(36,56,79,.5);font-size:11px;color:#9fc3d8;">
-      <span style="letter-spacing:.7px;text-transform:uppercase;">Sademed algavad</span>
-      <span id="rain-start" style="margin-left:8px;color:#eef7ff;font-weight:700;">—</span>
-    </div>
-  </div>
-  <div class="forecast-panel" id="daily-panel">
-    <div class="forecast-head">3 PÄEVA</div>
-    <div id="daily-grid"></div>
-  </div>
-</div>
 
+    <div class="card">
+      <div class="card-title">3 päeva</div>
+      <div class="grid-3" id="daily-grid"></div>
+    </div>
 
-<div id="bottom-left">
-  <div id="bottom-left-inner">
-  <div class="info-box">
-    <div class="box-title">Hetkeilm</div>
-    <div class="box-row">
-      <span class="box-icon">🌡</span>
-      <span class="box-label">Temperatuur</span>
-      <span class="box-val c-temp" id="wx-temp">—</span>
-      <span class="box-unit">°C</span>
-    </div>
-    <div class="box-row">
-      <span class="box-icon">◌</span>
-      <span class="box-label">Tundub nagu</span>
-      <span class="box-val c-temp" id="wx-feels">—</span>
-      <span class="box-unit">°C</span>
-    </div>
-    <div class="box-row">
-      <span class="box-icon">💧</span>
-      <span class="box-label">Kastepunkt</span>
-      <span class="box-val c-temp" id="wx-dew">—</span>
-      <span class="box-unit">°C</span>
-    </div>
-    <div class="box-row">
-      <span class="box-icon" id="wx-cond-icon">☀️</span>
-      <span class="box-label">Pilvisus</span>
-      <span class="box-val" id="wx-cond" style="font-size:13px;color:#eef7ff;line-height:1.15;">—</span>
-    </div>
-    <div class="box-row">
-      <span class="box-icon">💨</span>
-      <span class="box-label">Tuul</span>
-      <span class="box-val c-wind" id="wx-wind">—</span>
-      <span class="box-unit">m/s</span>
-      <span class="box-unit" id="wx-dir"></span>
-    </div>
-    <div class="box-row">
-      <span class="box-icon">🌬</span>
-      <span class="box-label">Puhangud</span>
-      <span class="box-val c-wind" id="wx-gust">—</span>
-      <span class="box-unit">m/s</span>
-    </div>
-    <div class="box-row" style="align-items:center;gap:14px;">
-      <svg id="wind-svg" width="90" height="90" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="26" cy="26" r="24" fill="none" stroke="#1e3050" stroke-width="1.5"/>
-        <text x="26" y="9" text-anchor="middle" fill="#7ab8d0" font-size="6" font-family="Courier New">PÕHI</text>
-        <text x="26" y="49" text-anchor="middle" fill="#7ab8d0" font-size="6" font-family="Courier New">LÕUNA</text>
-        <text x="5" y="29" text-anchor="start" fill="#7ab8d0" font-size="6" font-family="Courier New">LÄÄS</text>
-        <text x="47" y="29" text-anchor="end" fill="#7ab8d0" font-size="6" font-family="Courier New">IDA</text>
-        <g id="wind-arrow-svg" transform="rotate(0,26,26)">
-          <polygon points="26,8 31,36 26,32 21,36" fill="#7dd4f8"/>
-        </g>
-      </svg>
-      <div>
-        <div class="box-val c-wind" style="font-size:13px;" id="wx-dir-label">—</div>
-        <div class="box-note" id="wx-updated">—</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Päike</div>
+        <div class="row"><span class="icon">🌅</span><span class="label">Päikesetõus</span><span class="val rise" id="sunrise-time">—</span></div>
+        <div class="row"><span class="icon">🌇</span><span class="label">Loojang</span><span class="val set" id="sunset-time">—</span></div>
+        <div class="row"><span class="icon">⏳</span><span class="label" id="sun-count-label">Loojanguni</span><span class="val set small" id="sun-countdown">—</span></div>
+        <div class="row"><span class="icon">☀️</span><span class="label">Päikesevalgus</span><span class="val rise small" id="day-length">—</span></div>
+        <div class="row"><span class="icon">Δ</span><span class="label">Muutus eilsest</span><span class="val rise small" id="day-change">—</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Kuu</div>
+        <div class="row"><span class="icon" id="moon-icon">🌑</span><span class="label">Faas <span id="moon-illum" class="subtle">--%</span></span><span class="val small" id="moon-phase">—</span></div>
+        <div class="row"><span class="icon">🌕</span><span class="label">Täiskuu</span><span class="val small" id="moon-full">—</span></div>
       </div>
     </div>
-    <div class="box-row">
-      <span class="box-icon">🌧</span>
-      <span class="box-label">Sadu</span>
-      <span class="box-val" id="wx-precip">—</span>
-      <span class="box-unit">mm/h</span>
-    </div>
-    <div class="box-row">
-      <span class="box-icon">⦿</span>
-      <span class="box-label">Rõhk</span>
-      <span class="box-val" id="wx-pressure" style="font-size:15px;color:#eef7ff;">—</span>
-      <span class="box-unit">hPa</span>
-      <span class="box-val" id="wx-pressure-trend" style="font-size:15px;color:#eef7ff;margin-left:8px;">—</span>
-    </div>
-    <div class="box-row">
-      <span class="box-icon">❄️</span>
-      <span class="box-label">Öökülm öösel</span>
-      <span class="box-val c-ok" id="frost-warning" style="font-size:14px;">—</span>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Õietolm</div>
+        <div class="row"><span class="icon">🌿</span><span class="label">Üldine</span><span class="val small" id="pollen-overall">—</span></div>
+        <div class="row"><span class="icon">🌳</span><span class="label">Kask</span><span class="val small" id="pollen-birch">—</span></div>
+        <div class="row"><span class="icon">🌾</span><span class="label">Muru</span><span class="val small" id="pollen-grass">—</span></div>
+        <div class="row"><span class="icon">🍃</span><span class="label">Lepp</span><span class="val small" id="pollen-alder">—</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Virmalised</div>
+        <div class="row"><span class="icon">✨</span><span class="label">Kp praegu</span><span class="val small" id="kp-current">—</span></div>
+        <div class="row"><span class="icon">🗺️</span><span class="label">Tõenäosus</span><span class="val small" id="aurora-prob">—</span></div>
+        <div class="row"><span class="icon">🕒</span><span class="label">Uuendatud</span><span class="note" id="aurora-updated">—</span></div>
+      </div>
     </div>
   </div>
-
-  <div class="info-box">
-    <div class="box-title">Päike</div>
-    <div class="box-row"><span class="box-icon">🌅</span><span class="box-label">Päikesetõus</span><span class="box-val c-rise" id="sunrise-time">—</span><span class="box-unit" id="sunrise-az">—</span></div>
-    <div class="box-row"><span class="box-icon">🌇</span><span class="box-label">Loojang</span><span class="box-val c-set" id="sunset-time">—</span><span class="box-unit" id="sunset-az">—</span></div>
-    <div class="box-row"><span class="box-icon" id="countdown-icon">⏳</span><span class="box-label" id="countdown-label">Loojanguni</span><span class="box-val c-set" id="sunset-countdown">—</span></div>
-    <div class="box-row"><span class="box-icon">⏱</span><span class="box-label">Päikesevalgus</span><span class="box-val c-rise" id="day-length">—</span></div>
-    <div class="box-row"><span class="box-icon">Δ</span><span class="box-label">Muutus eilsest</span><span class="box-val c-rise" id="day-change">—</span></div>
-  </div>
-
-  <div class="info-box">
-    <div class="box-title">Kuu</div>
-    <div class="box-row"><span class="box-icon" id="moon-icon">🌑</span><span class="box-label">Faas <span id="moon-illum" style="color:#c8d8f0;">--%</span></span><span class="box-val" id="moon-phase" style="color:#c8d8f0;font-size:13px;line-height:1.15;">—</span></div>
-    <div class="box-row"><span class="box-icon">🌕</span><span class="box-label">Täiskuu</span><span class="box-val" id="moon-full" style="color:#c8d8f0;font-size:13px;">—</span></div>
-  </div>
-
-
-
-  <div class="info-box">
-    <div class="box-title">ÕIETOLM</div>
-    <div class="box-row"><span class="box-icon">🌿</span><span class="box-label">Üldine</span><span class="box-val" id="pollen-overall" style="font-size:15px;color:#eef7ff;">—</span></div>
-    <div class="box-row"><span class="box-icon">🌳</span><span class="box-label">Kask</span><span class="box-val" id="pollen-birch" style="font-size:15px;color:#eef7ff;">—</span></div>
-    <div class="box-row"><span class="box-icon">🌾</span><span class="box-label">Muru</span><span class="box-val" id="pollen-grass" style="font-size:15px;color:#eef7ff;">—</span></div>
-    <div class="box-row"><span class="box-icon">🍃</span><span class="box-label">Lepp</span><span class="box-val" id="pollen-alder" style="font-size:15px;color:#eef7ff;">—</span></div>
-  </div>
-
-  <div class="info-box">
-    <div class="box-title">Virmalised</div>
-    <div class="box-row"><span class="box-icon">✨</span><span class="box-label">Kp praegu</span><span class="box-val" id="kp-current">—</span></div>
-    <div class="box-row"><span class="box-icon">🌌</span><span class="box-label">Tõenäosus</span><span class="box-val" id="aurora-level">—</span></div>
-    <div class="box-row"><span class="box-icon">🕒</span><span class="box-label">Uuendatud</span><span class="box-note" id="aurora-updated">—</span></div>
-  </div>
-
-  
-  </div>
-</div>
-
-<div id="legend">
-  <div class="leg-title">Sademed</div>
-  <div class="leg-row"><span class="swatch" style="background:#00aaff"></span>Kerge</div>
-  <div class="leg-row"><span class="swatch" style="background:#00ff44"></span>Mõõdukas</div>
-  <div class="leg-row"><span class="swatch" style="background:#ffdd00"></span>Tugev</div>
-  <div class="leg-row"><span class="swatch" style="background:#ff3300"></span>Väga tugev</div>
-</div>
-
-
-<div id="system-bar" style="
-position:fixed;
-bottom:40px;
-left:50%;
-transform:translateX(-50%);
-background:rgba(8,14,22,.88);
-border:1px solid #22384c;
-border-radius:7px;
-padding:4px 9px;
-font-size:10px;
-color:#88adbf;
-display:flex;
-gap:13px;
-z-index:2000;
-line-height:1.2;">
-<span>📍 <span id="coords-label"></span></span>
-<span>📡 <span id="radar-state"></span></span>
-<span>☁️ <span id="weather-state"></span></span>
-<span>☀️ <span id="sun-state"></span></span>
-<span>⟳ <span id="next-refresh-system">—</span></span>
-<span>♻️ <span id="page-reload"></span></span>
-</div>
-<div id="controls">
-  <button class="btn" id="btn-play">▌▌</button>
-  <div id="timeline">
-    <div id="timeline-fill"></div>
-    <div id="timeline-thumb" style="left:0%"></div>
-  </div>
-  <div id="radar-end">Radar: —</div>
 </div>
 
 <script>
-var CONFIG = {
-  lat: 58.81627,
-  lng: 23.74447,
-  zoom: 10,
-  radarFrameCount: 5,
-  radarRefreshMs: 10 * 60 * 1000,
-  weatherRefreshMs: 15 * 60 * 1000,
-  pageReloadMs: 2 * 60 * 60 * 1000,
-  label: 'Keravere'
-};
-
-var map = L.map('map', {
-  center: [CONFIG.lat, CONFIG.lng],
-  zoom: CONFIG.zoom,
-  zoomControl: true,
-  attributionControl: false,
-  preferCanvas: true,
-  fadeAnimation: false,
-  zoomAnimation: false,
-  markerZoomAnimation: false,
-  inertia: false
-});
-
-var satelliteBaseLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 18,
-  updateWhenIdle: true,
-  keepBuffer: 1
-}).addTo(map);
-
-var simpleBaseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  updateWhenIdle: true,
-  keepBuffer: 1
-});
-
-var baseMapMode = 'satellite';
-
-
-L.circleMarker([CONFIG.lat, CONFIG.lng], {
-  radius: 8, fillColor: '#ff2222', fillOpacity: 1, color: '#fff', weight: 2
-}).addTo(map);
-
-setVisualCenter(CONFIG.lat, CONFIG.lng, CONFIG.zoom);
-
-document.getElementById('coords-label').textContent = CONFIG.label + ' · ' + CONFIG.lat.toFixed(4) + ', ' + CONFIG.lng.toFixed(4);
-
-var radarLayers = [], radarFrames = [], currentFrame = 0;
-var playing = true, animTimer = null, animResetTimer = null, nextRefreshAt = 0, countdownTimer = null;
-var apiHost = 'https://tilecache.rainviewer.com';
-var pageReloadAt = Date.now() + CONFIG.pageReloadMs;
+var CONFIG = { lat:58.81627, lng:23.74447, label:'Keravere', weatherRefreshMs:5*60*1000 };
 var PRESSURE_HISTORY = [];
-
-var TODAY_SUNRISE_MS = null;
-var TODAY_SUNSET_MS = null;
-var TOMORROW_SUNRISE_MS = null;
-var TODAY_SUNRISE_AZ = null;
-var TODAY_SUNSET_AZ = null;
-
-var sunArrow = null, sunriseLine = null, sunsetLine = null, sunArrowLine = null;
+var TODAY_SUNRISE_MS = null, TODAY_SUNSET_MS = null;
 
 function byId(id){ return document.getElementById(id); }
-function setStatus(msg){ byId('status').textContent = msg; }
 function pad(n){ return n < 10 ? '0' + n : '' + n; }
-function fmtTime(d){ return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
-function setApiState(id, txt, cls){
-  var el = byId(id);
-  el.textContent = txt;
-  el.className = 'box-val ' + cls;
-  el.style.fontSize = '13px';
-}
 function round1(n){ return Math.round(n * 10) / 10; }
+function formatTime(d){ return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function setTempClass(el, v){ el.className = 'val ' + (v < 0 ? 'cold' : 'warm'); }
 
-function updateCompactMode(){
-  var outer = byId('bottom-left');
-  var inner = byId('bottom-left-inner');
-  var controls = byId('controls');
-  var systemBar = byId('system-bar');
-  if(!outer || !inner || !controls) return;
-
-  function availableHeight(){
-    var top = outer.getBoundingClientRect().top;
-    var bottomLimit = window.innerHeight - 8;
-    if(systemBar){
-      var sbTop = systemBar.getBoundingClientRect().top;
-      if(sbTop > 0) bottomLimit = Math.min(bottomLimit, sbTop - 8);
-    }
-    if(controls){
-      var cTop = controls.getBoundingClientRect().top;
-      if(cTop > 0) bottomLimit = Math.min(bottomLimit, cTop - 8);
-    }
-    return Math.max(120, bottomLimit - top);
-  }
-
-  function applyCompact(level){
-    document.body.classList.remove('compact-1', 'compact-2', 'compact-3');
-    if(level >= 1) document.body.classList.add('compact-1');
-    if(level >= 2) document.body.classList.add('compact-2');
-    if(level >= 3) document.body.classList.add('compact-3');
-  }
-
-  inner.style.transform = 'scale(1)';
-  outer.style.height = '';
-  applyCompact(0);
-
-  var avail = availableHeight();
-  if(inner.scrollHeight > avail){
-    applyCompact(1);
-  }
-  if(inner.scrollHeight > avail){
-    applyCompact(2);
-  }
-  if(inner.scrollHeight > avail){
-    applyCompact(3);
-  }
-
-  // Final safety fit for unusually short viewports / high-DPI laptops.
-  inner.style.transform = 'scale(1)';
-  var naturalHeight = inner.scrollHeight;
-  var scale = Math.min(1, avail / naturalHeight);
-
-  // Only scale if still overflowing after compact modes.
-  if(scale < 0.995){
-    scale = Math.max(0.78, scale);
-    inner.style.transform = 'scale(' + scale.toFixed(3) + ')';
-    outer.style.height = Math.ceil(naturalHeight * scale) + 'px';
-  } else {
-    outer.style.height = naturalHeight + 'px';
-  }
+function updateClock(){
+  var now = new Date();
+  var days = ['PÜHAPÄEV','ESMASPÄEV','TEISIPÄEV','KOLMAPÄEV','NELJAPÄEV','REEDE','LAUPÄEV'];
+  byId('clock').textContent = days[now.getDay()] + ' ' + pad(now.getDate()) + '.' + pad(now.getMonth()+1) + ' ' + formatTime(now);
+  updateSunCountdown();
 }
-
-function setMapButtons(){
-  var satBtn = byId('btn-map-sat');
-  var simpleBtn = byId('btn-map-simple');
-  if(satBtn) satBtn.className = 'zoom-btn' + (baseMapMode === 'satellite' ? ' active' : '');
-  if(simpleBtn) simpleBtn.className = 'zoom-btn' + (baseMapMode === 'simple' ? ' active' : '');
-}
-
-
-function setBaseMap(mode){
-  baseMapMode = mode;
-
-  var center = map.getCenter();
-  var zoom = map.getZoom();
-
-  if(mode === 'simple'){
-    if(map.hasLayer(satelliteBaseLayer)) map.removeLayer(satelliteBaseLayer);
-    if(!map.hasLayer(simpleBaseLayer)) simpleBaseLayer.addTo(map);
-  } else {
-    if(map.hasLayer(simpleBaseLayer)) map.removeLayer(simpleBaseLayer);
-    if(!map.hasLayer(satelliteBaseLayer)) satelliteBaseLayer.addTo(map);
-  }
-
-  map.setView(center, zoom, { animate:false });
-  setMapButtons();
-  updateCompactMode();
-}
-
-function getLeftOverlayOffsetPx(){
-  var styles = getComputedStyle(document.body);
-  var sidebarW = parseFloat(styles.getPropertyValue('--sidebar-w')) || 276;
-  var leftPad = parseFloat(styles.getPropertyValue('--left-pad')) || 10;
-  var gap = parseFloat(styles.getPropertyValue('--panel-gap')) || 10;
-  return Math.round((sidebarW + leftPad + gap) / 2);
-}
-
-function setVisualCenter(lat, lng, zoom){
-  map.setView([lat, lng], zoom, { animate: false });
-}
-
-// Radar
-function fetchRadar(){
-  setStatus('Laadimine…');
-  setApiState('radar-state','laadimine','c-warn');
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET','https://api.rainviewer.com/public/weather-maps.json',true);
-  xhr.timeout = 8000;
-
-  xhr.onload = function(){
-    if(xhr.status === 200){
-      try{
-        var api = JSON.parse(xhr.responseText);
-        apiHost = api.host || apiHost;
-        var frames = (api.radar && api.radar.past && api.radar.past.length) ? api.radar.past.slice(-CONFIG.radarFrameCount) : [];
-        if(!frames.length){ fallbackFrames(); return; }
-        buildFrames(frames);
-        setStatus('Otseülekanne');
-        setTimeout(updateCompactMode, 150);
-        setApiState('radar-state','aktiivne','c-ok');
-      } catch(e){
-        fallbackFrames();
-      }
-    } else {
-      fallbackFrames();
-    }
-  };
-
-  xhr.onerror = fallbackFrames;
-  xhr.ontimeout = fallbackFrames;
-  xhr.send();
-}
-
-function fallbackFrames(){
-  var now = Math.floor(Date.now()/1000);
-  var latest = Math.floor(now/600)*600-600;
-  var f = [];
-  for(var i=CONFIG.radarFrameCount-1;i>=0;i--) f.push({time:latest-i*600,path:null});
-  buildFrames(f);
-  setStatus('Varukanal');
-  setApiState('radar-state','varurežiim','c-warn');
-}
-
-function buildFrames(frames){
-  for(var i=0;i<radarLayers.length;i++) if(map.hasLayer(radarLayers[i])) map.removeLayer(radarLayers[i]);
-
-  radarLayers = [];
-  radarFrames = frames;
-
-  for(var j=0;j<frames.length;j++){
-    var url = frames[j].path
-      ? apiHost + frames[j].path + '/256/{z}/{x}/{y}/2/1_1.png'
-      : 'https://tilecache.rainviewer.com/v2/radar/' + frames[j].time + '/256/{z}/{x}/{y}/2/1_1.png';
-
-    var layer = L.tileLayer(url, {
-      opacity: 0, maxNativeZoom: 7,
-      maxZoom: 18, tileSize: 256, zIndex: 10 + j, updateWhenIdle: true, keepBuffer: 1
-    });
-    layer.addTo(map);
-    radarLayers.push(layer);
-  }
-
-  currentFrame = radarLayers.length - 1;
-  showFrame(currentFrame);
-  setMapButtons();
-  if(playing) startAnim();
-
-  nextRefreshAt = Date.now() + CONFIG.radarRefreshMs;
-  startCountdown();
-}
-
-function showFrame(idx){
-  if(!radarLayers.length) return;
-  idx = Math.max(0,Math.min(idx,radarLayers.length-1));
-  currentFrame = idx;
-
-  for(var i=0;i<radarLayers.length;i++) radarLayers[i].setOpacity(i===idx ? 0.75 : 0);
-
-  if(radarFrames[idx]){
-    var d = new Date(radarFrames[idx].time*1000);
-    byId('timestamp').textContent = d.getDate()+'.'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes());
-  } else {
-    byId('timestamp').textContent = '—';
-  }
-
-  updateRadarCurrentLabel(idx);
-
-  var pct = radarLayers.length>1 ? (idx/(radarLayers.length-1))*100 : 100;
-  byId('timeline-fill').style.width = pct+'%';
-  byId('timeline-thumb').style.left = pct+'%';
-}
-
-function startAnim(){
-  stopAnim();
-  animTimer = setInterval(function(){
-    var next = currentFrame + 1;
-    if(next >= radarLayers.length){
-      showFrame(radarLayers.length-1);
-      stopAnim();
-      animResetTimer = setTimeout(function(){
-        if(!playing) return;
-        showFrame(0);
-        startAnim();
-      }, 1400);
-      return;
-    }
-    showFrame(next);
-  }, 850);
-}
-
-function stopAnim(){
-  if(animTimer){ clearInterval(animTimer); animTimer = null; }
-  if(animResetTimer){ clearTimeout(animResetTimer); animResetTimer = null; }
-}
-
-function togglePlay(){
-  playing = !playing;
-  var b = byId('btn-play');
-  if(playing){ b.textContent='▌▌'; startAnim(); }
-  else { b.textContent='▶'; stopAnim(); }
-}
-
-function seekTimelineFromX(clientX){
-  var rect = byId('timeline').getBoundingClientRect();
-  var pct = Math.max(0, Math.min(1, (clientX-rect.left)/rect.width));
-  stopAnim();
-  playing = false;
-  byId('btn-play').textContent='▶';
-  showFrame(Math.round(pct*(radarLayers.length-1)));
-}
-
-function updateRadarCurrentLabel(idx){
-  if(radarFrames && radarFrames.length){
-    var frame = radarFrames[idx] || radarFrames[Math.min(idx, radarFrames.length - 1)];
-    if(frame && frame.time){
-      var d = new Date(frame.time * 1000);
-      byId('radar-end').textContent = 'Radar: ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-      return;
-    }
-  }
-  byId('radar-end').textContent = 'Radar: —';
-}
-
-function startCountdown(){
-  if(countdownTimer) clearInterval(countdownTimer);
-  updateRadarCurrentLabel(currentFrame);
-  countdownTimer = setInterval(function(){
-    var secs = Math.max(0, Math.round((nextRefreshAt-Date.now())/1000));
-    var m = Math.floor(secs/60), s = secs%60;
-    byId('next-refresh-system').textContent = m + ':' + pad(s);
-    if(secs===0){
-      clearInterval(countdownTimer);
-      fetchRadar();
-setMapButtons();
-    }
-  },1000);
-}
-
-byId('btn-play').addEventListener('click', togglePlay);
-byId('timeline').addEventListener('click', function(e){ seekTimelineFromX(e.clientX); });
-byId('timeline').addEventListener('touchstart', function(e){
-  if(e.touches && e.touches.length) seekTimelineFromX(e.touches[0].clientX);
-}, {passive:true});
-
-fetchRadar();
-
-// Weather
-function fetchWeather(){
-  setApiState('weather-state','laadimine','c-warn');
-
-  var url = 'https://api.open-meteo.com/v1/forecast'
-    + '?latitude=' + CONFIG.lat
-    + '&longitude=' + CONFIG.lng
-    + '&current=temperature_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover'
-    + '&daily=temperature_2m_min'
-    + '&forecast_days=2'
-    + '&wind_speed_unit=ms&timezone=auto';
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET',url,true);
-  xhr.timeout = 8000;
-
-  xhr.onload = function(){
-    if(xhr.status===200){
-      try{
-        var data = JSON.parse(xhr.responseText);
-        var cur = data.current;
-        var temp = round1(cur.temperature_2m);
-        var feels = round1(cur.apparent_temperature);
-        var dew = round1(cur.dew_point_2m);
-        var pressure = Math.round(cur.surface_pressure);
-        var wind = round1(cur.wind_speed_10m);
-        var gust = round1(cur.wind_gusts_10m);
-        var precip = round1(cur.precipitation);
-        var cloud = Math.round(cur.cloud_cover);
-        var dir = Math.round(cur.wind_direction_10m);
-        PRESSURE_HISTORY.push({ t: Date.now(), p: pressure });
-        PRESSURE_HISTORY = PRESSURE_HISTORY.filter(function(x){ return Date.now() - x.t <= 4 * 60 * 60 * 1000; });
-
-        var frostEl = byId('frost-warning');
-        var minTonight = null;
-        if (data.daily && data.daily.temperature_2m_min && data.daily.temperature_2m_min.length) {
-          minTonight = data.daily.temperature_2m_min[0];
-        }
-
-        if (minTonight !== null && minTonight !== undefined && !isNaN(minTonight)) {
-          minTonight = round1(minTonight);
-          if (minTonight <= -5) {
-            frostEl.textContent = 'Tugev ' + minTonight + '°';
-            frostEl.className = 'box-val c-bad';
-          } else if (minTonight <= 0) {
-            frostEl.textContent = 'Oht ' + minTonight + '°';
-            frostEl.className = 'box-val c-bad';
-          } else {
-            frostEl.textContent = 'Puudub ' + minTonight + '°';
-            frostEl.className = 'box-val c-ok';
-          }
-        } else {
-          frostEl.textContent = '—';
-          frostEl.className = 'box-val';
-        }
-        frostEl.style.fontSize = '14px';
-
-        byId('wx-temp').textContent = temp;
-        byId('wx-feels').textContent = feels;
-        byId('wx-dew').textContent = dew;
-        byId('wx-pressure').textContent = pressure;
-        byId('wx-temp').className = 'box-val ' + (temp < 0 ? 'c-wind' : 'c-temp');
-        byId('wx-feels').className = 'box-val ' + (feels < 0 ? 'c-wind' : 'c-temp');
-        byId('wx-dew').className = 'box-val ' + (dew < 0 ? 'c-wind' : 'c-temp');
-        var pressureTrend = '→';
-        var pressureColor = '#eef7ff';
-        var oldPoint = null;
-        for (var pi = 0; pi < PRESSURE_HISTORY.length; pi++) {
-          if (Date.now() - PRESSURE_HISTORY[pi].t >= 2 * 60 * 60 * 1000) { oldPoint = PRESSURE_HISTORY[pi]; break; }
-        }
-        if (oldPoint) {
-          var diffP = pressure - oldPoint.p;
-          if (diffP >= 1) { pressureTrend = '↑'; pressureColor = '#92d7a6'; }
-          else if (diffP <= -1) { pressureTrend = '↓'; pressureColor = '#ffd96a'; }
-        }
-        byId('wx-pressure-trend').textContent = pressureTrend;
-        byId('wx-pressure-trend').style.color = pressureColor;
-        var sky = currentSkyText(cloud, precip);
-        byId('wx-cond').textContent = sky.text;
-        byId('wx-cond-icon').textContent = sky.icon;
-        byId('wx-wind').textContent = wind;
-        byId('wx-gust').textContent = gust;
-        byId('wx-gust').textContent = gust;
-        byId('wx-precip').textContent = precip;
-        byId('wx-dir').textContent = degToCompass(dir);
-        byId('wx-dir-label').textContent = degToEst(dir) + ' ' + dir + '°';
-        byId('wx-updated').textContent = 'uuendatud ' + fmtTime(new Date());
-
-        byId('wind-arrow-svg').setAttribute('transform','rotate('+((dir+180)%360)+',26,26)');
-        setApiState('weather-state','aktiivne','c-ok');
-      } catch(e){
-        weatherError();
-      }
-    } else {
-      weatherError();
-    }
-  };
-
-  xhr.onerror = weatherError;
-  xhr.ontimeout = weatherError;
-  xhr.send();
-}
-
-function weatherError(){
-  byId('wx-temp').textContent='—';
-  byId('wx-feels').textContent='—';
-  byId('wx-dew').textContent='—';
-  byId('wx-pressure').textContent='—';
-  byId('wx-pressure-trend').textContent='—';
-  byId('wx-temp').className='box-val c-temp';
-  byId('wx-feels').className='box-val c-temp';
-  byId('wx-dew').className='box-val c-temp';
-  byId('wx-wind').textContent='—';
-  byId('wx-gust').textContent='—';
-  byId('wx-precip').textContent='—';
-  byId('wx-cond').textContent='—';
-  byId('wx-cond-icon').textContent='•';
-  byId('frost-warning').textContent='—';
-  byId('frost-warning').className='box-val';
-  byId('frost-warning').style.fontSize='15px';
-  byId('wx-dir').textContent='—';
-  byId('wx-dir-label').textContent='andmed puuduvad';
-  byId('wx-updated').textContent='ühendusviga';
-  setApiState('weather-state','tõrge','c-bad');
-}
+setInterval(updateClock, 1000); updateClock();
 
 function degToCompass(deg){
   var d = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
   return d[Math.round(deg/22.5)%16];
 }
-
-function degToEst(deg){
-  var d = ['Põhi','Põhja-kirde','Kirre','Ida-kirde','Ida','Ida-kagu','Kagu','Lõuna-kagu','Lõuna','Lõuna-lääne','Edel','Lääne-edela','Lääs','Lääne-loode','Loode','Põhja-loode'];
-  return d[Math.round(deg/22.5)%16];
-}
-
 function currentSkyText(cloud, precip){
-  var nowMs = Date.now();
-  var isDaytime = (TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null)
-    ? (nowMs >= TODAY_SUNRISE_MS && nowMs < TODAY_SUNSET_MS)
-    : true;
-
-  if(precip >= 2) return { text:'Sajab', icon:'🌧️' };
-  if(precip > 0.1) return { text:'Nõrk sadu', icon:'🌦️' };
-
+  var isDaytime = TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null ? (Date.now() >= TODAY_SUNRISE_MS && Date.now() < TODAY_SUNSET_MS) : true;
+  if(precip >= 2) return { text:'Pilves', icon:'🌧️' };
+  if(precip > 0.1) return { text:'Vahelduv', icon:'🌦️' };
   if(isDaytime){
-    if(cloud <= 15) return { text:'Päikeseline', icon:'☀️' };
-    if(cloud <= 40) return { text:'Vähese pilvisusega', icon:'🌤️' };
-    if(cloud <= 70) return { text:'Vahelduva pilvisusega', icon:'⛅' };
+    if(cloud <= 15) return { text:'Selge', icon:'☀️' };
+    if(cloud <= 40) return { text:'Kerge', icon:'🌤️' };
+    if(cloud <= 70) return { text:'Vahelduv', icon:'⛅' };
     if(cloud <= 90) return { text:'Pilves', icon:'☁️' };
-    return { text:'Lauspilves', icon:'☁️' };
-  } else {
-    if(cloud <= 20) return { text:'Selge', icon:'🌙' };
-    if(cloud <= 50) return { text:'Vähese pilvisusega', icon:'☁️' };
-    if(cloud <= 85) return { text:'Pilves', icon:'☁️' };
-    return { text:'Lauspilves', icon:'☁️' };
+    return { text:'Täispilves', icon:'☁️' };
   }
+  if(cloud <= 20) return { text:'Selge', icon:'🌙' };
+  if(cloud <= 50) return { text:'Kerge', icon:'☁️' };
+  if(cloud <= 85) return { text:'Pilves', icon:'☁️' };
+  return { text:'Täispilves', icon:'☁️' };
 }
 
-fetchWeather();
-setInterval(fetchWeather, CONFIG.weatherRefreshMs);
-setTimeout(updateCompactMode, 200);
-
-// Sun - Open-Meteo times + real azimuth math
-function toRad(d){ return d*Math.PI/180; }
-function toDeg(r){ return r*180/Math.PI; }
-
-function getDayOfYearLocal(date){
-  var start = new Date(date.getFullYear(), 0, 0);
-  return Math.floor((date - start) / 86400000);
-}
-
-function solarDeclinationDeg(date){
-  var n = getDayOfYearLocal(date);
-  return 23.44 * Math.sin(toRad((360/365) * (n - 81)));
-}
-
-function calcSunriseSunsetAzimuths(latDeg, date){
-  var lat = toRad(latDeg);
-  var dec = toRad(solarDeclinationDeg(date));
-  var cosA = Math.sin(dec) / Math.cos(lat);
-  cosA = Math.max(-1, Math.min(1, cosA));
-  var sunriseAz = toDeg(Math.acos(cosA));
-  var sunsetAz = 360 - sunriseAz;
-  return { sunriseAz: sunriseAz, sunsetAz: sunsetAz };
-}
-
-function parseLocalIsoMinute(iso){
-  var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if(!m) return null;
-  return new Date(
-    parseInt(m[1],10),
-    parseInt(m[2],10)-1,
-    parseInt(m[3],10),
-    parseInt(m[4],10),
-    parseInt(m[5],10),
-    m[6] ? parseInt(m[6],10) : 0,
-    0
-  );
-}
-
-function destPoint(lat,lng,azDeg,distKm){
-  var R=6371, d=distKm/R, az=toRad(azDeg);
-  var lat1=toRad(lat), lng1=toRad(lng);
-
-  var lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d) +
-    Math.cos(lat1) * Math.sin(d) * Math.cos(az)
-  );
-
-  var lng2 = lng1 + Math.atan2(
-    Math.sin(az) * Math.sin(d) * Math.cos(lat1),
-    Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
-  );
-
-  return [toDeg(lat2), toDeg(lng2)];
-}
-
-function clearSunLayers(){
-  if(sunArrowLine){ map.removeLayer(sunArrowLine); sunArrowLine=null; }
-  if(sunArrow){ map.removeLayer(sunArrow); sunArrow=null; }
-  if(sunriseLine){ map.removeLayer(sunriseLine); sunriseLine=null; }
-  if(sunsetLine){ map.removeLayer(sunsetLine); sunsetLine=null; }
-}
-
-function updateSunOverlays(nowMs){
-  if(TODAY_SUNRISE_MS===null || TODAY_SUNSET_MS===null || TODAY_SUNRISE_AZ===null || TODAY_SUNSET_AZ===null) return;
-
-  clearSunLayers();
-
-  var dist = 80;
-  sunriseLine = L.polyline(
-    [[CONFIG.lat, CONFIG.lng], destPoint(CONFIG.lat, CONFIG.lng, TODAY_SUNRISE_AZ, dist)],
-    { color:'#f4a020', weight:2, opacity:0.75, dashArray:'7 5' }
-  ).addTo(map);
-
-  sunsetLine = L.polyline(
-    [[CONFIG.lat, CONFIG.lng], destPoint(CONFIG.lat, CONFIG.lng, TODAY_SUNSET_AZ, dist)],
-    { color:'#e05020', weight:2, opacity:0.75, dashArray:'7 5' }
-  ).addTo(map);
-
-  if(nowMs >= TODAY_SUNRISE_MS && nowMs < TODAY_SUNSET_MS){
-    var progress = (nowMs - TODAY_SUNRISE_MS) / (TODAY_SUNSET_MS - TODAY_SUNRISE_MS);
-    progress = Math.max(0, Math.min(1, progress));
-
-    var currentAz = TODAY_SUNRISE_AZ + (TODAY_SUNSET_AZ - TODAY_SUNRISE_AZ) * progress;
-    var ae = destPoint(CONFIG.lat, CONFIG.lng, currentAz, dist * 0.55);
-
-    sunArrowLine = L.polyline(
-      [[CONFIG.lat, CONFIG.lng], ae],
-      { color:'#ffe04a', weight:3, opacity:0.95 }
-    ).addTo(map);
-
-    var icon = L.divIcon({
-      html:'<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><polygon points="10,1 19,19 10,14 1,19" fill="#ffe04a" transform="rotate('+((Math.round(currentAz)+180)%360)+',10,10)"/></svg>',
-      iconSize:[20,20], iconAnchor:[10,10], className:''
-    });
-
-    sunArrow = L.marker(ae, { icon:icon, zIndexOffset:600 }).addTo(map);
-  }
-}
-
-function fetchSunTimes(){
-  setApiState('sun-state','laadimine','c-warn');
-
+function fetchWeatherAndForecast(){
   var url = 'https://api.open-meteo.com/v1/forecast'
     + '?latitude=' + CONFIG.lat
     + '&longitude=' + CONFIG.lng
-    + '&daily=sunrise,sunset'
+    + '&current=temperature_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover'
+    + '&hourly=temperature_2m,precipitation,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m'
+    + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode'
     + '&timezone=auto'
-    + '&forecast_days=2';
+    + '&wind_speed_unit=ms'
+    + '&forecast_days=4'
+    + '&models=ecmwf_ifs';
 
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
-  xhr.timeout = 8000;
-
+  xhr.timeout = 10000;
   xhr.onload = function(){
-    if(xhr.status===200){
-      try{
-        var data = JSON.parse(xhr.responseText);
-        var sr0 = parseLocalIsoMinute(data.daily.sunrise[0]);
-        var ss0 = parseLocalIsoMinute(data.daily.sunset[0]);
-        var sr1 = parseLocalIsoMinute(data.daily.sunrise[1]);
+    if(xhr.status !== 200) return;
+    try{
+      var data = JSON.parse(xhr.responseText);
+      var cur = data.current;
+      var temp = round1(cur.temperature_2m);
+      var feels = round1(cur.apparent_temperature);
+      var dew = round1(cur.dew_point_2m);
+      var pressure = Math.round(cur.surface_pressure);
+      var wind = round1(cur.wind_speed_10m);
+      var gust = round1(cur.wind_gusts_10m);
+      var precip = round1(cur.precipitation);
+      var cloud = Math.round(cur.cloud_cover);
+      var dir = Math.round(cur.wind_direction_10m);
 
-        if(!sr0 || !ss0 || !sr1) throw new Error('invalid sun data');
+      PRESSURE_HISTORY.push({t:Date.now(), p:pressure});
+      PRESSURE_HISTORY = PRESSURE_HISTORY.filter(function(x){ return Date.now() - x.t <= 4*60*60*1000; });
 
-        TODAY_SUNRISE_MS = sr0.getTime();
-        TODAY_SUNSET_MS = ss0.getTime();
-        TOMORROW_SUNRISE_MS = sr1.getTime();
+      byId('wx-temp').textContent = temp;
+      byId('wx-feels').textContent = feels;
+      byId('wx-dew').textContent = dew;
+      byId('wx-pressure').textContent = pressure;
+      byId('wx-wind').textContent = wind;
+      byId('wx-gust').textContent = gust;
+      byId('wx-precip').textContent = precip.toFixed(1);
+      byId('wx-dir').textContent = degToCompass(dir);
 
-        var az = calcSunriseSunsetAzimuths(CONFIG.lat, sr0);
-        TODAY_SUNRISE_AZ = az.sunriseAz;
-        TODAY_SUNSET_AZ = az.sunsetAz;
+      setTempClass(byId('wx-temp'), temp);
+      setTempClass(byId('wx-feels'), feels);
+      setTempClass(byId('wx-dew'), dew);
 
-        byId('sunrise-time').textContent = pad(sr0.getHours()) + ':' + pad(sr0.getMinutes());
-        byId('sunset-time').textContent = pad(ss0.getHours()) + ':' + pad(ss0.getMinutes());
-        byId('sunrise-az').textContent = Math.round(TODAY_SUNRISE_AZ) + '°';
-        byId('sunset-az').textContent = Math.round(TODAY_SUNSET_AZ) + '°';
+      var sky = currentSkyText(cloud, precip);
+      byId('wx-cond').textContent = sky.text;
+      byId('wx-cond-icon').textContent = sky.icon;
 
-        var mins = Math.round((TODAY_SUNSET_MS - TODAY_SUNRISE_MS) / 60000);
-        var h = Math.floor(mins / 60), m = mins % 60;
-        byId('day-length').textContent = h + 't ' + pad(m) + 'min';
-  var todayLen = TODAY_SUNSET_MS - TODAY_SUNRISE_MS;
-  var yesterdayLen = todayLen - 120000; // approx seasonal daily change ~2 min
-  var diff = todayLen - yesterdayLen;
-  var sign = diff>=0?'+':'';
-  byId('day-change').textContent = sign + Math.round(diff/60000) + ' min';
-
-        updateSunOverlays(Date.now());
-        updateClock();
-        setApiState('sun-state','aktiivne','c-ok');
-      } catch(e){
-        TODAY_SUNRISE_MS = TODAY_SUNSET_MS = TOMORROW_SUNRISE_MS = null;
-        TODAY_SUNRISE_AZ = TODAY_SUNSET_AZ = null;
-        clearSunLayers();
-        byId('sunrise-time').textContent='—';
-        byId('sunset-time').textContent='—';
-        byId('sunrise-az').textContent='—';
-        byId('sunset-az').textContent='—';
-        byId('sunset-countdown').textContent='—';
-        setApiState('sun-state','tõrge','c-bad');
+      var pressureTrend = '→', pressureColor = '#eef7ff', oldPoint = null;
+      for(var i=0;i<PRESSURE_HISTORY.length;i++){
+        if(Date.now() - PRESSURE_HISTORY[i].t >= 2*60*60*1000){ oldPoint = PRESSURE_HISTORY[i]; break; }
       }
-    } else {
-      setApiState('sun-state','tõrge','c-bad');
-    }
-  };
+      if(oldPoint){
+        var diffP = pressure - oldPoint.p;
+        if(diffP >= 1){ pressureTrend = '↑'; pressureColor = '#92d7a6'; }
+        else if(diffP <= -1){ pressureTrend = '↓'; pressureColor = '#ffd96a'; }
+      }
+      byId('wx-pressure-trend').textContent = pressureTrend;
+      byId('wx-pressure-trend').style.color = pressureColor;
 
-  xhr.onerror = function(){ setApiState('sun-state','tõrge','c-bad'); };
-  xhr.ontimeout = function(){ setApiState('sun-state','tõrge','c-bad'); };
+      var minTonight = data.daily && data.daily.temperature_2m_min ? data.daily.temperature_2m_min[0] : null;
+      var frostEl = byId('frost-warning');
+      if(minTonight !== null && !isNaN(minTonight)){
+        if(minTonight <= -2){ frostEl.textContent = 'Kõrge ' + round1(minTonight) + '°'; frostEl.className = 'val small bad'; }
+        else if(minTonight < 1){ frostEl.textContent = 'Võimalik ' + round1(minTonight) + '°'; frostEl.className = 'val small warn'; }
+        else { frostEl.textContent = 'Puudub ' + round1(minTonight) + '°'; frostEl.className = 'val small ok'; }
+      }
+
+      renderHourly(data.hourly);
+      renderDaily(data.daily);
+      updateRainStart(data.hourly);
+    }catch(e){}
+  };
   xhr.send();
 }
 
-function updateClock(){
-  var nowMs = Date.now();
-  var now = new Date(nowMs);
-
-  var paevad = ['PÜHAPÄEV', 'ESMASPÄEV', 'TEISIPÄEV', 'KOLMAPÄEV', 'NELJAPÄEV', 'REEDE', 'LAUPÄEV'];
-  byId('clock').textContent =
-    paevad[now.getDay()] + ' ' + now.getDate() + '.' + pad(now.getMonth() + 1) + ' ' +
-    pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-
-  if(TODAY_SUNRISE_MS===null || TODAY_SUNSET_MS===null || TOMORROW_SUNRISE_MS===null){
-    byId('sunset-countdown').textContent = '—';
-  } else {
-    var targetTime, label, icon, colorClass;
-
-    if(nowMs < TODAY_SUNRISE_MS){
-      targetTime = TODAY_SUNRISE_MS;
-      label = 'Päikesetõusuni';
-      icon = '🌅';
-      colorClass = 'c-rise';
-    } else if(nowMs < TODAY_SUNSET_MS){
-      targetTime = TODAY_SUNSET_MS;
-      label = 'Loojanguni';
-      icon = '🌇';
-      colorClass = 'c-set';
-    } else {
-      targetTime = TOMORROW_SUNRISE_MS;
-      label = 'Päikesetõusuni';
-      icon = '🌅';
-      colorClass = 'c-rise';
-    }
-
-    var diff = Math.max(0, targetTime - nowMs);
-    var th = Math.floor(diff / 3600000);
-    var tm = Math.floor((diff % 3600000) / 60000);
-    var ts = Math.floor((diff % 60000) / 1000);
-
-    var el = byId('sunset-countdown');
-    el.textContent = th + 't ' + pad(tm) + 'm ' + pad(ts) + 's';
-    el.className = 'box-val ' + colorClass;
-
-    byId('countdown-label').textContent = label;
-    byId('countdown-icon').textContent = icon;
-
-    updateSunOverlays(nowMs);
-  }
-
-  var reloadSecs = Math.max(0, Math.round((pageReloadAt - nowMs) / 1000));
-  var rh = Math.floor(reloadSecs / 3600), rm = Math.floor((reloadSecs % 3600) / 60);
-  byId('page-reload').textContent = rh + 't ' + pad(rm) + 'm';
+function parseLocalIsoFlexible(iso){
+  var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if(!m) return null;
+  return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10), parseInt(m[4],10), parseInt(m[5],10));
 }
-
-fetchSunTimes();
-setInterval(fetchSunTimes, 30 * 60 * 1000);
-setInterval(updateClock, 1000);
-setTimeout(updateCompactMode, 300);
-
-
-// Aurora - NOAA Ovation + planetary Kp
-function kpLabel(kp){
-  if(kp === null || isNaN(kp)) return '—';
-  if(kp < 2) return 'Madal';
-  if(kp < 4) return 'Võimalik';
-  if(kp < 6) return 'Hea';
-  return 'Väga hea';
-}
-
-function fetchAurora(){
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', true);
-  xhr.timeout = 8000;
-
-  xhr.onload = function(){
-    if(xhr.status === 200){
-      try{
-        var data = JSON.parse(xhr.responseText);
-        var rows = data.slice(1).filter(function(r){ return r && r.length >= 2; });
-        var last = rows[rows.length - 1];
-        var kp = parseFloat(last[1]);
-
-        byId('kp-current').textContent = isNaN(kp) ? '—' : kp.toFixed(1);
-        byId('aurora-level').textContent = kpLabel(kp);
-        byId('aurora-updated').textContent = last[0] ? String(last[0]).replace('T', ' ').replace('Z', ' UTC') : fmtTime(new Date());
-      } catch(e){
-        byId('kp-current').textContent = '—';
-        byId('aurora-level').textContent = 'viga';
-        byId('aurora-updated').textContent = 'andmed puuduvad';
-      }
-    } else {
-      byId('kp-current').textContent = '—';
-      byId('aurora-level').textContent = 'viga';
-      byId('aurora-updated').textContent = 'andmed puuduvad';
-    }
-  };
-
-  xhr.onerror = function(){
-    byId('kp-current').textContent = '—';
-    byId('aurora-level').textContent = 'viga';
-    byId('aurora-updated').textContent = 'andmed puuduvad';
-  };
-  xhr.ontimeout = xhr.onerror;
-  xhr.send();
-}
-
-fetchAurora();
-setInterval(fetchAurora, 15 * 60 * 1000);
-
-
-
-
-// Pollen
-function pollenLevel(v){
-  if(v === null || v === undefined || isNaN(v)) return {text:'—', color:'#eef7ff'};
-  if(v < 1) return {text:'Puudub', color:'#92d7a6'};
-  if(v < 10) return {text:'Madal', color:'#92d7a6'};
-  if(v < 50) return {text:'Mõõdukas', color:'#ffd96a'};
-  if(v < 100) return {text:'Kõrge', color:'#ffb366'};
-  return {text:'Väga kõrge', color:'#ff8a8a'};
-}
-
-function fetchPollen(){
-  var url = 'https://air-quality-api.open-meteo.com/v1/air-quality'
-    + '?latitude=' + CONFIG.lat
-    + '&longitude=' + CONFIG.lng
-    + '&current=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen'
-    + '&timezone=auto';
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.timeout = 8000;
-
-  xhr.onload = function(){
-    if(xhr.status === 200){
-      try{
-        var data = JSON.parse(xhr.responseText);
-        var cur = data.current || {};
-        var alder = Number(cur.alder_pollen);
-        var birch = Number(cur.birch_pollen);
-        var grass = Number(cur.grass_pollen);
-        var mugwort = Number(cur.mugwort_pollen);
-        var ragweed = Number(cur.ragweed_pollen);
-
-        var maxVal = Math.max(
-          isNaN(alder) ? 0 : alder,
-          isNaN(birch) ? 0 : birch,
-          isNaN(grass) ? 0 : grass,
-          isNaN(mugwort) ? 0 : mugwort,
-          isNaN(ragweed) ? 0 : ragweed
-        );
-
-        var overall = pollenLevel(maxVal);
-        byId('pollen-overall').textContent = overall.text;
-        byId('pollen-overall').style.color = overall.color;
-
-        var birchL = pollenLevel(birch);
-        byId('pollen-birch').textContent = birchL.text;
-        byId('pollen-birch').style.color = birchL.color;
-
-        var grassL = pollenLevel(grass);
-        byId('pollen-grass').textContent = grassL.text;
-        byId('pollen-grass').style.color = grassL.color;
-
-        var alderL = pollenLevel(alder);
-        byId('pollen-alder').textContent = alderL.text;
-        byId('pollen-alder').style.color = alderL.color;
-      } catch(e){
-        byId('pollen-overall').textContent = '—';
-        byId('pollen-birch').textContent = '—';
-        byId('pollen-grass').textContent = '—';
-        byId('pollen-alder').textContent = '—';
-      }
-    } else {
-      byId('pollen-overall').textContent = '—';
-      byId('pollen-birch').textContent = '—';
-      byId('pollen-grass').textContent = '—';
-      byId('pollen-alder').textContent = '—';
-    }
-  };
-  xhr.onerror = function(){
-    byId('pollen-overall').textContent = '—';
-    byId('pollen-birch').textContent = '—';
-    byId('pollen-grass').textContent = '—';
-    byId('pollen-alder').textContent = '—';
-  };
-  xhr.ontimeout = xhr.onerror;
-  xhr.send();
-}
-
-fetchPollen();
-setInterval(fetchPollen, 60 * 60 * 1000);
-setTimeout(updateCompactMode, 400);
-
-
-// Forecast
-var FORECAST_CACHE = null;
-var forecastResizeTimer = null;
-
 function weatherCodeToIcon(code, isDay){
   if(code === 0) return isDay ? '☀️' : '🌙';
   if(code === 1) return isDay ? '🌤️' : '🌙';
@@ -1368,297 +289,123 @@ function weatherCodeToIcon(code, isDay){
   if(code >= 95) return '⛈️';
   return '•';
 }
-
-function shortDayName(dateObj){
-  var d = ['P','E','T','K','N','R','L'];
-  return d[dateObj.getDay()];
-}
-
-function parseLocalIsoFlexible(iso){
-  var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if(!m) return null;
-  return new Date(
-    parseInt(m[1],10),
-    parseInt(m[2],10)-1,
-    parseInt(m[3],10),
-    parseInt(m[4],10),
-    parseInt(m[5],10),
-    m[6] ? parseInt(m[6],10) : 0,
-    0
-  );
-}
-
-function buildHourlyItems(hourly){
-  var now = new Date();
-  var items = [];
-  var wrap = byId('hourly-chart-wrap');
-  var width = wrap ? wrap.clientWidth : 800;
-  var wanted = 7;
-  if(width >= 860) wanted = 8;
-  if(width < 700) wanted = 6;
-  if(width < 585) wanted = 5;
-
-  for(var i=0; i<hourly.time.length; i++){
+function renderHourly(hourly){
+  var strip = byId('hourly-strip');
+  strip.innerHTML = '';
+  var now = new Date(), added = 0;
+  for(var i=0;i<hourly.time.length && added < 8;i++){
     var t = parseLocalIsoFlexible(hourly.time[i]);
-    if(!t) continue;
-    if(t.getTime() < now.getTime() - 30*60*1000) continue;
-
-    items.push({
-      time: t,
-      temp: Math.round(hourly.temperature_2m[i]),
-      precip: round1(hourly.precipitation[i] || 0),
-      code: hourly.weathercode[i],
-      isDay: hourly.is_day[i],
-      wind: round1(hourly.wind_speed_10m[i] || 0),
-      gust: round1(hourly.wind_gusts_10m[i] || 0),
-      windDir: Math.round(hourly.wind_direction_10m[i] || 0)
-    });
-
-    if(items.length >= wanted) break;
-  }
-
-  return items;
-}
-
-
-
-function renderHourlyForecast(hourly){
-  var svg = byId('hourly-chart');
-  var wrap = byId('hourly-chart-wrap');
-  if(!svg || !wrap) return;
-
-  var items = buildHourlyItems(hourly);
-  if(!items.length){
-    svg.innerHTML = '';
-    return;
-  }
-
-  var width = Math.max(640, Math.floor(wrap.clientWidth));
-  var height = Math.max(128, Math.floor(wrap.clientHeight));
-  svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-  svg.setAttribute('preserveAspectRatio', 'none');
-
-  var left = 34, right = 10;
-  var hoursY = 12;
-  var iconY = 29;
-  var tempTop = 40;
-  var tempBottom = 72;
-  var windArrowY = 92;
-  var windTextY = 107;
-  var rainBase = height - 14;
-  var rainMaxH = 22;
-
-  var innerW = width - left - right;
-  var step = innerW / items.length;
-  var barW = Math.max(12, step * 0.42);
-
-  var rawMinTemp = Math.min.apply(null, items.map(function(it){ return it.temp; }));
-  var rawMaxTemp = Math.max.apply(null, items.map(function(it){ return it.temp; }));
-  if(rawMinTemp === rawMaxTemp){ rawMinTemp -= 1; rawMaxTemp += 1; }
-
-  var axisMin = Math.floor((rawMinTemp - 1) / 2) * 2;
-  var axisMax = Math.ceil((rawMaxTemp + 1) / 2) * 2;
-  if(axisMax - axisMin < 6) axisMax = axisMin + 6;
-
-  var maxPrecip = Math.max.apply(null, items.map(function(it){ return it.precip; }));
-  if(maxPrecip < 0.6) maxPrecip = 0.6;
-
-  function xAt(i){ return left + i * step + step / 2; }
-  function yTemp(v){
-    var p = (v - axisMin) / (axisMax - axisMin);
-    return tempBottom - p * (tempBottom - tempTop);
-  }
-  function barH(v){
-    return (v / maxPrecip) * rainMaxH;
-  }
-
-  var parts = [];
-  parts.push('<rect x="0" y="0" width="' + width + '" height="' + height + '" fill="transparent"/>');
-
-  // Y-axis ticks for temperature
-  var tickStep = 2;
-  for(var t = axisMin; t <= axisMax; t += tickStep){
-    var ty = yTemp(t);
-    parts.push('<line x1="' + left + '" y1="' + ty.toFixed(1) + '" x2="' + (width-right) + '" y2="' + ty.toFixed(1) + '" stroke="rgba(120,150,176,.10)" stroke-width="1"/>');
-    parts.push('<text x="' + (left - 6) + '" y="' + (ty + 3).toFixed(1) + '" text-anchor="end" fill="#aecdde" font-size="14" font-weight="bold" font-family="Courier New">' + t + '°</text>');
-  }
-
-  // Vertical slot lines
-  for(var i=0; i<=items.length; i++){
-    var gx = left + i * step;
-    parts.push('<line x1="' + gx.toFixed(1) + '" y1="' + tempTop + '" x2="' + gx.toFixed(1) + '" y2="' + (height - 6) + '" stroke="rgba(120,150,176,.14)" stroke-width="1"/>');
-  }
-
-  parts.push('<line x1="' + left + '" y1="' + rainBase + '" x2="' + (width-right) + '" y2="' + rainBase + '" stroke="rgba(120,150,176,.16)" stroke-width="1"/>');
-
-  // precipitation bars
-  for(var i=0; i<items.length; i++){
-    var h = barH(items[i].precip);
-    var x = xAt(i) - barW/2;
-    parts.push('<rect x="' + x.toFixed(1) + '" y="' + (rainBase - h).toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5" fill="rgba(74,170,255,.82)"/>');
-  }
-
-  // temperature line
-  var path = '';
-  for(var i=0; i<items.length; i++){
-    path += (i===0 ? 'M ' : ' L ') + xAt(i).toFixed(1) + ' ' + yTemp(items[i].temp).toFixed(1);
-  }
-  parts.push('<path d="' + path + '" fill="none" stroke="#d92d20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>');
-
-  var showAllTemps = step >= 72;
-  var showAllWind = step >= 74;
-
-  for(var i=0; i<items.length; i++){
-    var cx = xAt(i);
-    var cy = yTemp(items[i].temp);
-    var icon = weatherCodeToIcon(items[i].code, items[i].isDay === 1);
-    var hour = pad(items[i].time.getHours());
-        var windRot = (items[i].windDir + 180) % 360;
-
-    parts.push('<text x="' + cx.toFixed(1) + '" y="' + hoursY + '" text-anchor="middle" fill="#eef7ff" font-size="12" font-family="Courier New">' + hour + '</text>');
-    parts.push('<text x="' + cx.toFixed(1) + '" y="' + iconY + '" text-anchor="middle" font-size="13">' + icon + '</text>');
-    parts.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="1.8" fill="#d92d20"/>');
-
-    if(showAllTemps || i % 2 === 0){
-      parts.push('<text x="' + cx.toFixed(1) + '" y="' + (cy - 6).toFixed(1) + '" text-anchor="middle" fill="#eef7ff" font-size="14" font-weight="bold" font-family="Courier New">' + items[i].temp + '°</text>');
-    }
-
-    parts.push(
-      '<g transform="translate(' + cx.toFixed(1) + ',' + windArrowY + ') rotate(' + windRot + ')">' +
-      '<polygon points="0,-6 4,5 0,3 -4,5" fill="#e8f4ff"/></g>'
-    );
-
-    if(showAllWind || i % 2 === 0){
-      parts.push('<text x="' + cx.toFixed(1) + '" y="' + windTextY + '" text-anchor="middle" fill="#e8f4ff" font-size="12" font-family="Courier New">' + items[i].wind.toFixed(1) + ' (' + items[i].gust.toFixed(1) + ') m/s</text>');
-    }
-
-    parts.push('<text x="' + cx.toFixed(1) + '" y="' + (rainBase - barH(items[i].precip) - 2).toFixed(1) + '" text-anchor="middle" fill="#cfeaff" font-size="12" font-family="Courier New">' + items[i].precip.toFixed(1) + 'mm</text>');
-  }
-
-  svg.innerHTML = parts.join('');
-}
-
-
-function updateRainStart(hourly){
-  var el = byId('rain-start');
-  if(!el || !hourly || !hourly.time) return;
-  var now = new Date();
-  var found = null;
-
-  for(var i=0; i<hourly.time.length; i++){
-    var t = parseLocalIsoFlexible(hourly.time[i]);
-    if(!t) continue;
-    if(t.getTime() < now.getTime()) continue;
-    var p = round1(hourly.precipitation[i] || 0);
-    if(p > 0.2){
-      found = { time: t, precip: p };
-      break;
-    }
-  }
-
-  if(!found){
-    el.textContent = 'Pole oodata';
-    return;
-  }
-
-  var diff = found.time.getTime() - now.getTime();
-  var h = Math.floor(diff / 3600000);
-  var m = Math.floor((diff % 3600000) / 60000);
-  if(h <= 0){
-    el.textContent = m + ' min pärast';
-  } else {
-    el.textContent = h + 'h ' + m + 'min';
+    if(!t || t.getTime() < now.getTime() - 30*60*1000) continue;
+    var wind = round1(hourly.wind_speed_10m[i] || 0);
+    var gust = round1(hourly.wind_gusts_10m[i] || 0);
+    var rain = round1(hourly.precipitation[i] || 0);
+    var temp = Math.round(hourly.temperature_2m[i]);
+    var icon = weatherCodeToIcon(hourly.weathercode[i], hourly.is_day[i] === 1);
+    var el = document.createElement('div');
+    el.className = 'hour';
+    el.innerHTML =
+      '<div class="hour-time">' + pad(t.getHours()) + '</div>' +
+      '<div class="hour-icon">' + icon + '</div>' +
+      '<div class="hour-temp ' + (temp < 0 ? 'cold' : 'warm') + '">' + temp + '°</div>' +
+      '<div class="hour-wind">' + wind.toFixed(1) + ' (' + gust.toFixed(1) + ') m/s</div>' +
+      '<div class="hour-rain">' + rain.toFixed(1) + ' mm</div>';
+    strip.appendChild(el);
+    added++;
   }
 }
-
-function renderDailyForecast(daily){
+function renderDaily(daily){
   var grid = byId('daily-grid');
-  if(!grid) return;
   grid.innerHTML = '';
-
-  // Skip today: hourly panel already covers today, so show the next 3 full days
   var startIndex = daily.time.length > 1 ? 1 : 0;
   var endIndex = Math.min(startIndex + 3, daily.time.length);
-
-  for(var i=startIndex; i<endIndex; i++){
+  for(var i=startIndex;i<endIndex;i++){
     var d = new Date(daily.time[i] + 'T12:00:00');
-    var cell = document.createElement('div');
-    cell.className = 'daily-cell';
-
     var tmax = Math.round(daily.temperature_2m_max[i]);
     var tmin = Math.round(daily.temperature_2m_min[i]);
-    var rain = round1(daily.precipitation_sum[i] || 0);
     var icon = weatherCodeToIcon(daily.weathercode[i], true);
-
-    var maxColor = tmax < 0 ? '#8ed8ff' : '#eef7ff';
-    var minColor = tmin < 0 ? '#8ed8ff' : '#9eb7cb';
-
-    cell.innerHTML =
-      '<div class="d-day">' + shortDayName(d) + ' ' + d.getDate() + '.' + pad(d.getMonth()+1) + '</div>' +
-      '<div class="d-icon">' + icon + '</div>' +
-      '<div class="d-max" style="color:' + maxColor + ';">' + tmax + '°</div>' +
-      '<div class="d-min" style="color:' + minColor + ';">min ' + tmin + '°</div>' +
-      '<div class="d-rain">' + rain.toFixed(1) + ' mm</div>';
-
-    grid.appendChild(cell);
+    var rain = round1(daily.precipitation_sum[i] || 0);
+    var el = document.createElement('div');
+    el.className = 'mini';
+    el.innerHTML =
+      '<div class="mini-day">' + ['P','E','T','K','N','R','L'][d.getDay()] + ' ' + d.getDate() + '.' + pad(d.getMonth()+1) + '</div>' +
+      '<div class="mini-icon">' + icon + '</div>' +
+      '<div class="mini-main ' + (tmax < 0 ? 'cold' : 'warm') + '">' + tmax + '°</div>' +
+      '<div class="mini-sub">min ' + tmin + '°</div>' +
+      '<div class="mini-sub">' + rain.toFixed(1) + ' mm</div>';
+    grid.appendChild(el);
   }
 }
-
-function renderForecastFromCache(){
-  if(!FORECAST_CACHE) return;
-  renderHourlyForecast(FORECAST_CACHE.hourly);
-  renderDailyForecast(FORECAST_CACHE.daily);
-  updateRainStart(FORECAST_CACHE.hourly);
+function updateRainStart(hourly){
+  var el = byId('rain-start');
+  var now = new Date(), found = null;
+  for(var i=0;i<hourly.time.length;i++){
+    var t = parseLocalIsoFlexible(hourly.time[i]);
+    if(!t || t.getTime() < now.getTime()) continue;
+    var p = round1(hourly.precipitation[i] || 0);
+    if(p > 0.2){ found = {time:t}; break; }
+  }
+  if(!found){ el.textContent = 'Pole oodata'; return; }
+  var diff = found.time.getTime() - now.getTime();
+  var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
+  el.textContent = h <= 0 ? (m + ' min pärast') : (h + 'h ' + m + 'min');
 }
 
-function fetchForecast(){
-  var url = 'https://api.open-meteo.com/v1/forecast'
-    + '?latitude=' + CONFIG.lat
-    + '&longitude=' + CONFIG.lng
-    + '&hourly=temperature_2m,precipitation,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m'
-    + '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode'
-    + '&timezone=auto'
-    + '&wind_speed_unit=ms'
-    + '&forecast_days=4&models=ecmwf_ifs';
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.timeout = 8000;
-
-  xhr.onload = function(){
-    if(xhr.status === 200){
-      try{
-        FORECAST_CACHE = JSON.parse(xhr.responseText);
-        renderForecastFromCache();
-      } catch(e){}
-    }
-  };
-  xhr.onerror = function(){};
-  xhr.ontimeout = function(){};
-  xhr.send();
+function toRad(d){ return d*Math.PI/180; }
+function toDeg(r){ return r*180/Math.PI; }
+function calcSunTimes(lat,lng,date){
+  var JD=date.getTime()/86400000+2440587.5, n=JD-2451545.0;
+  var L=(280.460+0.9856474*n)%360;
+  var g=toRad((357.528+0.9856003*n)%360);
+  var lam=toRad(L+1.915*Math.sin(g)+0.020*Math.sin(2*g));
+  var eps=toRad(23.439-0.0000004*n);
+  var sinDec=Math.sin(eps)*Math.sin(lam), dec=Math.asin(sinDec);
+  var RA=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam));
+  var EoT=toDeg(L*Math.PI/180-RA)*4;
+  var noon=720-4*lng-EoT, latR=toRad(lat);
+  var cosHA=(Math.cos(toRad(90.833))-Math.sin(latR)*Math.sin(dec))/(Math.cos(latR)*Math.cos(dec));
+  var HA=toDeg(Math.acos(Math.max(-1,Math.min(1,cosHA))));
+  function utcMin(m){
+    var d2=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate(),0,0,0));
+    d2.setTime(d2.getTime()+m*60000);
+    return d2;
+  }
+  return { sunrise:utcMin(noon-HA*4), sunset:utcMin(noon+HA*4) };
 }
+function fetchSunTimes(){
+  var now = new Date();
+  var utcNoon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0));
+  var sun = calcSunTimes(CONFIG.lat, CONFIG.lng, utcNoon);
+  TODAY_SUNRISE_MS = sun.sunrise.getTime();
+  TODAY_SUNSET_MS = sun.sunset.getTime();
+  byId('sunrise-time').textContent = formatTime(sun.sunrise);
+  byId('sunset-time').textContent = formatTime(sun.sunset);
+  var mins = Math.round((sun.sunset - sun.sunrise)/60000);
+  byId('day-length').textContent = Math.floor(mins/60) + 'h ' + pad(mins%60) + 'min';
+  var yNoon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()-1, 12, 0, 0));
+  var ySun = calcSunTimes(CONFIG.lat, CONFIG.lng, yNoon);
+  var diffMin = Math.round(((sun.sunset - sun.sunrise) - (ySun.sunset - ySun.sunrise))/60000);
+  byId('day-change').textContent = (diffMin >= 0 ? '+' : '') + diffMin + ' min';
+  updateSunCountdown();
+}
+function updateSunCountdown(){
+  if(TODAY_SUNRISE_MS === null || TODAY_SUNSET_MS === null) return;
+  var now = Date.now(), target, label, cls;
+  if(now < TODAY_SUNRISE_MS){ target = TODAY_SUNRISE_MS; label = 'Päikesetõusuni'; cls = 'rise'; }
+  else if(now < TODAY_SUNSET_MS){ target = TODAY_SUNSET_MS; label = 'Loojanguni'; cls = 'set'; }
+  else {
+    var d = new Date();
+    var tomorrowNoon = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()+1, 12, 0, 0));
+    var tomorrowSun = calcSunTimes(CONFIG.lat, CONFIG.lng, tomorrowNoon);
+    target = tomorrowSun.sunrise.getTime(); label = 'Päikesetõusuni'; cls = 'rise';
+  }
+  var diff = Math.max(0, target - now);
+  var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+  byId('sun-count-label').textContent = label;
+  byId('sun-countdown').textContent = h + 't ' + pad(m) + 'm ' + pad(s) + 's';
+  byId('sun-countdown').className = 'val small ' + cls;
+}
+setInterval(updateSunCountdown, 1000);
 
-window.addEventListener('resize', function(){
-  if(forecastResizeTimer) clearTimeout(forecastResizeTimer);
-  forecastResizeTimer = setTimeout(function(){
-    renderForecastFromCache();
-    setVisualCenter(CONFIG.lat, CONFIG.lng, map.getZoom());
-    updateCompactMode();
-  }, 120);
-});
-
-window.addEventListener('orientationchange', function(){
-  setTimeout(function(){
-    setVisualCenter(CONFIG.lat, CONFIG.lng, map.getZoom());
-    updateCompactMode();
-  }, 200);
-});
-
-fetchForecast();
-setInterval(fetchForecast, 60 * 60 * 1000);
-
-
-// Moon
 function calcMoon(){
   var now = new Date();
   var knownNew = new Date(Date.UTC(2000,0,6,18,14,0));
@@ -1666,7 +413,6 @@ function calcMoon(){
   var daysSinceNew = (now-knownNew)/(1000*60*60*24);
   var phase = ((daysSinceNew%synodicMonth)+synodicMonth)%synodicMonth;
   var illumination = Math.round((1-Math.cos(2*Math.PI*phase/synodicMonth))/2*100);
-
   var phaseEmoji, phaseName;
   if(phase<1.85){ phaseEmoji='🌑'; phaseName='Noorkuu'; }
   else if(phase<5.54){ phaseEmoji='🌒'; phaseName='Kasvav sirp'; }
@@ -1677,62 +423,78 @@ function calcMoon(){
   else if(phase<23.99){ phaseEmoji='🌗'; phaseName='Viimane veerand'; }
   else if(phase<27.68){ phaseEmoji='🌘'; phaseName='Kahanev sirp'; }
   else { phaseEmoji='🌑'; phaseName='Noorkuu'; }
-
   byId('moon-icon').textContent = phaseEmoji;
   byId('moon-phase').textContent = phaseName;
-  var moonIllumEl = document.getElementById('moon-illum');
-  if (moonIllumEl) moonIllumEl.textContent = illumination + '%';
-
+  byId('moon-illum').textContent = illumination + '%';
   var daysToFull = phase < 14.765 ? (14.765-phase) : (synodicMonth-phase+14.765);
   daysToFull = Math.round(daysToFull*10)/10;
   var fullDate = new Date(now.getTime()+daysToFull*86400000);
-  var months = ['jaan','veebr','märts','apr','mai','juuni','juuli','aug','sept','okt','nov','dets'];
-
-  byId('moon-full').textContent =
-    phase>=13 && phase<=17
-      ? 'Täna/homme'
-      : fullDate.getDate()+'. '+months[fullDate.getMonth()]+' ('+Math.round(daysToFull)+'p)';
+  var months=['jaan','veebr','märts','apr','mai','juuni','juuli','aug','sept','okt','nov','dets'];
+  byId('moon-full').textContent = phase>=13 && phase<=17 ? 'Täna/homme' : fullDate.getDate()+'. '+months[fullDate.getMonth()]+' ('+Math.round(daysToFull)+'p)';
 }
+setInterval(calcMoon, 60*60*1000); calcMoon();
 
-calcMoon();
-setInterval(calcMoon, 60*60*1000);
-
-// Reload
-window.addEventListener('load', function(){ setTimeout(updateCompactMode, 250); setTimeout(updateCompactMode, 900); setTimeout(updateCompactMode, 1800); });
-setTimeout(function(){ location.reload(); }, CONFIG.pageReloadMs);
-</script>
-
-<div id="zoom-presets">
-<button class="zoom-btn active" id="btn-map-sat" onclick="setBaseMap('satellite')">SATELLIIT</button>
-<button class="zoom-btn" id="btn-map-simple" onclick="setBaseMap('simple')">KAART</button>
-<div class="zoom-sep"></div>
-<button class="zoom-btn" onclick="zoomLocal()">50 m</button>
-<button class="zoom-btn" onclick="zoomDefault()">10 km</button>
-<button class="zoom-btn" onclick="zoomRegion()">80 km</button>
-<button class="zoom-btn" onclick="zoomEstonia()">EESTI</button>
-</div>
-
-<script>
-function zoomLocal(){
-// ~50x50m view
-setVisualCenter(CONFIG.lat, CONFIG.lng, 18);
+function pollenLevel(v){
+  if(v === null || v === undefined || isNaN(v)) return {text:'—', color:'#eef7ff'};
+  if(v < 1) return {text:'Puudub', color:'#92d7a6'};
+  if(v < 10) return {text:'Madal', color:'#92d7a6'};
+  if(v < 50) return {text:'Mõõdukas', color:'#ffd96a'};
+  if(v < 100) return {text:'Kõrge', color:'#ffb366'};
+  return {text:'Väga kõrge', color:'#ff8a8a'};
 }
-
-
-function zoomDefault(){
-  map.setView([CONFIG.lat, CONFIG.lng], 9);
+function fetchPollen(){
+  var url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + CONFIG.lat + '&longitude=' + CONFIG.lng + '&current=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&timezone=auto';
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onload = function(){
+    if(xhr.status !== 200) return;
+    try{
+      var cur = JSON.parse(xhr.responseText).current || {};
+      var alder = Number(cur.alder_pollen), birch = Number(cur.birch_pollen), grass = Number(cur.grass_pollen), mug = Number(cur.mugwort_pollen), rag = Number(cur.ragweed_pollen);
+      var maxVal = Math.max(isNaN(alder)?0:alder,isNaN(birch)?0:birch,isNaN(grass)?0:grass,isNaN(mug)?0:mug,isNaN(rag)?0:rag);
+      var overall = pollenLevel(maxVal), b = pollenLevel(birch), g = pollenLevel(grass), a = pollenLevel(alder);
+      byId('pollen-overall').textContent = overall.text; byId('pollen-overall').style.color = overall.color;
+      byId('pollen-birch').textContent = b.text; byId('pollen-birch').style.color = b.color;
+      byId('pollen-grass').textContent = g.text; byId('pollen-grass').style.color = g.color;
+      byId('pollen-alder').textContent = a.text; byId('pollen-alder').style.color = a.color;
+    }catch(e){}
+  };
+  xhr.send();
 }
+setInterval(fetchPollen, 60*60*1000); fetchPollen();
 
-function zoomRegion(){
-// ~80km region centered on user
-setVisualCenter(CONFIG.lat, CONFIG.lng, 8);
+function kpLabel(kp){
+  if(kp === null || isNaN(kp)) return '—';
+  if(kp < 2) return 'Madal';
+  if(kp < 4) return 'Võimalik';
+  if(kp < 6) return 'Hea';
+  return 'Väga hea';
 }
+function fetchAurora(){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', true);
+  xhr.onload = function(){
+    if(xhr.status !== 200) return;
+    try{
+      var data = JSON.parse(xhr.responseText);
+      var rows = data.slice(1).filter(function(r){ return r && r.length >= 2; });
+      var last = rows[rows.length - 1];
+      var kp = parseFloat(last[1]);
+      byId('kp-current').textContent = isNaN(kp) ? '—' : kp.toFixed(1);
+      byId('aurora-prob').textContent = kpLabel(kp);
+      byId('aurora-updated').textContent = last[0];
+    }catch(e){}
+  };
+  xhr.send();
+}
+setInterval(fetchAurora, 30*60*1000); fetchAurora();
 
-function zoomEstonia(){
-// Estonia scale but still centered on user location
-setVisualCenter(CONFIG.lat, CONFIG.lng, 7);
-}
+fetchSunTimes();
+setInterval(fetchSunTimes, 30*60*1000);
+fetchWeatherAndForecast();
+setInterval(fetchWeatherAndForecast, CONFIG.weatherRefreshMs);
+
+setTimeout(function(){ location.reload(); }, 2 * 60 * 60 * 1000);
 </script>
 </body>
-
 </html>
