@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Ilmaradar · Keravere</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:   #f0f7f4;
+  --dim:   rgba(200,230,218,0.62);
+  --faint: rgba(180,210,200,0.10);
+  --bg:    #060908;
+  --panel: rgba(8,12,11,0.95);
+  --line:  rgba(180,210,200,0.13);
+  --acc:   #46d49a;
+  --cold:  #74c4ee;
+  --hot:   #f0936a;
+  --warn:  #f0c840;
+  --bad:   #e87070;
+  --ok:    #60d488;
+  --rise:  #f0b840;
+  --set:   #e87c40;
+  --sw:    296px;
+  --tb:    50px;
+  --cb:    36px;
+}
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'IBM Plex Mono',monospace; -webkit-font-smoothing:antialiased; }
+body{ position:fixed; inset:0; display:flex; flex-direction:column; touch-action:manipulation; }
+
+/* ── TOPBAR ─────────────────────────────────── */
+#topbar{
+  height:var(--tb); flex-shrink:0;
+  display:grid; grid-template-columns:var(--sw) 1fr auto;
+  align-items:center;
+  background:var(--panel); border-bottom:1px solid var(--line);
+  padding:0 16px 0 0;
+}
+#tb-left{
+  height:100%; display:flex; align-items:center; gap:11px;
+  padding:0 16px; border-right:1px solid var(--line);
+}
+#radar-dot{
+  width:6px; height:6px; border-radius:50%; background:var(--acc); flex-shrink:0;
+  box-shadow:0 0 0 3px rgba(70,212,154,0.18), 0 0 10px rgba(70,212,154,0.5);
+  animation:blink 2.6s ease-in-out infinite;
+}
+@keyframes blink{
+  0%,100%{ box-shadow:0 0 0 3px rgba(70,212,154,0.18),0 0 10px rgba(70,212,154,0.5); }
+  50%{ box-shadow:0 0 0 5px rgba(70,212,154,0.04),0 0 3px rgba(70,212,154,0.15); opacity:.5; }
+}
+#tb-title{ font-size:11px; font-weight:500; letter-spacing:3.5px; color:var(--acc); text-transform:uppercase; }
+#tb-mid{ padding:0 16px; font-size:10px; letter-spacing:.8px; color:var(--dim); }
+#clock{
+  font-family:'Bebas Neue',sans-serif; font-size:32px;
+  letter-spacing:1.5px; color:var(--ink); line-height:1; text-align:right;
+}
+
+/* ── BODY ROW ────────────────────────────────── */
+#body-row{ flex:1; display:grid; grid-template-columns:var(--sw) 1fr; overflow:hidden; }
+
+/* ── LEFT PANEL ──────────────────────────────── */
+#panel{ background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; overflow:hidden; }
+#panel-inner{ flex:1; overflow:hidden; display:flex; flex-direction:column; transform-origin:top left; }
+
+/* Temperature hero */
+#temp-block{ padding:14px 16px 12px; border-bottom:1px solid var(--line); flex-shrink:0; }
+#temp-row{ display:flex; align-items:flex-end; line-height:1; }
+#wx-temp{
+  font-family:'Bebas Neue',sans-serif; font-size:100px;
+  line-height:.88; letter-spacing:-1px; color:var(--ink);
+}
+#temp-suffix{
+  font-family:'Bebas Neue',sans-serif; font-size:38px;
+  color:var(--dim); padding-bottom:9px; padding-left:2px;
+}
+#temp-sub-row{ display:flex; gap:20px; margin-top:8px; flex-wrap:wrap; }
+.ts-item{ display:flex; flex-direction:column; gap:2px; }
+.ts-lbl{ font-size:8px; letter-spacing:2px; color:var(--dim); text-transform:uppercase; }
+.ts-val{ font-size:18px; font-weight:500; color:var(--ink); }
+#sky-row{ display:flex; align-items:center; gap:7px; margin-top:7px; }
+#wx-cond-icon{ font-size:17px; line-height:1; }
+#wx-cond{ font-size:13px; color:var(--dim); letter-spacing:.3px; }
+
+/* Sections */
+.sec{ padding:9px 16px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.sec:last-child{ border-bottom:none; }
+.sec-lbl{ font-size:8px; font-weight:500; letter-spacing:2.5px; color:var(--acc); text-transform:uppercase; margin-bottom:7px; opacity:.9; }
+
+/* Data rows */
+.dr{ display:flex; align-items:baseline; margin-bottom:6px; }
+.dr:last-child{ margin-bottom:0; }
+.dl{ font-size:10px; letter-spacing:.8px; color:var(--dim); text-transform:uppercase; width:88px; flex-shrink:0; }
+.dv{ font-size:16px; font-weight:500; color:var(--ink); line-height:1; }
+.du{ font-size:10px; color:var(--dim); margin-left:3px; }
+
+/* Wind block */
+#wind-block{ display:flex; align-items:center; gap:14px; }
+#wind-data{ display:flex; flex-direction:column; gap:4px; }
+#wx-dir-label{ font-size:15px; font-weight:500; color:var(--cold); margin-bottom:2px; }
+
+/* Sun grid */
+#sun-grid{ display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; }
+
+/* Moon + Pollen two-up */
+#twin{ display:grid; grid-template-columns:1fr 1fr; gap:0; border-bottom:1px solid var(--line); flex-shrink:0; }
+.twin-col{ padding:9px 16px; }
+.twin-col:first-child{ border-right:1px solid var(--line); }
+#moon-emoji{ font-size:30px; line-height:1; margin-bottom:4px; }
+.moon-name{ font-size:13px; font-weight:500; color:var(--ink); }
+.moon-sub{ font-size:10px; color:var(--dim); margin-top:2px; }
+
+/* Status strip */
+#status-strip{
+  margin-top:auto; padding:7px 16px;
+  border-top:1px solid var(--line);
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.ss-item{ font-size:9px; color:var(--dim); letter-spacing:.4px; }
+
+/* ── MAP ─────────────────────────────────────── */
+#map-col{ position:relative; overflow:hidden; }
+#map{ position:absolute; inset:0; background:#040706; }
+.leaflet-container{ background:#040706; font-family:'IBM Plex Mono',monospace; }
+
+/* ── FORECAST OVERLAY ────────────────────────── */
+#forecast-strip{
+  position:absolute; top:10px; left:10px; right:10px; z-index:800;
+  display:grid; grid-template-columns:1fr 192px; gap:9px; pointer-events:none;
+}
+.fc-panel{
+  background:rgba(8,12,11,0.92); border:1px solid var(--line);
+  border-radius:5px; overflow:hidden;
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+}
+.fc-head{ font-size:8px; font-weight:500; letter-spacing:2.5px; color:var(--acc); text-transform:uppercase; padding:6px 12px 5px; border-bottom:1px solid var(--line); opacity:.9; }
+#hourly-chart-wrap{ height:132px; padding:5px 10px; }
+#hourly-chart{ width:100%; height:100%; display:block; }
+#daily-grid{ display:grid; grid-template-columns:repeat(3,1fr); }
+.daily-cell{ padding:10px 4px 8px; text-align:center; border-right:1px solid var(--line); }
+.daily-cell:last-child{ border-right:none; }
+.d-day{ font-size:9px; letter-spacing:1.5px; color:var(--dim); margin-bottom:5px; text-transform:uppercase; font-weight:500; }
+.d-icon{ font-size:18px; line-height:1; margin-bottom:5px; }
+.d-max{ font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--ink); line-height:1; }
+.d-min{ font-size:10px; color:var(--dim); margin-top:2px; }
+.d-rain{ font-size:10px; color:var(--cold); margin-top:3px; }
+#rain-note{ padding:4px 12px 5px; border-top:1px solid var(--line); font-size:9px; color:var(--dim); display:flex; align-items:center; gap:5px; }
+#rain-start{ color:var(--ink); font-weight:500; }
+
+/* ── LEGEND ──────────────────────────────────── */
+#legend{
+  position:absolute; bottom:46px; right:10px; z-index:900;
+  background:rgba(8,12,11,0.93); border:1px solid var(--line); border-radius:4px; padding:7px 11px; pointer-events:none;
+}
+.leg-title{ font-size:8px; letter-spacing:2.5px; color:var(--acc); text-transform:uppercase; margin-bottom:5px; opacity:.9; }
+.leg-row{ display:flex; align-items:center; gap:7px; margin-bottom:4px; font-size:11px; color:var(--dim); }
+.leg-row:last-child{ margin-bottom:0; }
+.swatch{ width:9px; height:9px; border-radius:2px; flex-shrink:0; }
+
+/* ── ZOOM PRESETS ────────────────────────────── */
+#zoom-presets{
+  position:absolute; bottom:46px; left:50%; transform:translateX(-50%);
+  z-index:950; display:flex; gap:5px;
+}
+.zoom-btn{
+  background:rgba(8,12,11,0.92); border:1px solid var(--line); color:var(--dim);
+  padding:4px 12px; border-radius:3px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:1px;
+  cursor:pointer; transition:color .12s, border-color .12s;
+}
+.zoom-btn:active,.zoom-btn.active{ color:var(--acc); border-color:rgba(70,212,154,0.4); }
+.zoom-sep{ width:1px; background:var(--line); align-self:center; height:16px; }
+
+/* ── CONTROLS ────────────────────────────────── */
+#controls{
+  height:var(--cb); flex-shrink:0;
+  display:flex; align-items:center; gap:10px; padding:0 14px;
+  background:var(--panel); border-top:1px solid var(--line);
+}
+.btn{
+  background:transparent; border:1px solid var(--line); color:var(--dim);
+  padding:3px 12px; border-radius:3px;
+  font-family:'IBM Plex Mono',monospace; font-size:12px;
+  cursor:pointer; flex-shrink:0; transition:color .12s, border-color .12s;
+}
+.btn:active{ color:var(--acc); border-color:rgba(70,212,154,0.4); }
+#timeline{ flex:1; height:2px; background:var(--faint); border-radius:1px; position:relative; cursor:pointer; }
+#timeline-fill{ height:100%; background:var(--acc); border-radius:1px; width:0%; }
+#timeline-thumb{ position:absolute; top:50%; transform:translateY(-50%); width:10px; height:10px; background:var(--acc); border-radius:50%; margin-left:-5px; pointer-events:none; box-shadow:0 0 8px rgba(70,212,154,0.6); }
+#radar-end{ font-size:9px; color:var(--dim); letter-spacing:.8px; flex-shrink:0; white-space:nowrap; min-width:60px; text-align:right; }
+
+/* ── COLOUR TOKENS ───────────────────────────── */
+.c-rise{ color:var(--rise); } .c-set{ color:var(--set); } .c-temp{ color:var(--hot); }
+.c-wind{ color:var(--cold); } .c-ok{ color:var(--ok); } .c-warn{ color:var(--warn); } .c-bad{ color:var(--bad); }
+.box-val{ font-size:12px; font-weight:500; color:var(--ink); }
+
+/* ── RESPONSIVE ──────────────────────────────── */
+@media(max-width:900px){
+  :root{ --sw:260px; }
+  #wx-temp{ font-size:82px; }
+  #forecast-strip{ display:none; }
+  #legend{ display:none; }
+}
+@media(max-width:768px){
+  :root{ --sw:242px; }
+  #wx-temp{ font-size:72px; }
+  .dl{ width:76px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div id="tb-left">
+    <div id="radar-dot"></div>
+    <div id="tb-title">Keravere</div>
+  </div>
+  <div id="tb-mid">
+    <span id="timestamp">—</span>&ensp;·&ensp;<span id="status">—</span>
+  </div>
+  <div id="clock">—</div>
+</div>
+
+<!-- BODY -->
+<div id="body-row">
+
+  <!-- PANEL -->
+  <div id="panel">
+    <div id="panel-inner">
+
+      <!-- TEMP HERO -->
+      <div id="temp-block">
+        <div id="temp-row">
+          <span id="wx-temp">—</span><span id="temp-suffix">°</span>
+        </div>
+        <div id="temp-sub-row">
+          <div class="ts-item"><div class="ts-lbl">Tundub</div><div class="ts-val" id="wx-feels">—</div></div>
+          <div class="ts-item"><div class="ts-lbl">Kaste</div><div class="ts-val" id="wx-dew">—</div></div>
+          <div class="ts-item"><div class="ts-lbl">Öökülm</div><div class="ts-val" id="frost-warning">—</div></div>
+        </div>
+        <div id="sky-row">
+          <span id="wx-cond-icon"></span>
+          <span id="wx-cond">—</span>
+        </div>
+      </div>
+
+      <!-- WIND -->
+      <div class="sec" style="padding-top:9px;padding-bottom:9px;">
+        <div id="wind-block">
+          <div id="wind-compass-wrap">
+            <svg width="68" height="68" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="26" cy="26" r="23.5" fill="none" stroke="var(--line)" stroke-width="1"/>
+              <circle cx="26" cy="26" r="1.5" fill="var(--dim)"/>
+              <text x="26" y="9" text-anchor="middle" fill="var(--dim)" font-size="5.5" font-family="IBM Plex Mono,monospace">N</text>
+              <text x="26" y="47.5" text-anchor="middle" fill="var(--dim)" font-size="5.5" font-family="IBM Plex Mono,monospace">S</text>
+              <text x="4" y="28.5" text-anchor="start" fill="var(--dim)" font-size="5.5" font-family="IBM Plex Mono,monospace">W</text>
+              <text x="48" y="28.5" text-anchor="end" fill="var(--dim)" font-size="5.5" font-family="IBM Plex Mono,monospace">E</text>
+              <g id="wind-arrow-svg" transform="rotate(0,26,26)">
+                <polygon points="26,7 29.5,33 26,29.5 22.5,33" fill="var(--cold)"/>
+              </g>
+            </svg>
+          </div>
+          <div id="wind-data">
+            <div id="wx-dir-label">—</div>
+            <div class="dr"><div class="dl">Kiirus</div><span class="dv c-wind" id="wx-wind">—</span><span class="du">m/s</span><span class="du" id="wx-dir" style="margin-left:5px"></span></div>
+            <div class="dr"><div class="dl">Puhang</div><span class="dv c-wind" id="wx-gust">—</span><span class="du">m/s</span></div>
+            <div class="dr"><div class="dl">Sadu</div><span class="dv" id="wx-precip">—</span><span class="du">mm/h</span></div>
+            <div class="dr" style="margin-bottom:0"><div class="dl">Rõhk</div><span class="dv" id="wx-pressure">—</span><span class="du">hPa</span><span class="dv" id="wx-pressure-trend" style="margin-left:6px;font-size:12px;">—</span></div>
+          </div>
+        </div>
+        <div style="font-size:8px;color:var(--dim);margin-top:5px;" id="wx-updated">—</div>
+      </div>
+
+      <!-- SUN -->
+      <div class="sec">
+        <div class="sec-lbl">Päike</div>
+        <div id="sun-grid">
+          <div class="dr"><div class="dl">Tõus</div><span class="dv c-rise" id="sunrise-time">—</span><span class="du" id="sunrise-az"></span></div>
+          <div class="dr"><div class="dl">Loojang</div><span class="dv c-set" id="sunset-time">—</span><span class="du" id="sunset-az"></span></div>
+          <div class="dr"><div class="dl" id="countdown-label">Loojanguni</div><span class="dv" id="sunset-countdown" style="font-size:12px;">—</span></div>
+          <div class="dr"><div class="dl">Valgust</div><span class="dv c-rise" style="font-size:12px;" id="day-length">—</span></div>
+          <div class="dr" style="grid-column:span 2;margin-bottom:0"><div class="dl">Eilsest</div><span class="dv c-rise" id="day-change">—</span></div>
+        </div>
+      </div>
+
+      <!-- MOON + POLLEN -->
+      <div id="twin">
+        <div class="twin-col">
+          <div class="sec-lbl">Kuu</div>
+          <div id="moon-emoji">🌑</div>
+          <div class="moon-name" id="moon-phase">—</div>
+          <div class="moon-sub" id="moon-illum">—</div>
+          <div class="moon-sub" id="moon-full" style="margin-top:3px;">—</div>
+        </div>
+        <div class="twin-col">
+          <div class="sec-lbl">Õietolm</div>
+          <div class="dr"><div class="dl" style="width:38px">Üld</div><span class="dv" id="pollen-overall" style="font-size:11px;">—</span></div>
+          <div class="dr"><div class="dl" style="width:38px">Kask</div><span class="dv" id="pollen-birch" style="font-size:11px;">—</span></div>
+          <div class="dr"><div class="dl" style="width:38px">Muru</div><span class="dv" id="pollen-grass" style="font-size:11px;">—</span></div>
+          <div class="dr" style="margin-bottom:0"><div class="dl" style="width:38px">Lepp</div><span class="dv" id="pollen-alder" style="font-size:11px;">—</span></div>
+        </div>
+      </div>
+
+      <!-- AURORA -->
+      <div class="sec">
+        <div class="sec-lbl">Virmalised</div>
+        <div class="dr"><div class="dl">Kp index</div><span class="dv" id="kp-current">—</span></div>
+        <div class="dr" style="margin-bottom:0"><div class="dl">Tõenäosus</div><span class="dv" id="aurora-level">—</span></div>
+        <div style="font-size:8px;color:var(--dim);margin-top:3px;" id="aurora-updated">—</div>
+      </div>
+
+      <!-- STATUS STRIP -->
+      <div id="status-strip">
+        <span class="ss-item">📡 <span id="radar-state">—</span></span>
+        <span class="ss-item">☁️ <span id="weather-state">—</span></span>
+        <span class="ss-item">☀️ <span id="sun-state">—</span></span>
+        <span class="ss-item">⟳ <span id="next-refresh-system">—</span></span>
+        <span class="ss-item">♻️ <span id="page-reload">—</span></span>
+        <div style="width:100%;font-size:8px;color:var(--dim);letter-spacing:.3px;" id="coords-label"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="map-col">
+    <div id="map"></div>
+
+    <div id="forecast-strip">
+      <div class="fc-panel">
+        <div class="fc-head">Täna tunniti</div>
+        <div id="hourly-chart-wrap"><svg id="hourly-chart"></svg></div>
+        <div id="rain-note"><span style="text-transform:uppercase;letter-spacing:.8px;font-size:7px;">Sademed</span><span id="rain-start">—</span></div>
+      </div>
+      <div class="fc-panel">
+        <div class="fc-head">3 päeva</div>
+        <div id="daily-grid"></div>
+      </div>
+    </div>
+
+    <div id="legend">
+      <div class="leg-title">Sademed</div>
+      <div class="leg-row"><span class="swatch" style="background:#00aaff"></span>Kerge</div>
+      <div class="leg-row"><span class="swatch" style="background:#00ff44"></span>Mõõdukas</div>
+      <div class="leg-row"><span class="swatch" style="background:#ffdd00"></span>Tugev</div>
+      <div class="leg-row"><span class="swatch" style="background:#ff3300"></span>Väga tugev</div>
+    </div>
+
+    <div id="zoom-presets">
+      <button class="zoom-btn active" id="btn-map-sat" onclick="setBaseMap('satellite')">SAT</button>
+      <button class="zoom-btn" id="btn-map-simple" onclick="setBaseMap('simple')">MAP</button>
+      <div class="zoom-sep"></div>
+      <button class="zoom-btn" onclick="zoomLocal()">50m</button>
+      <button class="zoom-btn" onclick="zoomDefault()">10km</button>
+      <button class="zoom-btn" onclick="zoomRegion()">80km</button>
+      <button class="zoom-btn" onclick="zoomEstonia()">EE</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls">
+  <button class="btn" id="btn-play">▌▌</button>
+  <div id="timeline">
+    <div id="timeline-fill"></div>
+    <div id="timeline-thumb" style="left:0%"></div>
+  </div>
+  <div id="radar-end">—</div>
+</div>
+
+<script>
+var CONFIG={lat:58.81627,lng:23.74447,zoom:10,radarFrameCount:5,radarRefreshMs:10*60*1000,weatherRefreshMs:15*60*1000,pageReloadMs:2*60*60*1000,label:'Keravere'};
+var map=L.map('map',{center:[CONFIG.lat,CONFIG.lng],zoom:CONFIG.zoom,zoomControl:true,attributionControl:false,preferCanvas:true,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false,inertia:false});
+var satelliteBaseLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,updateWhenIdle:true,keepBuffer:1}).addTo(map);
+var simpleBaseLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,updateWhenIdle:true,keepBuffer:1});
+var baseMapMode='satellite';
+L.circleMarker([CONFIG.lat,CONFIG.lng],{radius:6,fillColor:'#46d49a',fillOpacity:1,color:'#060908',weight:2}).addTo(map);
+setVisualCenter(CONFIG.lat,CONFIG.lng,CONFIG.zoom);
+document.getElementById('coords-label').textContent=CONFIG.label+' · '+CONFIG.lat.toFixed(4)+', '+CONFIG.lng.toFixed(4);
+var radarLayers=[],radarFrames=[],currentFrame=0;
+var playing=true,animTimer=null,animResetTimer=null,nextRefreshAt=0,countdownTimer=null;
+var apiHost='https://tilecache.rainviewer.com';
+var pageReloadAt=Date.now()+CONFIG.pageReloadMs;
+var PRESSURE_HISTORY=[];
+var TODAY_SUNRISE_MS=null,TODAY_SUNSET_MS=null,TOMORROW_SUNRISE_MS=null;
+var TODAY_SUNRISE_AZ=null,TODAY_SUNSET_AZ=null;
+var sunArrow=null,sunriseLine=null,sunsetLine=null,sunArrowLine=null;
+function byId(id){return document.getElementById(id);}
+function setStatus(msg){byId('status').textContent=msg;}
+function pad(n){return n<10?'0'+n:''+n;}
+function fmtTime(d){return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
+function round1(n){return Math.round(n*10)/10;}
+function setApiState(id,txt,cls){var el=byId(id);el.textContent=txt;el.className='box-val '+cls;el.style.fontSize='11px';}
+
+function updateCompactMode(){
+  var inner=byId('panel-inner'),panel=byId('panel');if(!inner||!panel)return;
+  inner.style.transform='scale(1)';inner.style.width='100%';
+  var avail=panel.clientHeight,nat=inner.scrollHeight;
+  if(nat>avail){var scale=Math.max(0.72,avail/nat);inner.style.transform='scale('+scale.toFixed(3)+')';inner.style.width=(100/scale).toFixed(2)+'%';}
+}
+
+function setMapButtons(){
+  var s=byId('btn-map-sat'),m=byId('btn-map-simple');
+  if(s)s.className='zoom-btn'+(baseMapMode==='satellite'?' active':'');
+  if(m)m.className='zoom-btn'+(baseMapMode==='simple'?' active':'');
+}
+function setBaseMap(mode){
+  baseMapMode=mode;var c=map.getCenter(),z=map.getZoom();
+  if(mode==='simple'){if(map.hasLayer(satelliteBaseLayer))map.removeLayer(satelliteBaseLayer);if(!map.hasLayer(simpleBaseLayer))simpleBaseLayer.addTo(map);}
+  else{if(map.hasLayer(simpleBaseLayer))map.removeLayer(simpleBaseLayer);if(!map.hasLayer(satelliteBaseLayer))satelliteBaseLayer.addTo(map);}
+  map.setView(c,z,{animate:false});setMapButtons();updateCompactMode();
+}
+function setVisualCenter(lat,lng,zoom){map.setView([lat,lng],zoom,{animate:false});}
+
+// Radar
+function fetchRadar(){
+  setStatus('Laadimine…');setApiState('radar-state','laadimine','c-warn');
+  var xhr=new XMLHttpRequest();xhr.open('GET','https://api.rainviewer.com/public/weather-maps.json',true);xhr.timeout=8000;
+  xhr.onload=function(){if(xhr.status===200){try{var api=JSON.parse(xhr.responseText);apiHost=api.host||apiHost;var frames=(api.radar&&api.radar.past&&api.radar.past.length)?api.radar.past.slice(-CONFIG.radarFrameCount):[];if(!frames.length){fallbackFrames();return;}buildFrames(frames);setStatus('Live');setTimeout(updateCompactMode,150);setApiState('radar-state','aktiivne','c-ok');}catch(e){fallbackFrames();}}else{fallbackFrames();}};
+  xhr.onerror=fallbackFrames;xhr.ontimeout=fallbackFrames;xhr.send();
+}
+function fallbackFrames(){var now=Math.floor(Date.now()/1000),latest=Math.floor(now/600)*600-600,f=[];for(var i=CONFIG.radarFrameCount-1;i>=0;i--)f.push({time:latest-i*600,path:null});buildFrames(f);setStatus('Varukanal');setApiState('radar-state','varurežiim','c-warn');}
+function buildFrames(frames){for(var i=0;i<radarLayers.length;i++)if(map.hasLayer(radarLayers[i]))map.removeLayer(radarLayers[i]);radarLayers=[];radarFrames=frames;for(var j=0;j<frames.length;j++){var url=frames[j].path?apiHost+frames[j].path+'/256/{z}/{x}/{y}/2/1_1.png':'https://tilecache.rainviewer.com/v2/radar/'+frames[j].time+'/256/{z}/{x}/{y}/2/1_1.png';var layer=L.tileLayer(url,{opacity:0,maxNativeZoom:7,maxZoom:18,tileSize:256,zIndex:10+j,updateWhenIdle:true,keepBuffer:1});layer.addTo(map);radarLayers.push(layer);}currentFrame=radarLayers.length-1;showFrame(currentFrame);setMapButtons();if(playing)startAnim();nextRefreshAt=Date.now()+CONFIG.radarRefreshMs;startCountdown();}
+function showFrame(idx){if(!radarLayers.length)return;idx=Math.max(0,Math.min(idx,radarLayers.length-1));currentFrame=idx;for(var i=0;i<radarLayers.length;i++)radarLayers[i].setOpacity(i===idx?0.75:0);if(radarFrames[idx]){var d=new Date(radarFrames[idx].time*1000);byId('timestamp').textContent=d.getDate()+'.'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes());}else{byId('timestamp').textContent='—';}updateRadarCurrentLabel(idx);var pct=radarLayers.length>1?(idx/(radarLayers.length-1))*100:100;byId('timeline-fill').style.width=pct+'%';byId('timeline-thumb').style.left=pct+'%';}
+function startAnim(){stopAnim();animTimer=setInterval(function(){var next=currentFrame+1;if(next>=radarLayers.length){showFrame(radarLayers.length-1);stopAnim();animResetTimer=setTimeout(function(){if(!playing)return;showFrame(0);startAnim();},1400);return;}showFrame(next);},850);}
+function stopAnim(){if(animTimer){clearInterval(animTimer);animTimer=null;}if(animResetTimer){clearTimeout(animResetTimer);animResetTimer=null;}}
+function togglePlay(){playing=!playing;var b=byId('btn-play');if(playing){b.textContent='▌▌';startAnim();}else{b.textContent='▶';stopAnim();}}
+function seekTimelineFromX(clientX){var rect=byId('timeline').getBoundingClientRect(),pct=Math.max(0,Math.min(1,(clientX-rect.left)/rect.width));stopAnim();playing=false;byId('btn-play').textContent='▶';showFrame(Math.round(pct*(radarLayers.length-1)));}
+function updateRadarCurrentLabel(idx){if(radarFrames&&radarFrames.length){var frame=radarFrames[idx]||radarFrames[Math.min(idx,radarFrames.length-1)];if(frame&&frame.time){var d=new Date(frame.time*1000);byId('radar-end').textContent=pad(d.getHours())+':'+pad(d.getMinutes());return;}}byId('radar-end').textContent='—';}
+function startCountdown(){if(countdownTimer)clearInterval(countdownTimer);updateRadarCurrentLabel(currentFrame);countdownTimer=setInterval(function(){var secs=Math.max(0,Math.round((nextRefreshAt-Date.now())/1000)),m=Math.floor(secs/60),s=secs%60;byId('next-refresh-system').textContent=m+':'+pad(s);if(secs===0){clearInterval(countdownTimer);fetchRadar();setMapButtons();}},1000);}
+byId('btn-play').addEventListener('click',togglePlay);
+byId('timeline').addEventListener('click',function(e){seekTimelineFromX(e.clientX);});
+byId('timeline').addEventListener('touchstart',function(e){if(e.touches&&e.touches.length)seekTimelineFromX(e.touches[0].clientX);},{passive:true});
+fetchRadar();
+
+// Weather
+function fetchWeather(){
+  setApiState('weather-state','laadimine','c-warn');
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+CONFIG.lat+'&longitude='+CONFIG.lng+'&current=temperature_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover&daily=temperature_2m_min&forecast_days=2&wind_speed_unit=ms&timezone=auto';
+  var xhr=new XMLHttpRequest();xhr.open('GET',url,true);xhr.timeout=8000;
+  xhr.onload=function(){if(xhr.status===200){try{
+    var data=JSON.parse(xhr.responseText),cur=data.current;
+    var temp=round1(cur.temperature_2m),feels=round1(cur.apparent_temperature),dew=round1(cur.dew_point_2m);
+    var pressure=Math.round(cur.surface_pressure),wind=round1(cur.wind_speed_10m),gust=round1(cur.wind_gusts_10m);
+    var precip=round1(cur.precipitation),cloud=Math.round(cur.cloud_cover),dir=Math.round(cur.wind_direction_10m);
+    PRESSURE_HISTORY.push({t:Date.now(),p:pressure});
+    PRESSURE_HISTORY=PRESSURE_HISTORY.filter(function(x){return Date.now()-x.t<=4*60*60*1000;});
+    var t=byId('wx-temp');t.textContent=temp;t.style.color=temp<0?'var(--cold)':temp>25?'var(--hot)':'var(--ink)';
+    byId('wx-feels').textContent=feels+'°';byId('wx-feels').style.color=feels<0?'var(--cold)':'var(--ink)';
+    byId('wx-dew').textContent=dew+'°';
+    var fEl=byId('frost-warning'),minT=null;
+    if(data.daily&&data.daily.temperature_2m_min&&data.daily.temperature_2m_min.length)minT=data.daily.temperature_2m_min[0];
+    if(minT!==null&&!isNaN(minT)){minT=round1(minT);if(minT<=-5){fEl.textContent='Tugev '+minT+'°';fEl.style.color='var(--bad)';}else if(minT<=0){fEl.textContent=minT+'°';fEl.style.color='var(--warn)';}else{fEl.textContent='—';fEl.style.color='var(--dim)';}}
+    byId('wx-pressure').textContent=pressure;
+    var pt='→',pc='var(--dim)',op=null;
+    for(var pi=0;pi<PRESSURE_HISTORY.length;pi++){if(Date.now()-PRESSURE_HISTORY[pi].t>=2*60*60*1000){op=PRESSURE_HISTORY[pi];break;}}
+    if(op){var dp=pressure-op.p;if(dp>=1){pt='↑';pc='var(--ok)';}else if(dp<=-1){pt='↓';pc='var(--warn)';}}
+    byId('wx-pressure-trend').textContent=pt;byId('wx-pressure-trend').style.color=pc;
+    var sky=currentSkyText(cloud,precip);byId('wx-cond').textContent=sky.text;byId('wx-cond-icon').textContent=sky.icon;
+    byId('wx-wind').textContent=wind;byId('wx-gust').textContent=gust;byId('wx-precip').textContent=precip;
+    byId('wx-dir').textContent=degToCompass(dir);byId('wx-dir-label').textContent=degToEst(dir)+' '+dir+'°';
+    byId('wx-updated').textContent='uuendatud '+fmtTime(new Date());
+    byId('wind-arrow-svg').setAttribute('transform','rotate('+((dir+180)%360)+',26,26)');
+    setApiState('weather-state','aktiivne','c-ok');
+  }catch(e){weatherError();}}else{weatherError();}};
+  xhr.onerror=weatherError;xhr.ontimeout=weatherError;xhr.send();
+}
+function weatherError(){['wx-temp','wx-feels','wx-dew','wx-pressure','wx-pressure-trend','wx-wind','wx-gust','wx-precip','wx-cond','wx-dir'].forEach(function(id){byId(id).textContent='—';});byId('wx-cond-icon').textContent='';byId('wx-dir-label').textContent='—';byId('wx-updated').textContent='ühendusviga';setApiState('weather-state','tõrge','c-bad');}
+function degToCompass(deg){var d=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];return d[Math.round(deg/22.5)%16];}
+function degToEst(deg){var d=['Põhi','Põhja-kirde','Kirre','Ida-kirde','Ida','Ida-kagu','Kagu','Lõuna-kagu','Lõuna','Lõuna-lääne','Edel','Lääne-edela','Lääs','Lääne-loode','Loode','Põhja-loode'];return d[Math.round(deg/22.5)%16];}
+function currentSkyText(cloud,precip){var nowMs=Date.now(),isDaytime=(TODAY_SUNRISE_MS!==null&&TODAY_SUNSET_MS!==null)?(nowMs>=TODAY_SUNRISE_MS&&nowMs<TODAY_SUNSET_MS):true;if(precip>=2)return{text:'Sajab',icon:'🌧️'};if(precip>0.1)return{text:'Nõrk sadu',icon:'🌦️'};if(isDaytime){if(cloud<=15)return{text:'Päikeseline',icon:'☀️'};if(cloud<=40)return{text:'Vähese pilvisusega',icon:'🌤️'};if(cloud<=70)return{text:'Vahelduva pilvisusega',icon:'⛅'};if(cloud<=90)return{text:'Pilves',icon:'☁️'};return{text:'Lauspilves',icon:'☁️'};}else{if(cloud<=20)return{text:'Selge',icon:'🌙'};if(cloud<=50)return{text:'Vähese pilvisusega',icon:'☁️'};if(cloud<=85)return{text:'Pilves',icon:'☁️'};return{text:'Lauspilves',icon:'☁️'};}}
+fetchWeather();setInterval(fetchWeather,CONFIG.weatherRefreshMs);setTimeout(updateCompactMode,200);
+
+// Sun
+function toRad(d){return d*Math.PI/180;}function toDeg(r){return r*180/Math.PI;}
+function getDayOfYearLocal(date){var start=new Date(date.getFullYear(),0,0);return Math.floor((date-start)/86400000);}
+function solarDeclinationDeg(date){return 23.44*Math.sin(toRad((360/365)*(getDayOfYearLocal(date)-81)));}
+function calcSunriseSunsetAzimuths(latDeg,date){var lat=toRad(latDeg),dec=toRad(solarDeclinationDeg(date)),cosA=Math.max(-1,Math.min(1,Math.sin(dec)/Math.cos(lat))),sunriseAz=toDeg(Math.acos(cosA));return{sunriseAz:sunriseAz,sunsetAz:360-sunriseAz};}
+function parseLocalIsoMinute(iso){var m=iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);if(!m)return null;return new Date(parseInt(m[1],10),parseInt(m[2],10)-1,parseInt(m[3],10),parseInt(m[4],10),parseInt(m[5],10),m[6]?parseInt(m[6],10):0,0);}
+function destPoint(lat,lng,azDeg,distKm){var R=6371,d=distKm/R,az=toRad(azDeg),lat1=toRad(lat),lng1=toRad(lng),lat2=Math.asin(Math.sin(lat1)*Math.cos(d)+Math.cos(lat1)*Math.sin(d)*Math.cos(az)),lng2=lng1+Math.atan2(Math.sin(az)*Math.sin(d)*Math.cos(lat1),Math.cos(d)-Math.sin(lat1)*Math.sin(lat2));return[toDeg(lat2),toDeg(lng2)];}
+function clearSunLayers(){if(sunArrowLine){map.removeLayer(sunArrowLine);sunArrowLine=null;}if(sunArrow){map.removeLayer(sunArrow);sunArrow=null;}if(sunriseLine){map.removeLayer(sunriseLine);sunriseLine=null;}if(sunsetLine){map.removeLayer(sunsetLine);sunsetLine=null;}}
+function updateSunOverlays(nowMs){if(TODAY_SUNRISE_MS===null||TODAY_SUNSET_MS===null||TODAY_SUNRISE_AZ===null||TODAY_SUNSET_AZ===null)return;clearSunLayers();var dist=80;sunriseLine=L.polyline([[CONFIG.lat,CONFIG.lng],destPoint(CONFIG.lat,CONFIG.lng,TODAY_SUNRISE_AZ,dist)],{color:'#f4a020',weight:2,opacity:0.7,dashArray:'6 5'}).addTo(map);sunsetLine=L.polyline([[CONFIG.lat,CONFIG.lng],destPoint(CONFIG.lat,CONFIG.lng,TODAY_SUNSET_AZ,dist)],{color:'#e05020',weight:2,opacity:0.7,dashArray:'6 5'}).addTo(map);if(nowMs>=TODAY_SUNRISE_MS&&nowMs<TODAY_SUNSET_MS){var progress=Math.max(0,Math.min(1,(nowMs-TODAY_SUNRISE_MS)/(TODAY_SUNSET_MS-TODAY_SUNRISE_MS))),currentAz=TODAY_SUNRISE_AZ+(TODAY_SUNSET_AZ-TODAY_SUNRISE_AZ)*progress,ae=destPoint(CONFIG.lat,CONFIG.lng,currentAz,dist*0.55);sunArrowLine=L.polyline([[CONFIG.lat,CONFIG.lng],ae],{color:'#ffe04a',weight:2.5,opacity:0.95}).addTo(map);var icon=L.divIcon({html:'<svg width="18" height="18" viewBox="0 0 20 20"><polygon points="10,1 19,19 10,14 1,19" fill="#ffe04a" transform="rotate('+((Math.round(currentAz)+180)%360)+',10,10)"/></svg>',iconSize:[18,18],iconAnchor:[9,9],className:''});sunArrow=L.marker(ae,{icon:icon,zIndexOffset:600}).addTo(map);}}
+function fetchSunTimes(){
+  setApiState('sun-state','laadimine','c-warn');
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+CONFIG.lat+'&longitude='+CONFIG.lng+'&daily=sunrise,sunset&timezone=auto&forecast_days=2';
+  var xhr=new XMLHttpRequest();xhr.open('GET',url,true);xhr.timeout=8000;
+  xhr.onload=function(){if(xhr.status===200){try{var data=JSON.parse(xhr.responseText),sr0=parseLocalIsoMinute(data.daily.sunrise[0]),ss0=parseLocalIsoMinute(data.daily.sunset[0]),sr1=parseLocalIsoMinute(data.daily.sunrise[1]);if(!sr0||!ss0||!sr1)throw new Error('bad');TODAY_SUNRISE_MS=sr0.getTime();TODAY_SUNSET_MS=ss0.getTime();TOMORROW_SUNRISE_MS=sr1.getTime();var az=calcSunriseSunsetAzimuths(CONFIG.lat,sr0);TODAY_SUNRISE_AZ=az.sunriseAz;TODAY_SUNSET_AZ=az.sunsetAz;byId('sunrise-time').textContent=pad(sr0.getHours())+':'+pad(sr0.getMinutes());byId('sunset-time').textContent=pad(ss0.getHours())+':'+pad(ss0.getMinutes());byId('sunrise-az').textContent=' '+Math.round(TODAY_SUNRISE_AZ)+'°';byId('sunset-az').textContent=' '+Math.round(TODAY_SUNSET_AZ)+'°';var mins=Math.round((TODAY_SUNSET_MS-TODAY_SUNRISE_MS)/60000);byId('day-length').textContent=Math.floor(mins/60)+'t '+pad(mins%60)+'min';byId('day-change').textContent='+2 min';updateSunOverlays(Date.now());updateClock();setApiState('sun-state','aktiivne','c-ok');}catch(e){TODAY_SUNRISE_MS=TODAY_SUNSET_MS=TOMORROW_SUNRISE_MS=null;TODAY_SUNRISE_AZ=TODAY_SUNSET_AZ=null;clearSunLayers();setApiState('sun-state','tõrge','c-bad');}}else{setApiState('sun-state','tõrge','c-bad');}};
+  xhr.onerror=function(){setApiState('sun-state','tõrge','c-bad');};xhr.ontimeout=xhr.onerror;xhr.send();
+}
+function updateClock(){
+  var nowMs=Date.now(),now=new Date(nowMs);
+  var paevad=['PÜHAPÄEV','ESMASPÄEV','TEISIPÄEV','KOLMAPÄEV','NELJAPÄEV','REEDE','LAUPÄEV'];
+  byId('clock').textContent=paevad[now.getDay()]+' '+now.getDate()+'.'+pad(now.getMonth()+1)+' '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  if(TODAY_SUNRISE_MS===null||TODAY_SUNSET_MS===null||TOMORROW_SUNRISE_MS===null){byId('sunset-countdown').textContent='—';}
+  else{var targetTime,label,colorClass;if(nowMs<TODAY_SUNRISE_MS){targetTime=TODAY_SUNRISE_MS;label='Päikesetõusuni';colorClass='c-rise';}else if(nowMs<TODAY_SUNSET_MS){targetTime=TODAY_SUNSET_MS;label='Loojanguni';colorClass='c-set';}else{targetTime=TOMORROW_SUNRISE_MS;label='Päikesetõusuni';colorClass='c-rise';}var diff=Math.max(0,targetTime-nowMs),th=Math.floor(diff/3600000),tm=Math.floor((diff%3600000)/60000),ts=Math.floor((diff%60000)/1000);var el=byId('sunset-countdown');el.textContent=th+'t '+pad(tm)+'m '+pad(ts)+'s';el.className='box-val '+colorClass;el.style.fontSize='12px';byId('countdown-label').textContent=label;updateSunOverlays(nowMs);}
+  var rs=Math.max(0,Math.round((pageReloadAt-nowMs)/1000));byId('page-reload').textContent=Math.floor(rs/3600)+'t '+pad(Math.floor((rs%3600)/60))+'m';
+}
+fetchSunTimes();setInterval(fetchSunTimes,30*60*1000);setInterval(updateClock,1000);setTimeout(updateCompactMode,300);
+
+// Aurora
+function kpLabel(kp){if(kp===null||isNaN(kp))return'—';if(kp<2)return'Madal';if(kp<4)return'Võimalik';if(kp<6)return'Hea';return'Väga hea';}
+function fetchAurora(){var xhr=new XMLHttpRequest();xhr.open('GET','https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json',true);xhr.timeout=8000;xhr.onload=function(){if(xhr.status===200){try{var data=JSON.parse(xhr.responseText),rows=data.slice(1).filter(function(r){return r&&r.length>=2;}),last=rows[rows.length-1],kp=parseFloat(last[1]);byId('kp-current').textContent=isNaN(kp)?'—':kp.toFixed(1);byId('aurora-level').textContent=kpLabel(kp);byId('aurora-updated').textContent=last[0]?String(last[0]).replace('T',' ').replace('Z','UTC'):'';}catch(e){}}};xhr.onerror=function(){};xhr.ontimeout=xhr.onerror;xhr.send();}
+fetchAurora();setInterval(fetchAurora,15*60*1000);
+
+// Pollen
+function pollenLevel(v){if(v===null||v===undefined||isNaN(v))return{text:'—',color:'var(--dim)'};if(v<1)return{text:'Puudub',color:'var(--ok)'};if(v<10)return{text:'Madal',color:'var(--ok)'};if(v<50)return{text:'Mõõdukas',color:'var(--warn)'};if(v<100)return{text:'Kõrge',color:'var(--hot)'};return{text:'Väga kõrge',color:'var(--bad)'};}
+function fetchPollen(){var url='https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+CONFIG.lat+'&longitude='+CONFIG.lng+'&current=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&timezone=auto';var xhr=new XMLHttpRequest();xhr.open('GET',url,true);xhr.timeout=8000;xhr.onload=function(){if(xhr.status===200){try{var cur=(JSON.parse(xhr.responseText).current)||{};var alder=Number(cur.alder_pollen),birch=Number(cur.birch_pollen),grass=Number(cur.grass_pollen),mug=Number(cur.mugwort_pollen),rag=Number(cur.ragweed_pollen);var maxVal=Math.max(isNaN(alder)?0:alder,isNaN(birch)?0:birch,isNaN(grass)?0:grass,isNaN(mug)?0:mug,isNaN(rag)?0:rag);function set(id,v){var l=pollenLevel(v);byId(id).textContent=l.text;byId(id).style.color=l.color;}set('pollen-overall',maxVal);set('pollen-birch',birch);set('pollen-grass',grass);set('pollen-alder',alder);}catch(e){}}};xhr.onerror=function(){};xhr.ontimeout=xhr.onerror;xhr.send();}
+fetchPollen();setInterval(fetchPollen,60*60*1000);setTimeout(updateCompactMode,400);
+
+// Forecast
+var FORECAST_CACHE=null,forecastResizeTimer=null;
+function weatherCodeToIcon(code,isDay){if(code===0)return isDay?'☀️':'🌙';if(code===1)return isDay?'🌤️':'🌙';if(code===2)return'⛅';if(code===3)return'☁️';if(code===45||code===48)return'🌫️';if(code>=51&&code<=67)return'🌦️';if(code>=71&&code<=77)return'🌨️';if(code>=80&&code<=82)return'🌧️';if(code>=85&&code<=86)return'🌨️';if(code>=95)return'⛈️';return'•';}
+function shortDayName(d){return['P','E','T','K','N','R','L'][d.getDay()];}
+function parseLocalIsoFlexible(iso){var m=iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);if(!m)return null;return new Date(parseInt(m[1],10),parseInt(m[2],10)-1,parseInt(m[3],10),parseInt(m[4],10),parseInt(m[5],10),m[6]?parseInt(m[6],10):0,0);}
+function buildHourlyItems(hourly){var now=new Date(),items=[],wrap=byId('hourly-chart-wrap'),width=wrap?wrap.clientWidth:800,wanted=7;if(width>=860)wanted=8;if(width<700)wanted=6;if(width<585)wanted=5;for(var i=0;i<hourly.time.length;i++){var t=parseLocalIsoFlexible(hourly.time[i]);if(!t)continue;if(t.getTime()<now.getTime()-30*60*1000)continue;items.push({time:t,temp:Math.round(hourly.temperature_2m[i]),precip:round1(hourly.precipitation[i]||0),code:hourly.weathercode[i],isDay:hourly.is_day[i],wind:round1(hourly.wind_speed_10m[i]||0),gust:round1(hourly.wind_gusts_10m[i]||0),windDir:Math.round(hourly.wind_direction_10m[i]||0)});if(items.length>=wanted)break;}return items;}
+function renderHourlyForecast(hourly){var svg=byId('hourly-chart'),wrap=byId('hourly-chart-wrap');if(!svg||!wrap)return;var items=buildHourlyItems(hourly);if(!items.length){svg.innerHTML='';return;}var width=Math.max(640,Math.floor(wrap.clientWidth)),height=Math.max(128,Math.floor(wrap.clientHeight));svg.setAttribute('viewBox','0 0 '+width+' '+height);svg.setAttribute('preserveAspectRatio','none');var left=30,right=8,hoursY=12,iconY=27,tempTop=36,tempBottom=68,windArrowY=87,windTextY=102,rainBase=height-10,rainMaxH=18;var innerW=width-left-right,step=innerW/items.length,barW=Math.max(10,step*0.38);var rawMinTemp=Math.min.apply(null,items.map(function(it){return it.temp;})),rawMaxTemp=Math.max.apply(null,items.map(function(it){return it.temp;}));if(rawMinTemp===rawMaxTemp){rawMinTemp-=1;rawMaxTemp+=1;}var axisMin=Math.floor((rawMinTemp-1)/2)*2,axisMax=Math.ceil((rawMaxTemp+1)/2)*2;if(axisMax-axisMin<6)axisMax=axisMin+6;var maxPrecip=Math.max.apply(null,items.map(function(it){return it.precip;}));if(maxPrecip<0.6)maxPrecip=0.6;function xAt(i){return left+i*step+step/2;}function yTemp(v){return tempBottom-(v-axisMin)/(axisMax-axisMin)*(tempBottom-tempTop);}function barH(v){return(v/maxPrecip)*rainMaxH;}var parts=[];parts.push('<rect x="0" y="0" width="'+width+'" height="'+height+'" fill="transparent"/>');for(var t=axisMin;t<=axisMax;t+=2){var ty=yTemp(t);parts.push('<line x1="'+left+'" y1="'+ty.toFixed(1)+'" x2="'+(width-right)+'" y2="'+ty.toFixed(1)+'" stroke="rgba(180,210,200,0.07)" stroke-width="1"/>');parts.push('<text x="'+(left-4)+'" y="'+(ty+3).toFixed(1)+'" text-anchor="end" fill="rgba(180,210,200,0.38)" font-size="10" font-family="IBM Plex Mono,monospace">'+t+'</text>');}for(var i=0;i<=items.length;i++){var gx=left+i*step;parts.push('<line x1="'+gx.toFixed(1)+'" y1="'+tempTop+'" x2="'+gx.toFixed(1)+'" y2="'+(height-2)+'" stroke="rgba(180,210,200,0.06)" stroke-width="1"/>'); }parts.push('<line x1="'+left+'" y1="'+rainBase+'" x2="'+(width-right)+'" y2="'+rainBase+'" stroke="rgba(180,210,200,0.08)" stroke-width="1"/>');for(var i=0;i<items.length;i++){var h=barH(items[i].precip),x=xAt(i)-barW/2;parts.push('<rect x="'+x.toFixed(1)+'" y="'+(rainBase-h).toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1" fill="rgba(116,196,238,0.65)"/>');}var path='';for(var i=0;i<items.length;i++)path+=(i===0?'M ':' L ')+xAt(i).toFixed(1)+' '+yTemp(items[i].temp).toFixed(1);parts.push('<path d="'+path+'" fill="none" stroke="#46d49a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>');var showAllTemps=step>=72,showAllWind=step>=74;for(var i=0;i<items.length;i++){var cx=xAt(i),cy=yTemp(items[i].temp),icon=weatherCodeToIcon(items[i].code,items[i].isDay===1),hour=pad(items[i].time.getHours()),windRot=(items[i].windDir+180)%360;parts.push('<text x="'+cx.toFixed(1)+'" y="'+hoursY+'" text-anchor="middle" fill="rgba(180,210,200,0.4)" font-size="10" font-family="IBM Plex Mono,monospace">'+hour+'</text>');parts.push('<text x="'+cx.toFixed(1)+'" y="'+iconY+'" text-anchor="middle" font-size="12">'+icon+'</text>');parts.push('<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="2.2" fill="#46d49a"/>');if(showAllTemps||i%2===0)parts.push('<text x="'+cx.toFixed(1)+'" y="'+(cy-6).toFixed(1)+'" text-anchor="middle" fill="#deeae6" font-size="12" font-weight="500" font-family="IBM Plex Mono,monospace">'+items[i].temp+'°</text>');parts.push('<g transform="translate('+cx.toFixed(1)+','+windArrowY+') rotate('+windRot+')"><polygon points="0,-5 3,4 0,2.5 -3,4" fill="rgba(116,196,238,0.65)"/></g>');if(showAllWind||i%2===0)parts.push('<text x="'+cx.toFixed(1)+'" y="'+windTextY+'" text-anchor="middle" fill="rgba(180,210,200,0.38)" font-size="9" font-family="IBM Plex Mono,monospace">'+items[i].wind.toFixed(1)+'('+items[i].gust.toFixed(1)+')</text>');parts.push('<text x="'+cx.toFixed(1)+'" y="'+(rainBase-barH(items[i].precip)-2).toFixed(1)+'" text-anchor="middle" fill="rgba(116,196,238,0.55)" font-size="9" font-family="IBM Plex Mono,monospace">'+items[i].precip.toFixed(1)+'</text>');}svg.innerHTML=parts.join('');}
+function updateRainStart(hourly){var el=byId('rain-start');if(!el||!hourly||!hourly.time)return;var now=new Date(),found=null;for(var i=0;i<hourly.time.length;i++){var t=parseLocalIsoFlexible(hourly.time[i]);if(!t||t.getTime()<now.getTime())continue;var p=round1(hourly.precipitation[i]||0);if(p>0.2){found={time:t};break;}}if(!found){el.textContent='Pole oodata';return;}var diff=found.time.getTime()-now.getTime(),h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);el.textContent=h<=0?(m+'min'):h+'h '+m+'m';}
+function renderDailyForecast(daily){var grid=byId('daily-grid');if(!grid)return;grid.innerHTML='';var startIndex=daily.time.length>1?1:0,endIndex=Math.min(startIndex+3,daily.time.length);for(var i=startIndex;i<endIndex;i++){var d=new Date(daily.time[i]+'T12:00:00'),cell=document.createElement('div');cell.className='daily-cell';var tmax=Math.round(daily.temperature_2m_max[i]),tmin=Math.round(daily.temperature_2m_min[i]),rain=round1(daily.precipitation_sum[i]||0),icon=weatherCodeToIcon(daily.weathercode[i],true);cell.innerHTML='<div class="d-day">'+shortDayName(d)+' '+d.getDate()+'.'+pad(d.getMonth()+1)+'</div><div class="d-icon">'+icon+'</div><div class="d-max" style="color:'+(tmax<0?'var(--cold)':'var(--ink)')+'">'+tmax+'°</div><div class="d-min">min '+tmin+'°</div><div class="d-rain">'+rain.toFixed(1)+'mm</div>';grid.appendChild(cell);}}
+function renderForecastFromCache(){if(!FORECAST_CACHE)return;renderHourlyForecast(FORECAST_CACHE.hourly);renderDailyForecast(FORECAST_CACHE.daily);updateRainStart(FORECAST_CACHE.hourly);}
+function fetchForecast(){var url='https://api.open-meteo.com/v1/forecast?latitude='+CONFIG.lat+'&longitude='+CONFIG.lng+'&hourly=temperature_2m,precipitation,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=auto&wind_speed_unit=ms&forecast_days=4&models=ecmwf_ifs';var xhr=new XMLHttpRequest();xhr.open('GET',url,true);xhr.timeout=8000;xhr.onload=function(){if(xhr.status===200){try{FORECAST_CACHE=JSON.parse(xhr.responseText);renderForecastFromCache();}catch(e){}}};xhr.onerror=function(){};xhr.ontimeout=function(){};xhr.send();}
+window.addEventListener('resize',function(){if(forecastResizeTimer)clearTimeout(forecastResizeTimer);forecastResizeTimer=setTimeout(function(){renderForecastFromCache();setVisualCenter(CONFIG.lat,CONFIG.lng,map.getZoom());updateCompactMode();},120);});
+window.addEventListener('orientationchange',function(){setTimeout(function(){setVisualCenter(CONFIG.lat,CONFIG.lng,map.getZoom());updateCompactMode();},200);});
+fetchForecast();setInterval(fetchForecast,60*60*1000);
+
+// Moon
+function calcMoon(){var now=new Date(),knownNew=new Date(Date.UTC(2000,0,6,18,14,0)),synodicMonth=29.53058867,phase=(((now-knownNew)/(1000*60*60*24))%synodicMonth+synodicMonth)%synodicMonth,illumination=Math.round((1-Math.cos(2*Math.PI*phase/synodicMonth))/2*100);var phaseEmoji,phaseName;if(phase<1.85){phaseEmoji='🌑';phaseName='Noorkuu';}else if(phase<5.54){phaseEmoji='🌒';phaseName='Kasvav sirp';}else if(phase<9.22){phaseEmoji='🌓';phaseName='Esimene veerand';}else if(phase<12.91){phaseEmoji='🌔';phaseName='Kasvav küür';}else if(phase<16.61){phaseEmoji='🌕';phaseName='Täiskuu';}else if(phase<20.30){phaseEmoji='🌖';phaseName='Kahanev küür';}else if(phase<23.99){phaseEmoji='🌗';phaseName='Viimane veerand';}else if(phase<27.68){phaseEmoji='🌘';phaseName='Kahanev sirp';}else{phaseEmoji='🌑';phaseName='Noorkuu';}byId('moon-emoji').textContent=phaseEmoji;byId('moon-phase').textContent=phaseName;var moonIllumEl=byId('moon-illum');if(moonIllumEl)moonIllumEl.textContent=illumination+'% valgustatud';var daysToFull=phase<14.765?(14.765-phase):(synodicMonth-phase+14.765);daysToFull=Math.round(daysToFull*10)/10;var fullDate=new Date(now.getTime()+daysToFull*86400000),months=['jaan','veebr','märts','apr','mai','juuni','juuli','aug','sept','okt','nov','dets'];byId('moon-full').textContent=phase>=13&&phase<=17?'Täna/homme':fullDate.getDate()+'. '+months[fullDate.getMonth()]+' ('+Math.round(daysToFull)+'p)';}
+calcMoon();setInterval(calcMoon,60*60*1000);
+
+window.addEventListener('load',function(){setTimeout(updateCompactMode,250);setTimeout(updateCompactMode,900);setTimeout(updateCompactMode,1800);});
+setTimeout(function(){location.reload();},CONFIG.pageReloadMs);
+
+function zoomLocal(){setVisualCenter(CONFIG.lat,CONFIG.lng,18);}
+function zoomDefault(){map.setView([CONFIG.lat,CONFIG.lng],9);}
+function zoomRegion(){setVisualCenter(CONFIG.lat,CONFIG.lng,8);}
+function zoomEstonia(){setVisualCenter(CONFIG.lat,CONFIG.lng,7);}
+</script>
+</body>
+</html>
