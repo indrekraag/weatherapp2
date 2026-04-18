@@ -90,12 +90,20 @@ body {
   font-size: 10px;
   color: var(--muted);
   letter-spacing: 0.5px;
+  transition: color 0.3s;
 }
+.topbar-sub-time.stale { color: var(--warn); }
 
 .topbar-left {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .pulse-dot {
@@ -124,6 +132,47 @@ body {
   color: var(--muted);
   letter-spacing: 0.5px;
   text-align: right;
+}
+
+.refresh-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, transform 0.3s;
+  flex-shrink: 0;
+}
+.refresh-btn:active { border-color: var(--accent); color: var(--accent); }
+.refresh-btn.spinning { animation: spin 0.6s linear; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ─── ALERT BANNER ─────────────────────── */
+.alert-banner {
+  display: none;
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1.6;
+}
+.alert-banner.storm {
+  display: block;
+  background: rgba(255,80,80,0.12);
+  border: 1px solid rgba(255,100,100,0.35);
+  color: var(--bad);
+}
+.alert-banner.rain {
+  display: block;
+  background: rgba(77,168,216,0.1);
+  border: 1px solid rgba(77,168,216,0.3);
+  color: var(--cold);
 }
 
 /* ─── STACK ─────────────────────────────── */
@@ -266,6 +315,15 @@ body {
 .rise { color: var(--rise); }
 .set { color: var(--set); }
 
+/* ─── WIND ARROW ──────────────────────── */
+.wind-arrow {
+  display: inline-block;
+  font-size: 14px;
+  line-height: 1;
+  margin-left: 2px;
+  transition: transform 0.6s ease;
+}
+
 /* ─── DIVIDER ─────────────────────────── */
 .divider {
   height: 1px;
@@ -308,7 +366,7 @@ body {
   font-weight: 700;
   line-height: 1;
 }
-.hour-wind, .hour-rain {
+.hour-wind, .hour-rain, .hour-uv {
   font-size: 9px;
   color: var(--muted);
   margin-top: 5px;
@@ -325,15 +383,25 @@ body {
 }
 .rain-note .val { font-size: 12px; }
 
-/* ─── DAILY ─────────────────────────── */
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+/* ─── DAILY SCROLL ────────────────────── */
+.scroll-daily {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-daily::-webkit-scrollbar { display: none; }
 
-.mini {
+.day-card {
+  min-width: 72px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 12px 8px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .mini-day {
@@ -384,13 +452,19 @@ body {
         <div class="pulse-dot"></div>
         <div class="location-label">Keravere</div>
       </div>
-      <div class="clock" id="clock">—</div>
+      <div class="topbar-right">
+        <div class="clock" id="clock">—</div>
+        <button class="refresh-btn" id="refresh-btn" title="Uuenda" onclick="manualRefresh()">↻</button>
+      </div>
     </div>
     <div class="topbar-sub">
       <span class="topbar-sub-label">Uuendatud</span>
       <span class="topbar-sub-time" id="last-updated">—</span>
     </div>
   </div>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner" id="alert-banner"></div>
 
   <div class="stack">
 
@@ -419,6 +493,7 @@ body {
           <span class="val cold" id="wx-wind">—</span>
           <span class="unit">m/s</span>
           <span class="unit" id="wx-dir">—</span>
+          <span class="wind-arrow" id="wx-wind-arrow">↑</span>
           <span class="unit">·</span>
           <span class="unit">puhangud</span>
           <span class="val cold xs" id="wx-gust">—</span>
@@ -445,6 +520,42 @@ body {
         </div>
       </div>
 
+      <div class="row">
+        <span class="row-icon">💧</span>
+        <span class="row-label">Niiskus</span>
+        <div class="row-right">
+          <span class="val sm" id="wx-humidity">—</span>
+          <span class="unit">%</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="row-icon">🔆</span>
+        <span class="row-label">UV indeks</span>
+        <div class="row-right">
+          <span class="val sm" id="wx-uv">—</span>
+          <span class="unit" id="wx-uv-label"></span>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="row-icon">👁</span>
+        <span class="row-label">Nähtavus</span>
+        <div class="row-right">
+          <span class="val sm" id="wx-vis">—</span>
+          <span class="unit">km</span>
+        </div>
+      </div>
+
+      <div class="row" id="snow-row" style="display:none">
+        <span class="row-icon">🌨️</span>
+        <span class="row-label">Lumekate</span>
+        <div class="row-right">
+          <span class="val sm cold" id="wx-snow">—</span>
+          <span class="unit">cm</span>
+        </div>
+      </div>
+
       <div class="row" style="margin-bottom:0">
         <span class="row-icon">❄️</span>
         <span class="row-label">Öökülm</span>
@@ -461,10 +572,10 @@ body {
       <div class="rain-note">Sademed algavad: <span id="rain-start" class="val" style="font-size:12px;">—</span></div>
     </div>
 
-    <!-- 3-DAY FORECAST -->
+    <!-- 7-DAY FORECAST -->
     <div class="card">
-      <div class="card-title">3 päeva</div>
-      <div class="grid-3" id="daily-grid"></div>
+      <div class="card-title">7 päeva</div>
+      <div class="scroll-daily" id="daily-strip"></div>
     </div>
 
     <!-- SUN + MOON -->
@@ -567,6 +678,7 @@ body {
 var CONFIG = { lat:58.81627, lng:23.74447, label:'Keravere', weatherRefreshMs:5*60*1000 };
 var PRESSURE_HISTORY = [];
 var TODAY_SUNRISE_MS = null, TODAY_SUNSET_MS = null;
+var LAST_FETCH_MS = null;
 
 function byId(id){ return document.getElementById(id); }
 function pad(n){ return n < 10 ? '0' + n : '' + n; }
@@ -582,8 +694,24 @@ function updateClock(){
   var days = ['PÜHAPÄEV','ESMASPÄEV','TEISIPÄEV','KOLMAPÄEV','NELJAPÄEV','REEDE','LAUPÄEV'];
   byId('clock').textContent = days[now.getDay()] + ' ' + pad(now.getDate()) + '.' + pad(now.getMonth()+1) + ' ' + formatTime(now);
   updateSunCountdown();
+  updateStaleIndicator();
 }
 setInterval(updateClock, 1000); updateClock();
+
+function updateStaleIndicator(){
+  if(!LAST_FETCH_MS) return;
+  var el = byId('last-updated');
+  var age = Date.now() - LAST_FETCH_MS;
+  if(age > 10*60*1000){ el.classList.add('stale'); }
+  else { el.classList.remove('stale'); }
+}
+
+function manualRefresh(){
+  var btn = byId('refresh-btn');
+  btn.classList.add('spinning');
+  setTimeout(function(){ btn.classList.remove('spinning'); }, 650);
+  fetchWeatherAndForecast();
+}
 
 function degToCompass(deg){
   var d = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
@@ -607,16 +735,68 @@ function currentSkyText(cloud, precip){
   return { text:'Lauspilves', icon:'☁️' };
 }
 
+function uvLabel(uv){
+  if(uv === null || isNaN(uv)) return {text:'—', color:'var(--muted)'};
+  if(uv < 1) return {text:'Puudub', color:'var(--muted)'};
+  if(uv < 3) return {text:'Madal', color:'var(--ok)'};
+  if(uv < 6) return {text:'Mõõdukas', color:'var(--warn)'};
+  if(uv < 8) return {text:'Kõrge', color:'#ffb366'};
+  if(uv < 11) return {text:'Väga kõrge', color:'var(--bad)'};
+  return {text:'Äärmuslik', color:'var(--bad)'};
+}
+
+function visLabel(visM){
+  if(visM === null || isNaN(visM)) return {km:'—', color:'var(--text)'};
+  var km = round1(visM / 1000);
+  var color = visM < 1000 ? 'var(--bad)' : visM < 5000 ? 'var(--warn)' : 'var(--ok)';
+  return {km: km < 10 ? km.toFixed(1) : Math.round(km), color:color};
+}
+
+function findCurrentHourIdx(times){
+  var now = new Date();
+  var best = 0;
+  for(var i=0;i<times.length;i++){
+    var t = parseLocalIsoFlexible(times[i]);
+    if(!t) continue;
+    if(t.getTime() <= now.getTime()) best = i;
+    else break;
+  }
+  return best;
+}
+
+function checkAlerts(hourly){
+  var now = new Date();
+  var stormTime = null, rainTime = null;
+  for(var i=0;i<hourly.time.length;i++){
+    var t = parseLocalIsoFlexible(hourly.time[i]);
+    if(!t || t.getTime() < now.getTime()) continue;
+    if(t.getTime() > now.getTime() + 12*3600000) break;
+    var code = hourly.weathercode[i];
+    var precip = hourly.precipitation[i] || 0;
+    if(code >= 95 && !stormTime) stormTime = t;
+    else if((code === 65 || code === 67 || code === 82) && precip > 3 && !rainTime) rainTime = t;
+  }
+  var banner = byId('alert-banner');
+  banner.className = 'alert-banner';
+  if(stormTime){
+    banner.className = 'alert-banner storm';
+    banner.innerHTML = '⛈️ &nbsp;Äike oodata ~ ' + formatTime(stormTime) + ' paiku';
+  } else if(rainTime){
+    banner.className = 'alert-banner rain';
+    banner.innerHTML = '🌧️ &nbsp;Tugev vihm oodata ~ ' + formatTime(rainTime) + ' paiku';
+  }
+}
+
 function fetchWeatherAndForecast(){
   var url = 'https://api.open-meteo.com/v1/forecast'
     + '?latitude=' + CONFIG.lat
     + '&longitude=' + CONFIG.lng
-    + '&current=temperature_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover'
-    + '&hourly=temperature_2m,precipitation,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m'
+    + '&current=temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,uv_index'
+    + '&hourly=temperature_2m,precipitation,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,visibility,snow_depth'
     + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode'
     + '&timezone=auto'
     + '&wind_speed_unit=ms'
-    + '&forecast_days=4'
+    + '&forecast_days=8'
     + '&models=ecmwf_ifs';
 
   var xhr = new XMLHttpRequest();
@@ -630,12 +810,14 @@ function fetchWeatherAndForecast(){
       var temp = round1(cur.temperature_2m);
       var feels = round1(cur.apparent_temperature);
       var dew = round1(cur.dew_point_2m);
+      var humidity = Math.round(cur.relative_humidity_2m);
       var pressure = Math.round(cur.surface_pressure);
       var wind = round1(cur.wind_speed_10m);
       var gust = round1(cur.wind_gusts_10m);
       var precip = round1(cur.precipitation);
       var cloud = Math.round(cur.cloud_cover);
       var dir = Math.round(cur.wind_direction_10m);
+      var uv = cur.uv_index !== undefined ? round1(cur.uv_index) : null;
 
       PRESSURE_HISTORY.push({t:Date.now(), p:pressure});
       PRESSURE_HISTORY = PRESSURE_HISTORY.filter(function(x){ return Date.now() - x.t <= 4*60*60*1000; });
@@ -651,6 +833,19 @@ function fetchWeatherAndForecast(){
       byId('wx-gust').textContent = gust;
       byId('wx-precip').textContent = precip.toFixed(1);
       byId('wx-dir').textContent = degToCompass(dir);
+      byId('wx-humidity').textContent = humidity;
+
+      // Wind arrow: rotate to show direction wind is blowing TO
+      var arrowEl = byId('wx-wind-arrow');
+      arrowEl.style.transform = 'rotate(' + (dir + 180) + 'deg)';
+
+      // UV index
+      if(uv !== null){
+        var uvInfo = uvLabel(uv);
+        byId('wx-uv').textContent = uv.toFixed(1);
+        byId('wx-uv').style.color = uvInfo.color;
+        byId('wx-uv-label').textContent = uvInfo.text;
+      }
 
       var sky = currentSkyText(cloud, precip);
       byId('wx-cond').textContent = sky.text;
@@ -668,6 +863,23 @@ function fetchWeatherAndForecast(){
       byId('wx-pressure-trend').textContent = pressureTrend;
       byId('wx-pressure-trend').style.color = pressureColor;
 
+      // Visibility and snow depth from current hour
+      var curIdx = findCurrentHourIdx(data.hourly.time);
+      var visM = data.hourly.visibility ? data.hourly.visibility[curIdx] : null;
+      var snowM = data.hourly.snow_depth ? data.hourly.snow_depth[curIdx] : null;
+      if(visM !== null && !isNaN(visM)){
+        var vi = visLabel(visM);
+        byId('wx-vis').textContent = vi.km;
+        byId('wx-vis').style.color = vi.color;
+      }
+      if(snowM !== null && !isNaN(snowM) && snowM > 0){
+        var snowCm = Math.round(snowM * 100);
+        byId('wx-snow').textContent = snowCm;
+        byId('snow-row').style.display = '';
+      } else {
+        byId('snow-row').style.display = 'none';
+      }
+
       var minTonight = data.daily && data.daily.temperature_2m_min ? data.daily.temperature_2m_min[0] : null;
       var frostEl = byId('frost-warning');
       if(minTonight !== null && !isNaN(minTonight)){
@@ -679,9 +891,12 @@ function fetchWeatherAndForecast(){
       renderHourly(data.hourly);
       renderDaily(data.daily);
       updateRainStart(data.hourly);
+      checkAlerts(data.hourly);
 
+      LAST_FETCH_MS = Date.now();
       var now2 = new Date();
       byId('last-updated').textContent = pad(now2.getHours()) + ':' + pad(now2.getMinutes()) + ':' + pad(now2.getSeconds());
+      byId('last-updated').classList.remove('stale');
     }catch(e){}
   };
   xhr.send();
@@ -711,14 +926,20 @@ function renderHourly(hourly){
   var strip = byId('hourly-strip');
   strip.innerHTML = '';
   var now = new Date(), added = 0;
-  for(var i=0;i<hourly.time.length && added < 8;i++){
+  for(var i=0;i<hourly.time.length && added < 16;i++){
     var t = parseLocalIsoFlexible(hourly.time[i]);
     if(!t || t.getTime() < now.getTime() - 30*60*1000) continue;
     var wind = round1(hourly.wind_speed_10m[i] || 0);
     var gust = round1(hourly.wind_gusts_10m[i] || 0);
     var rain = round1(hourly.precipitation[i] || 0);
     var temp = Math.round(hourly.temperature_2m[i]);
+    var uv = hourly.uv_index ? round1(hourly.uv_index[i] || 0) : null;
     var icon = weatherCodeToIcon(hourly.weathercode[i], hourly.is_day[i] === 1);
+    var uvStr = '';
+    if(uv !== null && uv > 0){
+      var uvInfo = uvLabel(uv);
+      uvStr = '<div class="hour-uv" style="color:' + uvInfo.color + '">UV ' + uv.toFixed(0) + '</div>';
+    }
     var el = document.createElement('div');
     el.className = 'hour';
     el.innerHTML =
@@ -726,17 +947,18 @@ function renderHourly(hourly){
       '<div class="hour-icon">' + icon + '</div>' +
       '<div class="hour-temp ' + (temp < 0 ? 'cold' : 'warm') + '">' + temp + '°</div>' +
       '<div class="hour-wind">' + wind.toFixed(1) + ' (' + gust.toFixed(1) + ')<br>m/s</div>' +
-      '<div class="hour-rain">' + rain.toFixed(1) + ' mm</div>';
+      '<div class="hour-rain">' + rain.toFixed(1) + ' mm</div>' +
+      uvStr;
     strip.appendChild(el);
     added++;
   }
 }
 
 function renderDaily(daily){
-  var grid = byId('daily-grid');
-  grid.innerHTML = '';
+  var strip = byId('daily-strip');
+  strip.innerHTML = '';
   var startIndex = daily.time.length > 1 ? 1 : 0;
-  var endIndex = Math.min(startIndex + 3, daily.time.length);
+  var endIndex = Math.min(startIndex + 7, daily.time.length);
   for(var i=startIndex;i<endIndex;i++){
     var d = new Date(daily.time[i] + 'T12:00:00');
     var tmax = Math.round(daily.temperature_2m_max[i]);
@@ -744,14 +966,14 @@ function renderDaily(daily){
     var icon = weatherCodeToIcon(daily.weathercode[i], true);
     var rain = round1(daily.precipitation_sum[i] || 0);
     var el = document.createElement('div');
-    el.className = 'mini';
+    el.className = 'day-card';
     el.innerHTML =
       '<div class="mini-day">' + ['P','E','T','K','N','R','L'][d.getDay()] + ' ' + d.getDate() + '.' + pad(d.getMonth()+1) + '</div>' +
       '<div class="mini-icon">' + icon + '</div>' +
       '<div class="mini-main ' + (tmax < 0 ? 'cold' : 'warm') + '">' + tmax + '°</div>' +
       '<div class="mini-sub">min ' + tmin + '°</div>' +
       '<div class="mini-sub">' + rain.toFixed(1) + ' mm</div>';
-    grid.appendChild(el);
+    strip.appendChild(el);
   }
 }
 
