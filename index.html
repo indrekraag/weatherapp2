@@ -13,11 +13,12 @@
   --bg: #060d14;
   --surface: rgba(10,18,28,0.92);
   --surface2: rgba(6,13,20,0.96);
-  --border: rgba(52,100,140,0.28);
-  --border-bright: rgba(80,150,200,0.4);
-  --text: #ddeeff;
-  --muted: rgba(170,210,235,0.85);
-  --accent: #4da8d8;
+  --border: rgba(70,125,170,0.38);
+  --border-bright: rgba(95,170,220,0.5);
+  --text: #eaf4ff;
+  --muted: rgba(200,225,245,0.96);
+  --muted-strong: rgba(220,235,250,1);
+  --accent: #6fc1ec;
   --warm: #ffcc77;
   --cold: #7ecfff;
   --ok: #6ed99a;
@@ -78,18 +79,20 @@ body {
 }
 
 .topbar-sub-label {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   letter-spacing: 1px;
   text-transform: uppercase;
-  opacity: 0.85;
+  opacity: 1;
+  font-weight: 500;
 }
 
 .topbar-sub-time {
   font-family: 'Space Mono', monospace;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 14px;
+  color: var(--muted-strong);
   letter-spacing: 0.5px;
+  font-weight: 700;
   transition: color 0.3s;
 }
 .topbar-sub-time.stale { color: var(--warn); }
@@ -120,27 +123,29 @@ body {
 
 .location-label {
   font-family: 'Space Mono', monospace;
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 2.5px;
   color: var(--accent);
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 .clock {
   font-family: 'Space Mono', monospace;
-  font-size: 13px;
-  color: var(--muted);
+  font-size: 15px;
+  color: var(--muted-strong);
   letter-spacing: 0.5px;
+  font-weight: 700;
   text-align: right;
 }
 
 .refresh-btn {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-bright);
   border-radius: 8px;
-  color: var(--muted);
-  font-size: 13px;
-  width: 28px; height: 28px;
+  color: var(--muted-strong);
+  font-size: 16px;
+  width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: border-color 0.2s, color 0.2s, transform 0.3s;
@@ -154,13 +159,14 @@ body {
 .alert-banner {
   display: none;
   border-radius: 16px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   margin-bottom: 10px;
   font-family: 'Space Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 0.5px;
   text-align: center;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 .alert-banner.storm {
   display: block;
@@ -204,12 +210,13 @@ body {
 
 .card-title {
   font-family: 'Space Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 700;
   letter-spacing: 3px;
   color: var(--accent);
   text-transform: uppercase;
   margin-bottom: 18px;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* ─── CURRENT WEATHER ─────────────────── */
@@ -240,12 +247,14 @@ body {
   padding-top: 4px;
 }
 
-.wx-cond-icon-big { font-size: 36px; line-height: 1; }
+.wx-cond-icon-big { font-size: 44px; line-height: 1; }
 .wx-cond-text {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: 16px;
+  color: var(--muted-strong);
   text-align: right;
-  max-width: 120px;
+  max-width: 140px;
+  font-weight: 500;
+  line-height: 1.3;
 }
 
 /* ─── ROW ─────────────────────────────── */
@@ -253,13 +262,13 @@ body {
   display: flex;
   align-items: baseline;
   gap: 0;
-  margin-bottom: 13px;
+  margin-bottom: 15px;
 }
 .row:last-child { margin-bottom: 0; }
 
 .row-icon {
-  width: 22px;
-  font-size: 13px;
+  width: 24px;
+  font-size: 15px;
   line-height: 1;
   flex-shrink: 0;
   margin-top: 2px;
@@ -267,21 +276,23 @@ body {
 }
 
 .row-label {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 14px;
+  color: var(--muted-strong);
   text-transform: uppercase;
   letter-spacing: 1px;
-  min-width: 96px;
+  min-width: 104px;
   flex-shrink: 0;
+  font-weight: 500;
 }
 
 .row-label-sm {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: 13px;
+  color: var(--muted-strong);
   text-transform: uppercase;
   letter-spacing: 1px;
-  min-width: 72px;
+  min-width: 80px;
   flex-shrink: 0;
+  font-weight: 500;
 }
 
 .row-right {
@@ -293,18 +304,19 @@ body {
 
 .val {
   font-family: 'Space Mono', monospace;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
   line-height: 1;
 }
-.val.sm { font-size: 16px; }
-.val.xs { font-size: 14px; }
+.val.sm { font-size: 19px; }
+.val.xs { font-size: 17px; }
 
 .unit {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 14px;
+  color: var(--muted-strong);
   letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
 .warm { color: var(--warm); }
@@ -318,7 +330,7 @@ body {
 /* ─── WIND ARROW ──────────────────────── */
 .wind-arrow {
   display: inline-block;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
   margin-left: 2px;
   transition: transform 0.6s ease;
@@ -343,11 +355,11 @@ body {
 .scroll-x::-webkit-scrollbar { display: none; }
 
 .hour {
-  min-width: 78px;
+  min-width: 92px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 12px 8px;
+  padding: 14px 8px;
   text-align: center;
   flex-shrink: 0;
   transition: border-color 0.2s;
@@ -355,33 +367,36 @@ body {
 
 .hour-time {
   font-family: 'Space Mono', monospace;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 15px;
+  color: var(--muted-strong);
   letter-spacing: 0.5px;
+  font-weight: 700;
 }
-.hour-icon { font-size: 22px; margin: 6px 0 4px; }
+.hour-icon { font-size: 28px; margin: 8px 0 6px; }
 .hour-temp {
   font-family: 'Space Mono', monospace;
-  font-size: 19px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1;
 }
 .hour-wind, .hour-rain, .hour-uv {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 5px;
-  line-height: 1.4;
+  font-size: 13px;
+  color: var(--muted-strong);
+  margin-top: 6px;
+  line-height: 1.35;
+  font-weight: 500;
 }
 
 .rain-note {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 14px;
+  color: var(--muted-strong);
   text-align: center;
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
+  font-weight: 500;
 }
-.rain-note .val { font-size: 14px; }
+.rain-note .val { font-size: 16px; }
 
 /* ─── DAILY SCROLL ────────────────────── */
 .scroll-daily {
@@ -395,7 +410,7 @@ body {
 .scroll-daily::-webkit-scrollbar { display: none; }
 
 .day-card {
-  min-width: 80px;
+  min-width: 92px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -405,32 +420,38 @@ body {
 }
 
 .mini-day {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: 13px;
+  color: var(--muted-strong);
   letter-spacing: 1px;
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  font-weight: 700;
 }
-.mini-icon { font-size: 24px; line-height: 1; margin-bottom: 6px; }
+.mini-icon { font-size: 30px; line-height: 1; margin-bottom: 8px; }
 .mini-main {
   font-family: 'Space Mono', monospace;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1;
 }
-.mini-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.mini-sub {
+  font-size: 14px;
+  color: var(--muted-strong);
+  margin-top: 5px;
+  font-weight: 500;
+}
 
 /* ─── GRID 2 ─────────────────────────── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* ─── FOOTER ─────────────────────────── */
 .footer-note {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   text-align: center;
   margin-top: 14px;
   letter-spacing: 0.5px;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 /* ─── LOADING SHIMMER ─────────────────── */
@@ -475,9 +496,9 @@ body {
       <div class="wx-hero">
         <div>
           <div class="wx-temp-big warm loading" id="wx-temp">—</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:8px;line-height:1.9;">
-            <div>tundub nagu <span class="val xs" id="wx-feels" style="color:var(--muted);">—</span>°</div>
-            <div>kastepunkt <span class="val xs" id="wx-dew" style="color:var(--muted);">—</span>°</div>
+          <div style="font-size:15px;color:var(--muted-strong);margin-top:10px;line-height:1.9;font-weight:500;">
+            <div>tundub nagu <span class="val xs" id="wx-feels" style="color:var(--text);">—</span>°</div>
+            <div>kastepunkt <span class="val xs" id="wx-dew" style="color:var(--text);">—</span>°</div>
           </div>
         </div>
         <div class="wx-hero-right">
@@ -569,7 +590,7 @@ body {
     <div class="card">
       <div class="card-title">Täna tunniti</div>
       <div class="scroll-x" id="hourly-strip"></div>
-      <div class="rain-note">Sademed algavad: <span id="rain-start" class="val" style="font-size:12px;">—</span></div>
+      <div class="rain-note">Sademed algavad: <span id="rain-start" class="val" style="font-size:16px;color:var(--text);">—</span></div>
     </div>
 
     <!-- 7-DAY FORECAST -->
@@ -612,9 +633,9 @@ body {
       <div class="card">
         <div class="card-title">Kuu</div>
         <div style="text-align:center;margin-bottom:14px;">
-          <div id="moon-icon" style="font-size:42px;line-height:1;margin-bottom:6px;">🌑</div>
+          <div id="moon-icon" style="font-size:50px;line-height:1;margin-bottom:8px;">🌑</div>
           <div class="val sm" id="moon-phase" style="text-align:center;">—</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="moon-illum">--%</div>
+          <div style="font-size:14px;color:var(--muted-strong);margin-top:5px;font-weight:500;" id="moon-illum">--%</div>
         </div>
         <div class="row" style="margin-bottom:0">
           <span class="row-icon">🌕</span>
@@ -665,7 +686,7 @@ body {
         <div class="row" style="margin-bottom:0">
           <span class="row-icon">🕒</span>
           <span class="row-label-sm">Uuendus</span>
-          <div class="row-right"><span style="font-size:9px;color:var(--muted);" id="aurora-updated">—</span></div>
+          <div class="row-right"><span style="font-size:12px;color:var(--muted-strong);font-weight:500;" id="aurora-updated">—</span></div>
         </div>
       </div>
     </div>
