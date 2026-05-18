@@ -4,8 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Ilmaradar – Keravere</title>
+<meta name="apple-mobile-web-app-title" content="Madise">
+<meta name="application-name" content="Madise">
+<meta name="theme-color" content="#060d14">
+<title>Madise Ilmaradar</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -77,6 +85,15 @@ body {
   padding-top: 8px;
   border-top: 1px solid var(--border);
 }
+.topbar-sub-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.topbar-sub .refresh-btn { width: 28px; height: 28px; font-size: 14px; }
+.refresh-btn-hard { color: var(--warn); border-color: rgba(255,208,96,0.4); }
+.refresh-btn-hard:active { color: var(--warn); border-color: var(--warn); }
 
 .topbar-sub-label {
   font-size: 13px;
@@ -181,6 +198,43 @@ body {
   color: var(--cold);
 }
 
+/* Slim meteo warning row — always present. Muted "Hoiatusi pole" when
+ * no active CAP warnings for Lääne county, severity-coloured otherwise. */
+.warning-bar {
+  padding: 7px 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-align: center;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted-strong);
+  line-height: 1.4;
+}
+.warning-bar.empty { color: var(--muted); opacity: 0.55; border-style: dashed; }
+.warning-bar.minor {
+  background: rgba(255,208,96,0.10);
+  border-color: rgba(255,208,96,0.35);
+  color: var(--warn);
+  border-style: solid;
+}
+.warning-bar.moderate {
+  background: rgba(255,179,102,0.12);
+  border-color: rgba(255,179,102,0.45);
+  color: #ffb366;
+  border-style: solid;
+}
+.warning-bar.severe,
+.warning-bar.extreme {
+  background: rgba(255,100,100,0.13);
+  border-color: rgba(255,100,100,0.45);
+  color: var(--bad);
+  border-style: solid;
+}
+
 /* ─── STACK ─────────────────────────────── */
 .stack { display: flex; flex-direction: column; gap: 10px; }
 
@@ -222,12 +276,77 @@ body {
 /* ─── CURRENT WEATHER ─────────────────── */
 .wx-hero {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 14px;
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
 }
+.wx-hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* ─── NEARBY STATIONS SUBSECTION ──────
+ * Inline rows showing nearby weather stations (Kurevere road sensor,
+ * Lääne-Nigula and Haapsalu EMHI). Compact — title and one data line
+ * per station, no source attribution (saves vertical space). */
+.wx-station {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 1px;
+  border-top: 1px dashed var(--border);
+}
+.wx-station-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+/* Source label sits on its own line, left-aligned at x=0 so it lines
+ * up vertically with the data row underneath (and with the other
+ * station's source label). */
+.wx-station-source {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--muted);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.wx-station-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+/* Each numeric slot gets a fixed minimum width and right-aligns the
+ * digits inside, so the trailing unit text (° / mm/h / m/s) sits at
+ * the same x position across both station rows regardless of whether
+ * the value is "+9.5" or "+16.0". 5ch covers "+16.0" exactly; smaller
+ * values get padding-left to keep right-edge consistent. */
+.wx-station-row .val {
+  font-size: 18px;
+  display: inline-block;
+  min-width: 5ch;
+  text-align: right;
+}
+.wx-station-row .sep {
+  font-size: 13px;
+  color: var(--muted);
+  opacity: 0.7;
+  margin: 0 2px;
+}
+.wx-station-row .wind-arrow { font-size: 20px; }
 
 .wx-temp-big {
   font-family: 'Space Mono', monospace;
@@ -280,7 +399,7 @@ body {
   color: var(--muted-strong);
   text-transform: uppercase;
   letter-spacing: 1px;
-  min-width: 104px;
+  min-width: 88px;
   flex-shrink: 0;
   font-weight: 500;
 }
@@ -298,8 +417,9 @@ body {
 .row-right {
   display: flex;
   align-items: baseline;
-  gap: 5px;
+  gap: 4px;
   flex: 1;
+  flex-wrap: wrap;
 }
 
 .val {
@@ -330,9 +450,10 @@ body {
 /* ─── WIND ARROW ──────────────────────── */
 .wind-arrow {
   display: inline-block;
-  font-size: 16px;
+  font-size: 28px;
   line-height: 1;
   margin-left: 2px;
+  color: var(--cold);
   transition: transform 0.6s ease;
 }
 
@@ -348,21 +469,30 @@ body {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 4px 2px 6px;
-  scrollbar-width: none;
+  padding: 4px 2px 8px;
   -webkit-overflow-scrolling: touch;
+  /* Slim scrollbar at the bottom so the user knows there's more
+   * content. iOS Safari may still hide native scrollbars in standalone
+   * mode — the snap-points below provide a tactile cue as well. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(111,193,236,0.4) transparent;
+  scroll-snap-type: x proximity;
 }
-.scroll-x::-webkit-scrollbar { display: none; }
+.scroll-x::-webkit-scrollbar { display: block; height: 4px; }
+.scroll-x::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 2px; }
+.scroll-x::-webkit-scrollbar-thumb { background: rgba(111,193,236,0.45); border-radius: 2px; }
 
 .hour {
-  min-width: 92px;
+  /* Each tile is exactly 1/4 of the visible strip width (minus gaps),
+   * so 4 tiles always fit cleanly regardless of viewport size. */
+  flex: 0 0 calc((100% - 24px) / 4);
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 14px 8px;
   text-align: center;
-  flex-shrink: 0;
   transition: border-color 0.2s;
+  scroll-snap-align: start;
 }
 
 .hour-time {
@@ -403,20 +533,24 @@ body {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 4px 2px 6px;
-  scrollbar-width: none;
+  padding: 4px 2px 8px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(111,193,236,0.4) transparent;
+  scroll-snap-type: x proximity;
 }
-.scroll-daily::-webkit-scrollbar { display: none; }
+.scroll-daily::-webkit-scrollbar { display: block; height: 4px; }
+.scroll-daily::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 2px; }
+.scroll-daily::-webkit-scrollbar-thumb { background: rgba(111,193,236,0.45); border-radius: 2px; }
 
 .day-card {
-  min-width: 92px;
+  flex: 0 0 calc((100% - 24px) / 4);
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 14px 8px;
   text-align: center;
-  flex-shrink: 0;
+  scroll-snap-align: start;
 }
 
 .mini-day {
@@ -443,6 +577,149 @@ body {
 
 /* ─── GRID 2 ─────────────────────────── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Narrow 2-col cards: lay out each row as a small grid so the icon
+ * forms a left rail spanning the full row height, and label + value
+ * stack in the second column with shared left-alignment.
+ *
+ *   ┌────┬────────────────┐
+ *   │    │ TÕUS           │
+ *   │ 🌅 ├────────────────┤
+ *   │    │ 06:23          │
+ *   └────┴────────────────┘
+ */
+.grid-2 .card .row {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 10px;
+  row-gap: 3px;
+  align-items: start;
+  margin-bottom: 13px;
+}
+.grid-2 .card .row .row-icon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+  margin-top: 0;
+  font-size: 16px;
+  text-align: center;
+}
+.grid-2 .card .row .row-label-sm {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grid-2 .card .row .row-right {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+}
+
+/* For cards that have a centered hero block at the top and only one
+ * data row beneath it (e.g. Kuu), make the card a flex column and pin
+ * the row to the bottom. Hero stays at top, breathing room between. */
+.card.has-hero { display: flex; flex-direction: column; }
+.card.has-hero > .row { margin-top: auto; margin-bottom: auto; }
+
+/* Shared hero block used at the top of Päike and Kuu cards. Identical
+ * CSS for both = identical height = the first data row underneath
+ * (Tõus) lines up horizontally across the two cards in the grid row. */
+.card-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: -20px 0 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.card-hero-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+/* Sun icon is a pure CSS disc — same shape and size as the moon emoji
+ * but rendered as a flat colored circle with a glow. Switches between
+ * warm (day) and cool (night) when the sun is below the horizon. */
+.sun-disc {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffcc77;
+  box-shadow: 0 0 14px rgba(255, 204, 119, 0.55);
+  font-size: 0;
+  vertical-align: middle;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+.sun-disc.night {
+  background: #4a5a78;
+  box-shadow: 0 0 10px rgba(126, 207, 255, 0.4);
+}
+.card-hero-main {
+  font-family: 'Space Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text);
+  text-transform: uppercase;
+  text-align: center;
+}
+.card-hero-caption {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+/* Compass direction shown after sunrise/sunset/moonrise/moonset times,
+ * e.g. "04:48 NE". Just the cardinal direction (no degree) so it
+ * always fits on one line in the narrow 2-col card. */
+.az-text {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+/* Aurora card: keep the default 2-col stacked label/value layout to
+ * match Õietolm next door (consistency in the same grid row).
+ * The 72h chart is moved out of the .row structure so it can span the
+ * full card width instead of being squeezed into a 1fr value cell. */
+.kp-72h {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kp-72h-label {
+  font-size: 12px;
+  color: var(--muted-strong);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kp-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  width: 100%;
+  height: 36px;
+}
+.kp-chart .bar {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 1px 1px 0 0;
+  opacity: 0.9;
+}
+.kp-chart .bar.now { outline: 1px solid rgba(255,255,255,0.4); outline-offset: -1px; }
 
 /* ─── FOOTER ─────────────────────────── */
 .footer-note {
@@ -471,21 +748,28 @@ body {
     <div class="topbar-main">
       <div class="topbar-left">
         <div class="pulse-dot"></div>
-        <div class="location-label">Keravere</div>
+        <div class="location-label">Madise</div>
       </div>
       <div class="topbar-right">
         <div class="clock" id="clock">—</div>
-        <button class="refresh-btn" id="refresh-btn" title="Uuenda" onclick="manualRefresh()">↻</button>
       </div>
     </div>
     <div class="topbar-sub">
       <span class="topbar-sub-label">Uuendatud</span>
       <span class="topbar-sub-time" id="last-updated">—</span>
+      <div class="topbar-sub-actions">
+        <button class="refresh-btn" id="refresh-btn" title="Uuenda andmeid" onclick="manualRefresh()">↻</button>
+        <button class="refresh-btn refresh-btn-hard" id="hard-refresh-btn" title="Tühjenda vahemälu ja laadi uuesti" onclick="hardRefresh()">⟲</button>
+      </div>
     </div>
   </div>
 
-  <!-- ALERT BANNER -->
+  <!-- ALERT BANNER (transient: storm/heavy-rain from Open-Meteo forecast) -->
   <div class="alert-banner" id="alert-banner"></div>
+
+  <!-- Meteo warning row (CAP feed via the data branch). Always visible:
+       muted "Hoiatusi pole" when empty, colored when active. -->
+  <div class="warning-bar empty" id="warning-bar">Hoiatusi pole</div>
 
   <div class="stack">
 
@@ -494,16 +778,52 @@ body {
       <div class="card-title">Hetkeilm</div>
 
       <div class="wx-hero">
-        <div>
-          <div class="wx-temp-big warm loading" id="wx-temp">—</div>
-          <div style="font-size:15px;color:var(--muted-strong);margin-top:10px;line-height:1.9;font-weight:500;">
-            <div>tundub nagu <span class="val xs" id="wx-feels" style="color:var(--text);">—</span>°</div>
-            <div>kastepunkt <span class="val xs" id="wx-dew" style="color:var(--text);">—</span>°</div>
+        <div class="wx-hero-row">
+          <div>
+            <div class="wx-temp-big warm loading" id="wx-temp">—</div>
+            <div style="font-size:15px;color:var(--muted-strong);margin-top:10px;line-height:1.9;font-weight:500;">
+              <div>tundub nagu <span class="val xs" id="wx-feels" style="color:var(--text);">—</span>°</div>
+              <div>kastepunkt <span class="val xs" id="wx-dew" style="color:var(--text);">—</span>°</div>
+            </div>
+          </div>
+          <div class="wx-hero-right">
+            <div class="wx-cond-icon-big" id="wx-cond-icon">⋯</div>
+            <div class="wx-cond-text" id="wx-cond">—</div>
           </div>
         </div>
-        <div class="wx-hero-right">
-          <div class="wx-cond-icon-big" id="wx-cond-icon">⋯</div>
-          <div class="wx-cond-text" id="wx-cond">—</div>
+        <!-- Nearby weather stations (self-contained, easy to remove or rearrange) -->
+        <div class="wx-station" id="kv-block">
+          <div class="wx-station-title">Kurevere</div>
+          <div class="wx-station-row">
+            <span class="val cold" id="kv-temp">—</span><span>°</span>
+            <span class="sep">·</span>
+            <span class="val" id="kv-precip">—</span><span>mm/h</span>
+            <span class="sep">·</span>
+            <span class="val cold" id="kv-wind">—</span><span>m/s</span>
+            <span class="wind-arrow" id="kv-wind-arrow">↑</span>
+          </div>
+        </div>
+        <div class="wx-station" id="ln-block">
+          <div class="wx-station-title">Lääne-Nigula</div>
+          <div class="wx-station-row">
+            <span class="val cold" id="ln-temp">—</span><span>°</span>
+            <span class="sep">·</span>
+            <span class="val" id="ln-precip">—</span><span>mm/h</span>
+            <span class="sep">·</span>
+            <span class="val cold" id="ln-wind">—</span><span>m/s</span>
+            <span class="wind-arrow" id="ln-wind-arrow">↑</span>
+          </div>
+        </div>
+        <div class="wx-station" id="hp-block">
+          <div class="wx-station-title">Haapsalu</div>
+          <div class="wx-station-row">
+            <span class="val cold" id="hp-temp">—</span><span>°</span>
+            <span class="sep">·</span>
+            <span class="val" id="hp-precip">—</span><span>mm/h</span>
+            <span class="sep">·</span>
+            <span class="val cold" id="hp-wind">—</span><span>m/s</span>
+            <span class="wind-arrow" id="hp-wind-arrow">↑</span>
+          </div>
         </div>
       </div>
 
@@ -515,10 +835,8 @@ body {
           <span class="unit">m/s</span>
           <span class="unit" id="wx-dir">—</span>
           <span class="wind-arrow" id="wx-wind-arrow">↑</span>
-          <span class="unit">·</span>
-          <span class="unit">puhangud</span>
+          <span class="unit">· puh</span>
           <span class="val cold xs" id="wx-gust">—</span>
-          <span class="unit">m/s</span>
         </div>
       </div>
 
@@ -552,7 +870,7 @@ body {
 
       <div class="row">
         <span class="row-icon">🔆</span>
-        <span class="row-label">UV indeks</span>
+        <span class="row-label">UV</span>
         <div class="row-right">
           <span class="val sm" id="wx-uv">—</span>
           <span class="unit" id="wx-uv-label"></span>
@@ -590,12 +908,12 @@ body {
     <div class="card">
       <div class="card-title">Täna tunniti</div>
       <div class="scroll-x" id="hourly-strip"></div>
-      <div class="rain-note">Sademed algavad: <span id="rain-start" class="val" style="font-size:16px;color:var(--text);">—</span></div>
+      <div class="rain-note">Võimaliku saju alguseni: <span id="rain-start" class="val" style="font-size:16px;color:var(--text);">—</span></div>
     </div>
 
     <!-- 7-DAY FORECAST -->
     <div class="card">
-      <div class="card-title">7 päeva</div>
+      <div class="card-title">7 päeva prognoos</div>
       <div class="scroll-daily" id="daily-strip"></div>
     </div>
 
@@ -603,43 +921,63 @@ body {
     <div class="grid-2">
       <div class="card">
         <div class="card-title">Päike</div>
+        <div class="card-hero">
+          <span class="card-hero-icon sun-disc" id="sun-hero-icon"></span>
+          <span class="card-hero-main" id="sun-hero-length">—</span>
+          <span class="card-hero-caption">päikest</span>
+        </div>
         <div class="row">
           <span class="row-icon">🌅</span>
           <span class="row-label-sm">Tõus</span>
-          <div class="row-right"><span class="val sm rise" id="sunrise-time">—</span></div>
+          <div class="row-right">
+            <span class="val sm rise" id="sunrise-time">—</span>
+            <span class="az-text" id="sunrise-az"></span>
+          </div>
         </div>
         <div class="row">
           <span class="row-icon">🌇</span>
           <span class="row-label-sm">Loojang</span>
-          <div class="row-right"><span class="val sm set" id="sunset-time">—</span></div>
+          <div class="row-right">
+            <span class="val sm set" id="sunset-time">—</span>
+            <span class="az-text" id="sunset-az"></span>
+          </div>
         </div>
-        <div class="row">
+        <div class="row" style="margin-bottom:0">
           <span class="row-icon">⏳</span>
           <span class="row-label-sm" id="sun-count-label">Loojanguni</span>
           <div class="row-right"><span class="val xs set" id="sun-countdown">—</span></div>
         </div>
-        <div class="row">
-          <span class="row-icon">☀️</span>
-          <span class="row-label-sm">Valgust</span>
-          <div class="row-right"><span class="val xs rise" id="day-length">—</span></div>
-        </div>
-        <div class="row" style="margin-bottom:0">
-          <span class="row-icon">Δ</span>
-          <span class="row-label-sm">Eilsest</span>
-          <div class="row-right"><span class="val xs rise" id="day-change">—</span></div>
-        </div>
+        <!-- Hidden duplicate so existing JS that writes #day-length still works.
+             Day length is now displayed in the hero (#sun-hero-length) instead. -->
+        <span id="day-length" style="display:none">—</span>
       </div>
 
       <div class="card">
         <div class="card-title">Kuu</div>
-        <div style="text-align:center;margin-bottom:14px;">
-          <div id="moon-icon" style="font-size:50px;line-height:1;margin-bottom:8px;">🌑</div>
-          <div class="val sm" id="moon-phase" style="text-align:center;">—</div>
-          <div style="font-size:14px;color:var(--muted-strong);margin-top:5px;font-weight:500;" id="moon-illum">--%</div>
+        <div class="card-hero">
+          <span class="card-hero-icon" id="moon-icon">🌑</span>
+          <span class="card-hero-main" id="moon-phase">—</span>
+          <span class="card-hero-caption" id="moon-illum">—</span>
+        </div>
+        <div class="row">
+          <span class="row-icon">🌅</span>
+          <span class="row-label-sm">Tõus</span>
+          <div class="row-right">
+            <span class="val xs rise" id="moon-rise-time">—</span>
+            <span class="az-text" id="moon-rise-az"></span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-icon">🌇</span>
+          <span class="row-label-sm">Loojang</span>
+          <div class="row-right">
+            <span class="val xs set" id="moon-set-time">—</span>
+            <span class="az-text" id="moon-set-az"></span>
+          </div>
         </div>
         <div class="row" style="margin-bottom:0">
           <span class="row-icon">🌕</span>
-          <span class="row-label-sm">Täiskuu</span>
+          <span class="row-label-sm">Järgmine täiskuu</span>
           <div class="row-right"><span class="val xs" id="moon-full">—</span></div>
         </div>
       </div>
@@ -661,7 +999,7 @@ body {
         </div>
         <div class="row">
           <span class="row-icon">🌾</span>
-          <span class="row-label-sm">Muru</span>
+          <span class="row-label-sm">Hein</span>
           <div class="row-right"><span class="val xs" id="pollen-grass">—</span></div>
         </div>
         <div class="row" style="margin-bottom:0">
@@ -671,12 +1009,12 @@ body {
         </div>
       </div>
 
-      <div class="card">
+      <div class="card aurora-card">
         <div class="card-title">Virmalised</div>
         <div class="row">
-          <span class="row-icon">✨</span>
-          <span class="row-label-sm">Kp praegu</span>
-          <div class="row-right"><span class="val xs" id="kp-current">—</span></div>
+          <span class="row-icon">📈</span>
+          <span class="row-label-sm">24h</span>
+          <div class="row-right"><span class="val xs" id="kp-24h-max">—</span></div>
         </div>
         <div class="row">
           <span class="row-icon">🗺️</span>
@@ -684,9 +1022,13 @@ body {
           <div class="row-right"><span class="val xs" id="aurora-prob">—</span></div>
         </div>
         <div class="row" style="margin-bottom:0">
-          <span class="row-icon">🕒</span>
-          <span class="row-label-sm">Uuendus</span>
-          <div class="row-right"><span style="font-size:12px;color:var(--muted-strong);font-weight:500;" id="aurora-updated">—</span></div>
+          <span class="row-icon">🧲</span>
+          <span class="row-label-sm">Bz</span>
+          <div class="row-right"><span class="val xs" id="solar-bz">—</span></div>
+        </div>
+        <div class="kp-72h">
+          <div class="kp-72h-label"><span>📊</span><span>72h</span></div>
+          <div class="kp-chart" id="kp-chart"></div>
         </div>
       </div>
     </div>
@@ -696,7 +1038,7 @@ body {
 </div>
 
 <script>
-var CONFIG = { lat:58.81627, lng:23.74447, label:'Keravere', weatherRefreshMs:5*60*1000 };
+var CONFIG = { lat:58.81627, lng:23.74447, label:'Madise', weatherRefreshMs:5*60*1000 };
 var PRESSURE_HISTORY = [];
 var TODAY_SUNRISE_MS = null, TODAY_SUNSET_MS = null;
 var LAST_FETCH_MS = null;
@@ -732,6 +1074,58 @@ function manualRefresh(){
   btn.classList.add('spinning');
   setTimeout(function(){ btn.classList.remove('spinning'); }, 650);
   fetchWeatherAndForecast();
+  fetchPollen();
+  fetchKpForecast();
+  fetchOvation();
+  fetchSolarWind();
+  fetchKurevere();
+  fetchLaaneNigula();
+}
+
+/* Hard refresh: drop all cached weather data from localStorage, evict
+ * the service-worker app-shell cache, and reload the page. Use when
+ * something looks wrong and you want a guaranteed clean state. */
+function hardRefresh(){
+  var btn = byId('hard-refresh-btn');
+  if(btn) btn.classList.add('spinning');
+  try {
+    var keys = [];
+    for(var i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf('wx.') === 0) keys.push(k);
+    }
+    keys.forEach(function(k){ localStorage.removeItem(k); });
+  } catch(e){}
+  var done = function(){ try { location.reload(); } catch(e){ window.location = window.location.href; } };
+  try {
+    if(window.caches && caches.keys){
+      caches.keys().then(function(names){
+        return Promise.all(names.map(function(n){ return caches.delete(n); }));
+      }).then(done, done);
+    } else {
+      done();
+    }
+  } catch(e){ done(); }
+}
+
+/* ─── localStorage cache ──────────────────
+ * Persist the last successful API response per source. On load we render
+ * from cache first so the app shows something (with a stale indicator)
+ * even before the network comes back, and offline reloads still work.
+ */
+var CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6h — older than this, ignore
+function saveCache(key, data){
+  try { localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: data })); } catch(e){}
+}
+function loadCache(key){
+  try {
+    var raw = localStorage.getItem(key);
+    if(!raw) return null;
+    var parsed = JSON.parse(raw);
+    if(!parsed || !parsed.savedAt) return null;
+    if(Date.now() - parsed.savedAt > CACHE_MAX_AGE_MS) return null;
+    return parsed;
+  } catch(e){ return null; }
 }
 
 function degToCompass(deg){
@@ -808,25 +1202,8 @@ function checkAlerts(hourly){
   }
 }
 
-function fetchWeatherAndForecast(){
-  var url = 'https://api.open-meteo.com/v1/forecast'
-    + '?latitude=' + CONFIG.lat
-    + '&longitude=' + CONFIG.lng
-    + '&current=temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,uv_index'
-    + '&hourly=temperature_2m,precipitation,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,visibility,snow_depth'
-    + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode'
-    + '&timezone=auto'
-    + '&wind_speed_unit=ms'
-    + '&forecast_days=8'
-    + '&models=ecmwf_ifs';
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.timeout = 10000;
-  xhr.onload = function(){
-    if(xhr.status !== 200) return;
-    try{
-      var data = JSON.parse(xhr.responseText);
+function renderWeather(data, savedAt){
+  try{
       var cur = data.current;
       var temp = round1(cur.temperature_2m);
       var feels = round1(cur.apparent_temperature);
@@ -860,8 +1237,10 @@ function fetchWeatherAndForecast(){
       var arrowEl = byId('wx-wind-arrow');
       arrowEl.style.transform = 'rotate(' + (dir + 180) + 'deg)';
 
-      // UV index
-      if(uv !== null){
+      // UV index — only render from Open-Meteo if EMHI Haapsalu hasn't
+      // provided a real measurement (otherwise the forecast would
+      // overwrite the ground truth on each Open-Meteo refresh).
+      if(uv !== null && !WX_UV_FROM_EMHI){
         var uvInfo = uvLabel(uv);
         byId('wx-uv').textContent = uv.toFixed(1);
         byId('wx-uv').style.color = uvInfo.color;
@@ -914,10 +1293,34 @@ function fetchWeatherAndForecast(){
       updateRainStart(data.hourly);
       checkAlerts(data.hourly);
 
-      LAST_FETCH_MS = Date.now();
-      var now2 = new Date();
+      LAST_FETCH_MS = savedAt || Date.now();
+      var now2 = new Date(LAST_FETCH_MS);
       byId('last-updated').textContent = pad(now2.getHours()) + ':' + pad(now2.getMinutes()) + ':' + pad(now2.getSeconds());
-      byId('last-updated').classList.remove('stale');
+      updateStaleIndicator();
+  }catch(e){}
+}
+
+function fetchWeatherAndForecast(){
+  var url = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude=' + CONFIG.lat
+    + '&longitude=' + CONFIG.lng
+    + '&current=temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,uv_index'
+    + '&hourly=temperature_2m,precipitation,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,visibility,snow_depth'
+    + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode'
+    + '&timezone=auto'
+    + '&wind_speed_unit=ms'
+    + '&forecast_days=8'
+    + '&models=ecmwf_ifs';
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.timeout = 10000;
+  xhr.onload = function(){
+    if(xhr.status !== 200) return;
+    try{
+      var data = JSON.parse(xhr.responseText);
+      saveCache('wx.weather', data);
+      renderWeather(data);
     }catch(e){}
   };
   xhr.send();
@@ -1043,16 +1446,35 @@ function fetchSunTimes(){
   TODAY_SUNSET_MS = sun.sunset.getTime();
   byId('sunrise-time').textContent = formatTime(sun.sunrise);
   byId('sunset-time').textContent = formatTime(sun.sunset);
+  // Azimuth in degrees at the moment of rise / set. Compass label dropped
+  // (user knows what azimuth is) so the row stays on one line even for
+  // 3-digit values like 312°.
+  byId('sunrise-az').textContent = Math.round(solarPosition(sun.sunrise, CONFIG.lat, CONFIG.lng).azimuth) + '°';
+  byId('sunset-az').textContent = Math.round(solarPosition(sun.sunset, CONFIG.lat, CONFIG.lng).azimuth) + '°';
   var mins = Math.round((sun.sunset - sun.sunrise)/60000);
-  byId('day-length').textContent = Math.floor(mins/60) + 'h ' + pad(mins%60) + 'min';
-  var yNoon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()-1, 12, 0, 0));
-  var ySun = calcSunTimes(CONFIG.lat, CONFIG.lng, yNoon);
-  var diffMin = Math.round(((sun.sunset - sun.sunrise) - (ySun.sunset - ySun.sunrise))/60000);
-  byId('day-change').textContent = (diffMin >= 0 ? '+' : '') + diffMin + ' min';
+  var dayLen = Math.floor(mins/60) + 'h ' + pad(mins%60) + 'min';
+  byId('day-length').textContent = dayLen;
+  // Päike hero mirrors the Kuu hero structure — fed by the same value.
+  var heroEl = byId('sun-hero-length');
+  if(heroEl) heroEl.textContent = dayLen;
   updateSunCountdown();
 }
 
+var SUN_ICON_STATE = null;  // 'day' | 'night' | null
+function updateSunIcon(){
+  if(TODAY_SUNRISE_MS === null || TODAY_SUNSET_MS === null) return;
+  var now = Date.now();
+  var state = (now >= TODAY_SUNRISE_MS && now < TODAY_SUNSET_MS) ? 'day' : 'night';
+  if(state === SUN_ICON_STATE) return;
+  SUN_ICON_STATE = state;
+  var el = byId('sun-hero-icon');
+  if(!el) return;
+  if(state === 'day') el.classList.remove('night');
+  else el.classList.add('night');
+}
+
 function updateSunCountdown(){
+  updateSunIcon();
   if(TODAY_SUNRISE_MS === null || TODAY_SUNSET_MS === null) return;
   var now = Date.now(), target, label, cls;
   if(now < TODAY_SUNRISE_MS){ target = TODAY_SUNRISE_MS; label = 'Päikesetõusuni'; cls = 'rise'; }
@@ -1066,10 +1488,100 @@ function updateSunCountdown(){
   var diff = Math.max(0, target - now);
   var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
   byId('sun-count-label').textContent = label;
-  byId('sun-countdown').textContent = h + 't ' + pad(m) + 'm ' + pad(s) + 's';
+  byId('sun-countdown').textContent = h + 't ' + pad(m) + 'm';
   byId('sun-countdown').className = 'val xs ' + cls;
 }
 setInterval(updateSunCountdown, 1000);
+
+/* ─── Moon astronomy ──────────────────────
+ * Simplified Brown lunar theory (leading terms only): mean orbital
+ * elements give ecliptic longitude/latitude to ~1° and moonrise/set
+ * times to ~5–15 min accuracy — fine for an ambient weather panel. */
+function moonEclipticPos(date){
+  var jd = date.getTime() / 86400000 + 2440587.5;
+  var d = jd - 2451545.0;
+  function deg(x){ return ((x % 360) + 360) % 360; }
+  var L = deg(218.316 + 13.176396 * d);      // mean longitude
+  var M = deg(134.963 + 13.064993 * d);      // mean anomaly
+  var F = deg(93.272 + 13.229350 * d);       // argument of latitude
+  var lon = L + 6.289 * Math.sin(M * Math.PI/180);
+  var lat = 5.128 * Math.sin(F * Math.PI/180);
+  return { lon: lon, lat: lat };
+}
+function moonPosition(date, lat, lng){
+  // Returns moon {altitude, azimuth} in degrees. Azimuth: 0=N, clockwise.
+  var pos = moonEclipticPos(date);
+  var e = 23.4397 * Math.PI/180;
+  var lonR = pos.lon * Math.PI/180;
+  var latR = pos.lat * Math.PI/180;
+  var dec = Math.asin(Math.sin(latR)*Math.cos(e) + Math.cos(latR)*Math.sin(e)*Math.sin(lonR));
+  var ra = Math.atan2(Math.sin(lonR)*Math.cos(e) - Math.tan(latR)*Math.sin(e), Math.cos(lonR));
+  ra = ra * 180/Math.PI;
+  if(ra < 0) ra += 360;
+  var jd = date.getTime() / 86400000 + 2440587.5;
+  var d = jd - 2451545.0;
+  var gst = ((280.46061837 + 360.98564736629 * d) % 360 + 360) % 360;
+  var lst = (gst + lng) % 360;
+  var ha = (lst - ra + 540) % 360 - 180;
+  var observerLatR = lat * Math.PI/180;
+  var haR = ha * Math.PI/180;
+  var alt = Math.asin(Math.sin(observerLatR)*Math.sin(dec) + Math.cos(observerLatR)*Math.cos(dec)*Math.cos(haR));
+  // Full azimuth formula (avoids tan() discontinuities and gets the
+  // correct quadrant via atan2): A = atan2(-sin(H)·cos(δ), cos(φ)·sin(δ) − sin(φ)·cos(δ)·cos(H))
+  var azY = -Math.sin(haR) * Math.cos(dec);
+  var azX = Math.cos(observerLatR) * Math.sin(dec) - Math.sin(observerLatR) * Math.cos(dec) * Math.cos(haR);
+  var az = Math.atan2(azY, azX) * 180/Math.PI;
+  if(az < 0) az += 360;
+  return { altitude: alt * 180/Math.PI, azimuth: az };
+}
+function moonAltitude(date, lat, lng){ return moonPosition(date, lat, lng).altitude; }
+
+/* Sun altitude + azimuth at a given moment. Standard Meeus simplified
+ * algorithm — accurate to ~0.5° which is plenty for direction display. */
+function solarPosition(date, lat, lng){
+  var jd = date.getTime() / 86400000 + 2440587.5;
+  var d = jd - 2451545.0;
+  var L = ((280.46 + 0.9856474 * d) % 360 + 360) % 360;
+  var g = (((357.528 + 0.9856003 * d) % 360 + 360) % 360) * Math.PI/180;
+  var lambda = (L + 1.915*Math.sin(g) + 0.020*Math.sin(2*g)) * Math.PI/180;
+  var e = 23.439 * Math.PI/180;
+  var ra = Math.atan2(Math.cos(e)*Math.sin(lambda), Math.cos(lambda)) * 180/Math.PI;
+  if(ra < 0) ra += 360;
+  var dec = Math.asin(Math.sin(e)*Math.sin(lambda));
+  var gst = ((280.46061837 + 360.98564736629 * d) % 360 + 360) % 360;
+  var lst = (gst + lng) % 360;
+  var ha = (lst - ra + 540) % 360 - 180;
+  var haR = ha * Math.PI/180;
+  var latR = lat * Math.PI/180;
+  var alt = Math.asin(Math.sin(latR)*Math.sin(dec) + Math.cos(latR)*Math.cos(dec)*Math.cos(haR));
+  // Full azimuth formula — see comment in moonPosition.
+  var azY = -Math.sin(haR) * Math.cos(dec);
+  var azX = Math.cos(latR) * Math.sin(dec) - Math.sin(latR) * Math.cos(dec) * Math.cos(haR);
+  var az = Math.atan2(azY, azX) * 180/Math.PI;
+  if(az < 0) az += 360;
+  return { altitude: alt * 180/Math.PI, azimuth: az };
+}
+function findMoonRiseSet(referenceDate, lat, lng){
+  // Iterate every 10 minutes across a 24h window starting at local
+  // midnight, watching for altitude=0 crossings.
+  var start = new Date(referenceDate);
+  start.setHours(0, 0, 0, 0);
+  var rise = null, set = null;
+  var prevAlt = moonAltitude(start, lat, lng);
+  for(var min = 10; min <= 24*60; min += 10){
+    var t = new Date(start.getTime() + min*60000);
+    var alt = moonAltitude(t, lat, lng);
+    if(prevAlt < 0 && alt >= 0 && !rise){
+      var frac = -prevAlt / (alt - prevAlt);
+      rise = new Date(start.getTime() + (min - 10 + frac*10)*60000);
+    } else if(prevAlt > 0 && alt <= 0 && !set){
+      var frac = prevAlt / (prevAlt - alt);
+      set = new Date(start.getTime() + (min - 10 + frac*10)*60000);
+    }
+    prevAlt = alt;
+  }
+  return { rise: rise, set: set };
+}
 
 function calcMoon(){
   var now = new Date();
@@ -1091,11 +1603,28 @@ function calcMoon(){
   byId('moon-icon').textContent = phaseEmoji;
   byId('moon-phase').textContent = phaseName;
   byId('moon-illum').textContent = illumination + '% valgustatud';
-  var daysToFull = phase < 14.765 ? (14.765-phase) : (synodicMonth-phase+14.765);
-  daysToFull = Math.round(daysToFull*10)/10;
-  var fullDate = new Date(now.getTime()+daysToFull*86400000);
-  var months=['jaan','veebr','märts','apr','mai','juuni','juuli','aug','sept','okt','nov','dets'];
-  byId('moon-full').textContent = phase>=13 && phase<=17 ? 'Täna/homme' : fullDate.getDate()+'. '+months[fullDate.getMonth()]+' ('+Math.round(daysToFull)+'p)';
+
+  var months = ['jaan','veebr','märts','apr','mai','juuni','juuli','aug','sept','okt','nov','dets'];
+  function fmtMoonDate(daysAhead){
+    daysAhead = Math.round(daysAhead*10)/10;
+    var d = new Date(now.getTime() + daysAhead*86400000);
+    return d.getDate() + '. ' + months[d.getMonth()] + ' (' + Math.round(daysAhead) + 'p)';
+  }
+
+  // Next full moon (phase 14.765 = full)
+  var daysToFull = phase < 14.765 ? (14.765 - phase) : (synodicMonth - phase + 14.765);
+  byId('moon-full').textContent = phase >= 13 && phase <= 17 ? 'Täna/homme' : fmtMoonDate(daysToFull);
+
+  // Moonrise / moonset for today (local time at Madise)
+  var rs = findMoonRiseSet(now, CONFIG.lat, CONFIG.lng);
+  byId('moon-rise-time').textContent = rs.rise ? formatTime(rs.rise) : 'Ei tõuse';
+  byId('moon-set-time').textContent = rs.set ? formatTime(rs.set) : 'Ei looju';
+  if(rs.rise){
+    byId('moon-rise-az').textContent = Math.round(moonPosition(rs.rise, CONFIG.lat, CONFIG.lng).azimuth) + '°';
+  } else { byId('moon-rise-az').textContent = ''; }
+  if(rs.set){
+    byId('moon-set-az').textContent = Math.round(moonPosition(rs.set, CONFIG.lat, CONFIG.lng).azimuth) + '°';
+  } else { byId('moon-set-az').textContent = ''; }
 }
 setInterval(calcMoon, 60*60*1000); calcMoon();
 
@@ -1108,6 +1637,19 @@ function pollenLevel(v){
   return {text:'Väga kõrge', color:'var(--bad)'};
 }
 
+function renderPollen(data){
+  try{
+    var cur = (data && data.current) || {};
+    var alder = Number(cur.alder_pollen), birch = Number(cur.birch_pollen), grass = Number(cur.grass_pollen), mug = Number(cur.mugwort_pollen), rag = Number(cur.ragweed_pollen);
+    var maxVal = Math.max(isNaN(alder)?0:alder,isNaN(birch)?0:birch,isNaN(grass)?0:grass,isNaN(mug)?0:mug,isNaN(rag)?0:rag);
+    var overall = pollenLevel(maxVal), b = pollenLevel(birch), g = pollenLevel(grass), a = pollenLevel(alder);
+    byId('pollen-overall').textContent = overall.text; byId('pollen-overall').style.color = overall.color;
+    byId('pollen-birch').textContent = b.text; byId('pollen-birch').style.color = b.color;
+    byId('pollen-grass').textContent = g.text; byId('pollen-grass').style.color = g.color;
+    byId('pollen-alder').textContent = a.text; byId('pollen-alder').style.color = a.color;
+  }catch(e){}
+}
+
 function fetchPollen(){
   var url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + CONFIG.lat + '&longitude=' + CONFIG.lng + '&current=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&timezone=auto';
   var xhr = new XMLHttpRequest();
@@ -1115,19 +1657,14 @@ function fetchPollen(){
   xhr.onload = function(){
     if(xhr.status !== 200) return;
     try{
-      var cur = JSON.parse(xhr.responseText).current || {};
-      var alder = Number(cur.alder_pollen), birch = Number(cur.birch_pollen), grass = Number(cur.grass_pollen), mug = Number(cur.mugwort_pollen), rag = Number(cur.ragweed_pollen);
-      var maxVal = Math.max(isNaN(alder)?0:alder,isNaN(birch)?0:birch,isNaN(grass)?0:grass,isNaN(mug)?0:mug,isNaN(rag)?0:rag);
-      var overall = pollenLevel(maxVal), b = pollenLevel(birch), g = pollenLevel(grass), a = pollenLevel(alder);
-      byId('pollen-overall').textContent = overall.text; byId('pollen-overall').style.color = overall.color;
-      byId('pollen-birch').textContent = b.text; byId('pollen-birch').style.color = b.color;
-      byId('pollen-grass').textContent = g.text; byId('pollen-grass').style.color = g.color;
-      byId('pollen-alder').textContent = a.text; byId('pollen-alder').style.color = a.color;
+      var data = JSON.parse(xhr.responseText);
+      saveCache('wx.pollen', data);
+      renderPollen(data);
     }catch(e){}
   };
   xhr.send();
 }
-setInterval(fetchPollen, 60*60*1000); fetchPollen();
+setInterval(fetchPollen, 60*60*1000);
 
 function kpLabel(kp){
   if(kp === null || isNaN(kp)) return '—';
@@ -1137,29 +1674,439 @@ function kpLabel(kp){
   return 'Väga hea';
 }
 
-function fetchAurora(){
+/* ─── Kurevere road weather station ──────
+ * Estonian Transport Administration ArcGIS REST endpoint, public + CORS-open.
+ * Real ground-truth observation ~6 km from Madise, updated every ~10 min.
+ * Self-contained — remove the .wx-station block in HTML + this fetch/render
+ * pair + its startup call to fully roll back. */
+/* Render a station block from a {temp, precip, wind, windDir} bag.
+ * Used by both renderKurevere (tarktee ArcGIS feature) and
+ * renderLaaneNigula (EMHI JSON snapshot) so the units and decimal
+ * formatting stay consistent across stations. */
+function renderStation(prefix, vals){
+  if(vals.temp !== null && vals.temp !== undefined && !isNaN(vals.temp)){
+    var t = Math.round(vals.temp * 10) / 10;
+    var el = byId(prefix + '-temp');
+    if(el){
+      // Always one decimal so "+16.0" and "+17.1" stay the same character
+      // width — keeps the units/wind arrow aligned across station rows.
+      el.textContent = (t >= 0 ? '+' : '') + t.toFixed(1);
+      el.className = 'val ' + (t < 0 ? 'cold' : 'warm');
+    }
+  }
+  if(vals.precip !== null && vals.precip !== undefined && !isNaN(vals.precip)){
+    var p = Math.round(vals.precip * 10) / 10;
+    var pe = byId(prefix + '-precip');
+    if(pe) pe.textContent = p.toFixed(1);
+  }
+  if(vals.wind !== null && vals.wind !== undefined && !isNaN(vals.wind)){
+    var w = Math.round(vals.wind * 10) / 10;
+    var we = byId(prefix + '-wind');
+    if(we) we.textContent = w.toFixed(1);
+  }
+  if(vals.windDir !== null && vals.windDir !== undefined && !isNaN(vals.windDir)){
+    var ae = byId(prefix + '-wind-arrow');
+    if(ae) ae.style.transform = 'rotate(' + (vals.windDir + 180) + 'deg)';
+  }
+}
+
+function renderKurevere(data){
+  try{
+    var feat = data && data.features && data.features[0];
+    if(!feat || !feat.attributes) return;
+    var a = feat.attributes;
+    renderStation('kv', {
+      temp: a.air_temp,
+      precip: a.precipitation_intensity,
+      wind: a.wind_speed,
+      windDir: a.wind_dir
+    });
+  }catch(e){}
+}
+
+/* Tracks whether the hero UV display is sourced from EMHI (real
+ * station measurement) so the Open-Meteo render won't overwrite it
+ * with the forecast value. */
+var WX_UV_FROM_EMHI = false;
+
+/* Helper: pull a station by WMO code from the EMHI payload and feed it
+ * into renderStation. The cache key (wx.laanenigula) covers the whole
+ * payload so all stations come back from one fetch. */
+function renderEmhiStation(prefix, data, wmo){
+  try{
+    var s = data && data.stations && data.stations[wmo];
+    if(!s) return;
+    renderStation(prefix, {
+      temp: s.airtemperature,
+      precip: s.precipitations,
+      wind: s.windspeed,
+      windDir: s.winddirection
+    });
+    // Haapsalu is the only nearby EMHI station with a UV sensor.
+    // When it has a reading, that's the authoritative value for the
+    // Hetkeilm UV row — overrides Open-Meteo's (often-zero) forecast.
+    if(prefix === 'hp' && typeof s.uvindex === 'number' && !isNaN(s.uvindex)){
+      var uv = round1(s.uvindex);
+      var info = uvLabel(uv);
+      byId('wx-uv').textContent = uv.toFixed(1);
+      byId('wx-uv').style.color = info.color;
+      byId('wx-uv-label').textContent = info.text;
+      WX_UV_FROM_EMHI = true;
+    }
+  }catch(e){}
+}
+
+function renderLaaneNigula(data){ renderEmhiStation('ln', data, '26124'); }
+function renderHaapsalu(data){ renderEmhiStation('hp', data, '26123'); }
+
+/* CAP event types come in English from MeteoAlarm — translate to short
+ * Estonian for display. Falls back to the original string for anything
+ * we haven't mapped. */
+var WARN_EVENT_ET = {
+  'Thunderstorms Level 1': 'Äike',
+  'Thunderstorms Level 2': 'Tugev äike',
+  'Thunderstorms Level 3': 'Väga tugev äike',
+  'Wind Level 1': 'Tugev tuul',
+  'Wind Level 2': 'Tugev tuul',
+  'Wind Level 3': 'Tormi tugevusega tuul',
+  'Rain Level 1': 'Tugev vihm',
+  'Rain Level 2': 'Tugev vihm',
+  'Rain Level 3': 'Väga tugev vihm',
+  'Snow-Ice Level 1': 'Lumesadu',
+  'Snow-Ice Level 2': 'Tugev lumesadu',
+  'Fog Level 1': 'Udu',
+  'Low-Temperature Level 1': 'Pakane',
+  'High-Temperature Level 1': 'Kuumus',
+  'Forest-Fire Level 1': 'Tuleoht',
+  'Coastal-Event Level 1': 'Rannikuhoiatus',
+  'Flood Level 1': 'Üleujutus'
+};
+var WARN_EMOJI = {
+  thunder: '⚡', wind: '💨', rain: '🌧', snow: '🌨', fog: '🌫',
+  'low-temp': '❄️', 'high-temp': '🔥', fire: '🔥', coastal: '🌊', flood: '🌊'
+};
+function warnEmoji(event){
+  var e = (event || '').toLowerCase();
+  if(e.indexOf('thunder') >= 0) return WARN_EMOJI.thunder;
+  if(e.indexOf('wind') >= 0) return WARN_EMOJI.wind;
+  if(e.indexOf('rain') >= 0) return WARN_EMOJI.rain;
+  if(e.indexOf('snow') >= 0) return WARN_EMOJI.snow;
+  if(e.indexOf('fog') >= 0) return WARN_EMOJI.fog;
+  if(e.indexOf('low-temp') >= 0) return WARN_EMOJI['low-temp'];
+  if(e.indexOf('high-temp') >= 0) return WARN_EMOJI['high-temp'];
+  if(e.indexOf('fire') >= 0) return WARN_EMOJI.fire;
+  if(e.indexOf('coastal') >= 0) return WARN_EMOJI.coastal;
+  if(e.indexOf('flood') >= 0) return WARN_EMOJI.flood;
+  return '⚠️';
+}
+function warnTimeRange(onset, expires){
+  // Renders "21:00–07:00" or "homme 03:00–14:00" depending on whether
+  // the range crosses tomorrow midnight.
+  try{
+    var now = new Date();
+    var on = onset ? new Date(onset) : null;
+    var exp = expires ? new Date(expires) : null;
+    if(!on || !exp) return '';
+    var fmtHM = function(d){ return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+    var sameDayAsToday = function(d){
+      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    };
+    var onPart = sameDayAsToday(on) ? fmtHM(on) : ('homme ' + fmtHM(on));
+    var expPart = (exp.getDate() === on.getDate()) ? fmtHM(exp) : ('homme ' + fmtHM(exp));
+    return onPart + '–' + expPart;
+  } catch(e){ return ''; }
+}
+
+function renderWarnings(data){
+  var el = byId('warning-bar');
+  if(!el) return;
+  var arr = (data && data.warnings) || [];
+  if(arr.length === 0){
+    el.className = 'warning-bar empty';
+    el.textContent = 'Hoiatusi pole';
+    return;
+  }
+  var w = arr[0];  // First (most recent) warning
+  var sev = (w.severity || 'moderate').toLowerCase();
+  el.className = 'warning-bar ' + sev;
+  var label = WARN_EVENT_ET[w.event] || w.event || 'Hoiatus';
+  var emoji = warnEmoji(w.event);
+  var when = warnTimeRange(w.onset, w.expires);
+  el.textContent = emoji + ' ' + label + (when ? ' · ' + when : '');
+}
+
+/* EMHI data is published to a 'data' orphan branch by the GitHub Actions
+ * workflow (.github/workflows/emhi.yml) every ~15 min, then read via
+ * raw.githubusercontent.com (CORS-open). For local dev where the script
+ * has been run by hand, we also try a same-origin data/emhi.json first
+ * so iteration doesn't require pushing every change. */
+var EMHI_LOCAL_URL = 'data/emhi.json';
+var EMHI_REMOTE_URL = 'https://raw.githubusercontent.com/indrekraag/weatherapp2/data/emhi.json';
+
+function fetchLaaneNigulaFrom(url, onFail){
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', true);
+  xhr.open('GET', url, true);
+  xhr.timeout = 10000;
+  xhr.onload = function(){
+    if(xhr.status !== 200){ if(onFail) onFail(); return; }
+    try{
+      var data = JSON.parse(xhr.responseText);
+      saveCache('wx.laanenigula', data);
+      renderLaaneNigula(data);
+      renderHaapsalu(data);
+      renderWarnings(data);
+    }catch(e){ if(onFail) onFail(); }
+  };
+  xhr.onerror = function(){ if(onFail) onFail(); };
+  xhr.ontimeout = function(){ if(onFail) onFail(); };
+  xhr.send();
+}
+
+function fetchLaaneNigula(){
+  fetchLaaneNigulaFrom(EMHI_LOCAL_URL, function(){
+    fetchLaaneNigulaFrom(EMHI_REMOTE_URL);
+  });
+}
+
+function fetchKurevere(){
+  var url = 'https://tarktee.mnt.ee/tarktee/rest/services/road_weather_stations/MapServer/0/query'
+    + '?where=' + encodeURIComponent("site_name='Kurevere'")
+    + '&outFields=' + encodeURIComponent('air_temp,precipitation_intensity,wind_speed,wind_dir,measurement_time,road_status,road_temp,air_humidity')
+    + '&f=json';
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.timeout = 10000;
   xhr.onload = function(){
     if(xhr.status !== 200) return;
     try{
       var data = JSON.parse(xhr.responseText);
-      var rows = data.slice(1).filter(function(r){ return r && r.length >= 2; });
-      var last = rows[rows.length - 1];
-      var kp = parseFloat(last[1]);
-      byId('kp-current').textContent = isNaN(kp) ? '—' : kp.toFixed(1);
-      byId('aurora-prob').textContent = kpLabel(kp);
-      byId('aurora-updated').textContent = last[0];
+      saveCache('wx.kurevere', data);
+      renderKurevere(data);
     }catch(e){}
   };
   xhr.send();
 }
-setInterval(fetchAurora, 30*60*1000); fetchAurora();
+
+/* ─── NOAA Kp 3-day forecast ──────────────
+ * Endpoint: array-of-objects with {time_tag, kp, observed, noaa_scale}.
+ * observed='observed' for past 3h windows, 'predicted' for future.
+ * We surface:
+ *   - max Kp in the next 24h (with G-scale tier if storming)
+ *   - 72h mini bar chart of all future cells, colored by storm level */
+function kpColor(kp){
+  if(isNaN(kp)) return 'var(--muted)';
+  if(kp < 2) return 'var(--muted)';
+  if(kp < 4) return 'var(--ok)';
+  if(kp < 5) return 'var(--warn)';
+  if(kp < 6) return '#ffb366';   // G1
+  if(kp < 7) return 'var(--bad)';// G2
+  return '#ff4d6d';              // G3+
+}
+function kpScale(kp){
+  if(isNaN(kp)) return '';
+  if(kp >= 9) return 'G5';
+  if(kp >= 8) return 'G4';
+  if(kp >= 7) return 'G3';
+  if(kp >= 6) return 'G2';
+  if(kp >= 5) return 'G1';
+  return '';
+}
+function renderKpForecast(data){
+  try{
+    if(!Array.isArray(data) || data.length === 0) return;
+    // First row is a header-like entry tagged "observed" too — skip
+    // header by relying on the field shape, not position.
+    var rows = data.filter(function(r){ return r && typeof r.kp === 'number'; });
+    var future = rows.filter(function(r){ return r.observed === 'predicted'; });
+    var next24 = future.slice(0, 8);  // 8 × 3h = 24h
+    var maxRow = null;
+    next24.forEach(function(r){ if(!maxRow || r.kp > maxRow.kp) maxRow = r; });
+    if(maxRow){
+      var scale = kpScale(maxRow.kp);
+      byId('kp-24h-max').textContent = maxRow.kp.toFixed(1) + (scale ? ' ' + scale : '');
+      byId('kp-24h-max').style.color = kpColor(maxRow.kp);
+    }
+
+    // 72h chart: take next 24 future cells (3h × 24 = 72h)
+    var bars = future.slice(0, 24);
+    var chart = byId('kp-chart');
+    if(chart){
+      chart.innerHTML = '';
+      bars.forEach(function(r, idx){
+        var b = document.createElement('div');
+        b.className = 'bar';
+        var h = Math.max(8, Math.min(100, (r.kp / 9) * 100));
+        b.style.height = h + '%';
+        b.style.background = kpColor(r.kp);
+        b.title = r.time_tag + ' UTC — Kp ' + r.kp.toFixed(1);
+        if(idx === 0) b.classList.add('now');
+        chart.appendChild(b);
+      });
+    }
+  }catch(e){}
+}
+
+function fetchKpForecast(){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json', true);
+  xhr.onload = function(){
+    if(xhr.status !== 200) return;
+    try{
+      var data = JSON.parse(xhr.responseText);
+      saveCache('wx.kpForecast', data);
+      renderKpForecast(data);
+    }catch(e){}
+  };
+  xhr.send();
+}
+
+/* ─── Ovation aurora visibility model ──────
+ * Coordinate grid of [lon, lat, prob%] entries for the next ~30 min.
+ * We look up the cell nearest Madise (lat 59, lon 24) and surface the
+ * probability percentage. Outside any aurora oval, this is usually 0. */
+function renderOvation(data){
+  try{
+    var coords = data && data.coordinates;
+    if(!coords) return;
+    var rLat = Math.round(CONFIG.lat);
+    var rLon = Math.round(CONFIG.lng);
+    var prob = null;
+    for(var i = 0; i < coords.length; i++){
+      if(coords[i][0] === rLon && coords[i][1] === rLat){
+        prob = coords[i][2];
+        break;
+      }
+    }
+    var el = byId('aurora-prob');
+    if(el){
+      if(prob === null){
+        el.textContent = '—';
+      } else {
+        el.textContent = prob + '%';
+        // Color by probability: <1% muted, <10% ok-ish, >=10% getting interesting
+        if(prob < 1) el.style.color = 'var(--muted)';
+        else if(prob < 10) el.style.color = 'var(--text)';
+        else if(prob < 30) el.style.color = 'var(--warn)';
+        else el.style.color = 'var(--bad)';
+      }
+    }
+  }catch(e){}
+}
+
+function fetchOvation(){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'https://services.swpc.noaa.gov/json/ovation_aurora_latest.json', true);
+  xhr.onload = function(){
+    if(xhr.status !== 200) return;
+    try{
+      var data = JSON.parse(xhr.responseText);
+      saveCache('wx.ovation', data);
+      renderOvation(data);
+    }catch(e){}
+  };
+  xhr.send();
+}
+
+/* ─── Solar wind Bz (interplanetary magnetic field) ──────
+ * Real-time L1 spacecraft data, ~30–60 min predictive lead time for
+ * aurora. Bz < -5 nT is a positive aurora indicator. Header row defines
+ * column names; bz_gsm is what we want from the most recent row. */
+function renderSolarWind(data){
+  try{
+    if(!Array.isArray(data) || data.length < 2) return;
+    var header = data[0];
+    var idx = header.indexOf('bz_gsm');
+    if(idx < 0) return;
+    // Walk back from end to find the most recent row with a numeric Bz.
+    var last = null;
+    for(var i = data.length - 1; i >= 1; i--){
+      var v = parseFloat(data[i][idx]);
+      if(!isNaN(v)){ last = v; break; }
+    }
+    var el = byId('solar-bz');
+    if(el){
+      if(last === null){
+        el.textContent = '—';
+      } else {
+        el.textContent = (last >= 0 ? '+' : '') + last.toFixed(1) + ' nT';
+        // Aurora-friendly when Bz strongly negative
+        if(last <= -5) el.style.color = 'var(--bad)';        // strong south
+        else if(last <= -2) el.style.color = 'var(--warn)';  // south
+        else if(last >= 5) el.style.color = 'var(--muted)';  // strong north, bad for aurora
+        else el.style.color = 'var(--text)';
+      }
+    }
+  }catch(e){}
+}
+
+function fetchSolarWind(){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json', true);
+  xhr.onload = function(){
+    if(xhr.status !== 200) return;
+    try{
+      var data = JSON.parse(xhr.responseText);
+      saveCache('wx.solarwind', data);
+      renderSolarWind(data);
+    }catch(e){}
+  };
+  xhr.send();
+}
+setInterval(fetchKpForecast, 30*60*1000);
+setInterval(fetchOvation, 5*60*1000);
+setInterval(fetchSolarWind, 5*60*1000);
+
+/* ─── Startup ──────────────────────────────
+ * 1. Hydrate the UI from localStorage immediately so the user sees
+ *    something even if the network is slow or unreachable. The
+ *    "uuendatud" timestamp reflects when the data was actually fetched,
+ *    and the stale indicator kicks in if it's older than 10 minutes.
+ * 2. Fire off live fetches in parallel; they overwrite the hydrated UI
+ *    as responses arrive.
+ */
+function hydrateFromCache(){
+  var w = loadCache('wx.weather');
+  if(w) renderWeather(w.data, w.savedAt);
+  var p = loadCache('wx.pollen');
+  if(p) renderPollen(p.data);
+  var kpf = loadCache('wx.kpForecast');
+  if(kpf) renderKpForecast(kpf.data);
+  var ov = loadCache('wx.ovation');
+  if(ov) renderOvation(ov.data);
+  var sw = loadCache('wx.solarwind');
+  if(sw) renderSolarWind(sw.data);
+  var k = loadCache('wx.kurevere');
+  if(k) renderKurevere(k.data);
+  var l = loadCache('wx.laanenigula');
+  if(l){ renderLaaneNigula(l.data); renderHaapsalu(l.data); renderWarnings(l.data); }
+}
+hydrateFromCache();
 
 fetchSunTimes();
 setInterval(fetchSunTimes, 30*60*1000);
 fetchWeatherAndForecast();
 setInterval(fetchWeatherAndForecast, CONFIG.weatherRefreshMs);
+fetchPollen();
+fetchKpForecast();
+fetchOvation();
+fetchSolarWind();
+fetchKurevere();
+setInterval(fetchKurevere, 5 * 60 * 1000);
+fetchLaaneNigula();
+setInterval(fetchLaaneNigula, 5 * 60 * 1000);
+
+/* ─── Service worker ──────────────────────
+ * Registered after a short delay so it doesn't compete with the first
+ * paint. The SW caches the app shell so the page (and the last cached
+ * data via localStorage) is reachable offline.
+ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    }, 1500);
+  });
+}
 
 setTimeout(function(){ location.reload(); }, 2 * 60 * 60 * 1000);
 </script>

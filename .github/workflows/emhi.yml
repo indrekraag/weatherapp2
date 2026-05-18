@@ -1,0 +1,66 @@
+name: Fetch EMHI observations
+
+# Every 15 min, pull the latest EMHI XML, parse out the Lääne-Nigula
+# station, and push the result as a single rolling commit on a 'data'
+# orphan branch. The PWA reads that file via raw.githubusercontent.com
+# (which is CORS-open), so EMHI's own CORS block is bypassed without
+# polluting main's git history.
+
+on:
+  schedule:
+    # GitHub schedules are best-effort and can be delayed by 5–30 min
+    # during peak load. That's fine — the displayed data is ambient.
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+  # Re-run when the script or workflow itself changes, so first deploy
+  # populates the data branch immediately rather than waiting 15 min.
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fetch_emhi.py'
+      - '.github/workflows/emhi.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: emhi-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch EMHI snapshot
+        id: fetch
+        run: |
+          python3 scripts/fetch_emhi.py --out /tmp/emhi.json
+          echo "--- snapshot ---"
+          cat /tmp/emhi.json
+
+      - name: Push to data branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          cd "$tmp"
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp /tmp/emhi.json emhi.json
+          git add emhi.json
+          git commit -q -m "data: EMHI snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          git push -q --force origin data:data
+          echo "✓ Pushed snapshot to 'data' branch"
+          echo "  Raw URL: https://raw.githubusercontent.com/${{ github.repository }}/data/emhi.json"
