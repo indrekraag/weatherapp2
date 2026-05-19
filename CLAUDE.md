@@ -218,7 +218,7 @@ print('orphans:', sorted(refs - ids))"
 
 ## Current state
 
-**Status:** Functional and visually iterated. After the data/architecture build-out (earlier 2026-05-18 sessions), spent a long session on visual design — Apple "Liquid Glass" aesthetic for cards/buttons, Hetkeilm hero layout reorganization, shared label-column alignment across all data rows in the Hetkeilm card, inline diffuse-glass SVG weather icons replacing emoji, and a font-consistency pass across the whole page. Changes are **uncommitted on local** as of session end — see `progress.md` for the granular list and any open visual nits.
+**Status:** Functional and visually iterated. Two visual passes committed and pushed: the chamfered-bevel "Liquid Glass" (`d55c211`) and the flatter "Preset 11 — flat diffused glass" (`b63f611`) that replaced it. Working tree is clean. Cards now use the flat treatment (no bevel, no inset highlights — just `backdrop-filter: blur(24px) saturate(140%)` + soft drop shadow + hairline white border). Bevel state preserved as Preset 10 in the design-presets comment for rollback. See `progress.md` for the granular log including lessons learned (notably the nested-CSS-comment trap that bricked the body text colour).
 
 ## Recent changes (2026-05-18 — PWA + multi-station + warnings session)
 
@@ -342,10 +342,54 @@ The Hetkeilm card has three vertical contexts that all line up at x=105:
 - [ ] Consider adding *current* sun altitude + azimuth (changes minute-by-minute) — right now we only show azimuth at fixed rise/set times
 - [ ] Consider adding neighbouring counties (Hiiu / Saare / Pärnu / Harju) to the warning filter — currently Lääne only
 
+## Recent changes (2026-05-19 — flat-glass + centering experiment)
+
+Short follow-up session after the bevel commit. Two outcomes:
+
+### Preset 11 — flat diffused glass (committed `b63f611`)
+- Replaced the chamfered-bevel `.card` / `.topbar` styling with a flatter
+  treatment: kept `backdrop-filter: blur(24px) saturate(140%)`, the SVG
+  noise grain, a faint top-down highlight, a hairline white border, and
+  a single soft outer drop shadow. Removed: inset bevel halos, sharp 1
+  px black bottom/right edges, diagonal 135° sweep, radial inner cyan
+  glow, bottom-right corner shadow concentration.
+- Bevel state preserved as **Preset 10** in the design-presets comment
+  for rollback (commit `d55c211` covers the old bevel verbatim).
+
+### Bug fix — nested `/* */` in Preset 10 comment (same commit)
+- The first save of Preset 10 contained `border: 1px solid var(--border); /* cyan-ish edge */` *inside* an outer `/* */` CSS comment block.
+  CSS comments don't nest — the inner `*/` closed the outer comment,
+  turning the rest of the preset description into invalid CSS. The CSS
+  parser dropped the `html, body { color: var(--text) }` rule (and
+  probably several more around it), so all page text fell back to the
+  browser-default **black**.
+- Lesson: **never put `/* */` inside another `/* */`** in the design
+  preset comments. Use `//` (which has no meaning in CSS but is fine
+  as part of comment text) for inline annotations when needed.
+
+### Centering experiment (reverted, not committed)
+- Tried pulling `.wx-temp-big` out of the hero flex row and making it a
+  full-width centered block above the row (with meta + cond on the row
+  below). User judged it doesn't fit — reverted to the left-aligned
+  temp + meta layout from the previous commit. Working tree clean.
+
 ## In progress / mid-task
 
-- **Uncommitted local changes** to `index.html` from the visual design pass. Nothing pushed yet. Indrek needs to refresh once more and either approve the diffuse-glass icon set + alignment / spacing, or call out specific further tweaks before we commit.
-- Possible follow-ups Indrek may want next session (from open visual nits during the session):
-  - Cloud silhouette could be redrawn with a smoother 3-bump path if the current 2-bump Lucide-derived shape still reads as too simple.
-  - The condition-icon-over-text block no longer enforces "text bottom = big temp bottom" — items just stack naturally at the top of `.wx-hero-right`. If the user wants the old strict bottom-alignment back, it would mean restructuring the hero so `.wx-meta` sits outside the flex row.
-  - RADAR / SAT button placement (absolutely positioned bottom-right of `.wx-hero-right`) currently aligns with Kastepunkt's baseline — verify that still looks right after the row-spacing change.
+- Nothing in progress. Working tree is clean as of session end. The two
+  open material-design questions left over:
+  - Is the page reading too **cyan/blue saturated**? Border, card title,
+    `cold` colour, accent buttons, body blobs are all cyan/teal. A
+    candidate experiment is muting the cyan vars (`--accent`, `--cold`,
+    `--border`) toward neutral-white so colour is reserved for meaningful
+    signal only (the warm/cold temp gradient).
+  - Is the **mono+sans split** between values (`ui-monospace`) and
+    labels (`system-ui`) reading as "data-terminal"? An experiment is
+    using `system-ui` everywhere with `font-variant-numeric: tabular-nums`
+    for column alignment.
+- Open visual nits noted in earlier session log (`progress.md`):
+  - Cloud silhouette could be redrawn with a smoother 3-bump path.
+  - The cond-icon-over-text block doesn't enforce "text bottom = big
+    temp bottom" anymore — items naturally stack at the top of
+    `.wx-hero-right`.
+  - RADAR / SAT buttons still abs-positioned to bottom-right of
+    `.wx-hero-right` — verify alignment after each row-spacing change.

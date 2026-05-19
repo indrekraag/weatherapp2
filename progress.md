@@ -176,3 +176,116 @@ git push
 
 Then on iPhone: hard-refresh via the topbar ⟲ button (or remove + re-add
 the home-screen icon if SW caching gets in the way).
+
+---
+
+# Follow-up session — flat diffused glass (2026-05-19)
+
+Short session after the bevel work was committed (`d55c211`).
+
+## Preset 11 — flat diffused glass (committed `b63f611`)
+
+The bevel made the cards feel skeuomorphic against the modern glass
+material. Replaced with a flatter treatment that keeps the diffuse
+refraction but drops the 3D-ness.
+
+**Kept:**
+- `backdrop-filter: blur(24px) saturate(140%)` (the actual glass effect)
+- SVG noise grain (organic frosted texture)
+- A faint top-down white highlight (`linear-gradient(to bottom,
+  rgba(255,255,255,0.04) 0%, transparent 40%)`) — hint of light without
+  any "lit edge" feel
+- A single soft outer drop shadow (`0 8px 28px rgba(0,0,0,0.35)`)
+- A 1 px hairline white inset highlight on the top edge
+
+**Removed:**
+- All chamfered bevel halos (the negative-spread inset shadows)
+- Sharp 1 px edge highlights (top/left white, bottom/right black)
+- The 135° diagonal sheen and the bottom 6 % black fade
+- The radial cyan inner glow
+- The bottom-right corner shadow concentration
+- The cyan-tinted border (now plain `rgba(255,255,255,0.08)`)
+
+Same treatment applied to `.topbar` so the topbar and cards share one
+material.
+
+The chamfered-bevel state is preserved as **Preset 10** in the
+design-presets comment for rollback.
+
+## CSS-parsing bug — nested `/* */` in Preset 10 comment
+
+After saving Preset 10 the page rendered with **all text black**. Root
+cause: the preset description contained an inline annotation written as
+`/* cyan-ish edge */` *inside* the outer `/* */` CSS comment block.
+CSS doesn't allow nested block comments — the inner `*/` closes the
+outer comment early, and everything that follows up to the next `*/`
+becomes invalid CSS that the parser tries (and fails) to interpret.
+The casualty in our case was the `html, body { color: var(--text) }`
+rule that came shortly after, which the parser dropped. With no
+explicit text colour, the body inherited the browser-default black.
+
+Fix: changed the inline annotation to `// cyan-ish edge` (no parse
+meaning to CSS — just text inside the still-open outer comment).
+
+**Lesson:** in the design-presets comment, never use `/* */` for
+inline annotations. Use `//` instead, even though it isn't a CSS
+comment token — inside a `/* */` block it's just characters.
+
+There is a tiny check command for this:
+
+```bash
+python3 -c "
+import re
+html = open('index.html').read()
+m = re.search(r'<style>(.*?)</style>', html, re.DOTALL)
+css = m.group(1) if m else ''
+i, depth = 0, 0
+while i < len(css):
+    if css[i:i+2] == '/*':
+        if depth: print(f'NESTED /* line {css[:i].count(chr(10))+1}')
+        depth += 1; i += 2
+    elif css[i:i+2] == '*/':
+        depth -= 1
+        if depth < 0: print(f'STRAY */ line {css[:i].count(chr(10))+1}'); depth = 0
+        i += 2
+    else: i += 1
+print('final depth:', depth)"
+```
+
+Run this whenever the page suddenly renders in default browser styles.
+
+## Centering experiment — tried, reverted
+
+Tried pulling `.wx-temp-big` out of `.wx-hero-row` and making it a
+standalone full-width centered block above the row, with the meta on
+the row's left and the icon+text+buttons on the row's right.
+
+Verdict from Indrek: doesn't fit. Reverted — temp is back on the
+left, meta directly under it, icon+text+buttons on the right of the
+flex row. No code change persists from this experiment; working tree
+is clean.
+
+If revisited later: the centering itself works fine technically, the
+issue is visual. A centered temp by itself makes the card feel
+asymmetric because the icon+text are still to one side. A "full
+centered" layout would require putting the icon+text *below* the temp
+(centered too) instead of beside it.
+
+## Material-design open questions for next session
+
+These are the candidates if Indrek still feels the page reads as
+"off." Ranked by how cheap they are to try:
+
+1. **Mute the cyan saturation.** Border, card title, `cold` colour,
+   accent button text, and body blobs all carry cyan/teal. The page
+   reads as "blue+techy." Experiment: shift `--accent`, `--cold`, and
+   `--border` toward near-white with very faint cyan tint. Reserve
+   strong colour for meaningful signal only (the warm/cold temp
+   gradient).
+2. **Single font family.** Currently values use `ui-monospace`
+   (terminal feel) while labels use `system-ui`. Try `system-ui`
+   everywhere with `font-variant-numeric: tabular-nums` for column
+   alignment.
+3. **Body bg toned down.** With the bevels gone the body blobs are
+   more visible through the cards. If still too saturated, dial the
+   blob alphas down 30-40% or drop one of the three.
