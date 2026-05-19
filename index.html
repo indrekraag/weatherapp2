@@ -609,14 +609,18 @@ body {
 }
 
 .wx-cond-line {
-  /* Icon stacked ABOVE the condition text, both right-aligned. The
-   * column's last item (text) sits at the bottom — paired with the
-   * row's align-items:flex-end this puts the text bottom on the same
-   * line as the big temp's bottom, while the icon hangs above. */
+  /* Icon stacked ABOVE the condition text, both right-aligned.
+   * Negative margin-top pulls the whole stack up so the icon's vertical
+   * centre sits midway between the card's top border and the top of the
+   * RADAR/SAT buttons (which abs-position at hero-right's bottom). The
+   * icon visually parallels the small "HETKEILM" title on the left at
+   * the same y — no horizontal conflict because the title is short and
+   * left-aligned, the icon is right-aligned. */
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
+  margin-top: -28px;
 }
 .wx-cond-icon-big {
   /* Glass container for the filled SVG silhouettes. Drop-shadow gives

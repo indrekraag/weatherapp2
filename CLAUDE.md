@@ -218,7 +218,13 @@ print('orphans:', sorted(refs - ids))"
 
 ## Current state
 
-**Status:** Functional and visually iterated. Two visual passes committed and pushed: the chamfered-bevel "Liquid Glass" (`d55c211`) and the flatter "Preset 11 — flat diffused glass" (`b63f611`) that replaced it. Working tree is clean. Cards now use the flat treatment (no bevel, no inset highlights — just `backdrop-filter: blur(24px) saturate(140%)` + soft drop shadow + hairline white border). Bevel state preserved as Preset 10 in the design-presets comment for rollback. See `progress.md` for the granular log including lessons learned (notably the nested-CSS-comment trap that bricked the body text colour).
+**Status:** Functional and visually iterated. Most recent change (2026-05-19): Hetkeilm condition icon pulled up via `margin-top: -28px` on `.wx-cond-line` so the icon's vertical centre sits ~midway between the card's top border and the RADAR/SAT buttons — fixes the recurring "icon hides behind buttons" complaint. Three commits on `main`: chamfered-bevel "Liquid Glass" (`d55c211`), flat "Preset 11" (`b63f611`), and Preset 11 session log (`463d22b`). Cards use the flat treatment (no bevel, no inset highlights — just `backdrop-filter: blur(24px) saturate(140%)` + soft drop shadow + hairline white border). Bevel state preserved as Preset 10 in the design-presets comment for rollback.
+
+## Recent changes (2026-05-19 — Hetkeilm icon position fix)
+
+- The condition icon (cloud / sun / rain SVG) was visually colliding with the abs-positioned RADAR / SAT buttons at the bottom-right of `.wx-hero-right`, because when the condition string wraps (`VAHELDUVA PILVISUSEGA` etc.) the `.wx-cond-line` stack grows tall enough to reach the buttons.
+- Fix: added `margin-top: -28px` to `.wx-cond-line` (`index.html:611`). The whole icon + text stack lifts up into the title-row band on the right side. No horizontal conflict because the "HETKEILM" title is short and left-aligned. Buttons stay where they were (abs at hero-right's bottom, baseline aligned with kastepunkt on the left).
+- Verified at 393 × 851 (Pixel 7) and 430 × 932 (iPhone 14 Pro Max) viewports via the Playwright pipeline.
 
 ## Recent changes (2026-05-18 — PWA + multi-station + warnings session)
 
@@ -393,3 +399,8 @@ Short follow-up session after the bevel commit. Two outcomes:
     `.wx-hero-right`.
   - RADAR / SAT buttons still abs-positioned to bottom-right of
     `.wx-hero-right` — verify alignment after each row-spacing change.
+  - Icon-vs-buttons collision fixed 2026-05-19 by lifting `.wx-cond-line`
+    with `margin-top: -28px`. If the condition string ever wraps to 4+
+    lines on a very narrow viewport, the bottom of the text could still
+    reach the buttons — re-verify if you add a longer Estonian condition
+    string.
