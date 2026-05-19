@@ -14,13 +14,99 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- System fonts only — no Google Fonts dependency. SF Pro on iOS,
+     Roboto on Android, Segoe UI on Windows. Numbers use the native
+     monospace stack for tabular alignment. -->
+
 <style>
+/* ─── DESIGN PRESETS ──────────────────────
+ * To revert the box look-and-feel, swap the values inside .card and .topbar
+ * for the snippet of the preset you want.
+ *
+ * Preset 1 — soft inner blue glow, subtle (2026-05-18):
+ *   body:    background: #060d14;  (no body gradient)
+ *   .card / .topbar background:
+ *     background:
+ *       radial-gradient(ellipse 90% 90% at 50% 50%, rgba(60,130,200,0.10) 0%, transparent 60%),
+ *       var(--surface);
+ *   .card / .topbar box-shadow (no bevel):
+ *     box-shadow:
+ *       0 0 0 1px rgba(255,255,255,0.025),
+ *       0 4px 24px rgba(0,0,0,0.35),
+ *       inset 0 1px 0 rgba(255,255,255,0.04);
+ *
+ * Preset 9 — colourful ambient blobs + visible drift (current, 2026-05-18 night):
+ *   Adds 3 colour blobs to body::before: warm orange (15% 15%), cool
+ *   blue (85% 30%), and violet (40% 85%) — alphas 0.13-0.16. The
+ *   bg-drift animation now bigger: translate ±4% / 2.5%, scale 1.02↔1.06,
+ *   brightness 0.82↔1.18, saturation 0.85↔1.15, 14s ease-in-out loop.
+ *   body::before extended inset:-10% so drift doesn't reveal edges.
+ *
+ * Preset 8 — system fonts + breathing animation (2026-05-18 night):
+ *   • Body sans-serif: -apple-system stack (SF Pro on iOS, Roboto on
+ *     Android, Segoe UI on Windows). Drops Google Fonts dependency.
+ *   • Numbers / titles / vals: ui-monospace stack (SF Mono / Menlo) with
+ *     font-variant-numeric: tabular-nums.
+ *   • Bg split: static layers (noise, vignette, horizon, base) on body;
+ *     animated radial-light-spots on body::before with bg-breathe
+ *     keyframes (8s ease-in-out, brightness 0.93↔1.08 + saturate 0.95↔1.05).
+ *   • Respects prefers-reduced-motion.
+ *
+ * Preset 7 — Preset 6 dimmed -5% + 115° diagonal sweep (2026-05-18 night):
+ *   Base color #060d14 → #040a10 (~5% darker per channel).
+ *   Primary light 0.35 → 0.30, secondary 0.30 → 0.25, accent 0.20 → 0.17,
+ *   vignette black 0.45 → 0.50, bottom fade 0.10 → 0.13.
+ *   Added a faint 115° diagonal linear-gradient sweep for extra
+ *   subtle light-direction cue. Cards (Preset 4 bevel) unchanged.
+ *
+ * Preset 6 — Preset 5 + scattered lights on bg (2026-05-18 night):
+ *   Adds a secondary blue radial at bottom-right (90% 80%) and a tiny
+ *   accent at mid-left (15% 60%) so the lower half of the page has
+ *   its own glow/texture instead of fading to flat dark. Noise bumped
+ *   from 0.025 to 0.04, vignette softened from 0.55 to 0.45 black.
+ *
+ * Preset 5 — Preset 4 + layered body bg (2026-05-18 night):
+ *   Body bg becomes a 4-layer stack: SVG noise + top-left blue light
+ *   matching the bevel direction + edge vignette (corners darker so
+ *   cards lift off) + vertical horizon fade (slightly bluer at top).
+ *   Cards keep the chamfered bevel from Preset 4.
+ *
+ * Preset 4 — chamfered bevel rolloff + bottom-right shadow concentration
+ *               (2026-05-18 night):
+ *   Adds soft halo rings inward from each edge using negative-spread
+ *   inset shadows so the rounded-rect appears chamfered, like a real
+ *   beveled glass panel. Extra dark concentration at bottom-right
+ *   corner so the panel has an asymmetric weight (light source upper
+ *   left, shadow lower right). Drop shadow + frosted-glass base same
+ *   as Preset 3.
+ *
+ * Preset 3 — liquid-glass v2: noise + tilt + dim glow (2026-05-18 late):
+ *   Adds an SVG-noise frosted-haze layer + a top-to-bottom vertical
+ *   sheen (top bright, bottom slightly dark) on top of the diagonal
+ *   135° sheen. Inner blue glow reduced 0.10 → 0.05. Drop shadow
+ *   doubled with a tight contact shadow. Top inset highlight bumped
+ *   to 0.16, bottom inset to 0.28. backdrop-filter: blur(24px) + saturate(140%).
+ *
+ * Preset 2 — liquid-glass directional bevel (2026-05-18 evening):
+ *   .card / .topbar background:
+ *     background:
+ *       linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 25%, transparent 45%, transparent 75%, rgba(0,0,0,0.04) 100%),
+ *       radial-gradient(ellipse 90% 90% at 50% 50%, rgba(60,130,200,0.10) 0%, transparent 60%),
+ *       var(--surface);
+ *   .card box-shadow (135° light source):
+ *     box-shadow:
+ *       0 0 0 1px rgba(255,255,255,0.04),
+ *       0 4px 24px rgba(0,0,0,0.4),
+ *       inset 0 1px 0 rgba(255,255,255,0.12),     <- top bright
+ *       inset 1px 0 0 rgba(255,255,255,0.05),     <- left slightly bright
+ *       inset 0 -1px 0 rgba(0,0,0,0.24),          <- bottom dark
+ *       inset -1px 0 0 rgba(0,0,0,0.08);          <- right slightly dark
+ */
+
 :root {
   --bg: #060d14;
-  --surface: rgba(10,18,28,0.92);
-  --surface2: rgba(6,13,20,0.96);
+  --surface: rgba(10,18,28,0.82);
+  --surface2: rgba(6,13,20,0.88);
   --border: rgba(70,125,170,0.38);
   --border-bright: rgba(95,170,220,0.5);
   --text: #eaf4ff;
@@ -35,6 +121,12 @@
   --rise: #ffb84d;
   --set: #ff8c5a;
   --glow: rgba(77,168,216,0.12);
+  /* Shared label-column width so Tundub/Kastepunkt values, main row
+   * values (TUUL, SADU, ÕHURÕHK ...), and alt-location rain values all
+   * land in the same vertical column. Wider than KASTEPUNKT renders at
+   * 14px uppercase 1px-letter-spaced (~95px) to give a little breathing
+   * room. */
+  --label-col: 105px;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
@@ -42,49 +134,104 @@
 html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'DM Mono', monospace;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: hidden;
 }
+/* Tabular monospace numbers — every digit same width so columns
+ * align cleanly. Used for values, timestamps, the clock, etc. */
+.val,
+.clock,
+.topbar-sub-time,
+.hour-time, .hour-temp, .hour-wind, .hour-rain, .hour-uv,
+.mini-main, .mini-sub, .mini-day,
+.kp-72h-label,
+.az-text,
+.card-hero-main,
+.location-label,
+.card-title,
+.wx-station-title,
+.wx-temp-big {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
 
 body {
+  /* Body bg: darker base + colourful blobs (-20% from prior alphas),
+   * vignette, horizon. Noise removed per user request. */
   background:
-    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(20,60,100,0.35) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(10,40,70,0.2) 0%, transparent 60%),
-    #060d14;
+    radial-gradient(ellipse 140% 110% at 50% 50%, transparent 35%, rgba(0,0,0,0.5) 100%),
+    linear-gradient(to bottom, rgba(20,40,70,0.13) 0%, transparent 35%, transparent 75%, rgba(0,0,0,0.18) 100%),
+    /* Colourful ambient blobs — warm / cool / violet (alpha ×0.8) */
+    radial-gradient(ellipse 55% 40% at 18% 18%, rgba(255,170,80,0.28) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 45% at 82% 30%, rgba(100,160,230,0.32) 0%, transparent 60%),
+    radial-gradient(ellipse 65% 50% at 40% 85%, rgba(140,100,210,0.28) 0%, transparent 65%),
+    /* Cool-blue scattered lights (alpha ×0.8) */
+    linear-gradient(115deg, rgba(35,75,120,0.10) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.1) 100%),
+    radial-gradient(ellipse 70% 50% at 10% -5%, rgba(40,90,150,0.24) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 80%, rgba(30,70,120,0.20) 0%, transparent 60%),
+    /* base — darker by ~30% than previous #040a10 */
+    #02050a;
+  background-attachment: fixed;
   padding:
     calc(env(safe-area-inset-top, 0px) + 16px)
     16px
     calc(env(safe-area-inset-bottom, 0px) + 24px);
 }
+/* Animation removed — was hard to verify and caused complexity. The
+ * colour blobs and gradient layers provide enough visual life. */
 
 /* ─── TOPBAR ─────────────────────────────── */
 .topbar {
-  padding: 14px 18px 12px;
-  background: var(--surface);
+  padding: 10px 14px 8px;
+  /* Liquid-glass v2 — five layers (top to bottom):
+   *   1. SVG noise (frosted-glass haze, very faint)
+   *   2. Vertical sheen (top bright, bottom slightly dark — tilt feel)
+   *   3. Diagonal corner sheen (135° light source)
+   *   4. Dimmed inner blue glow (readability over decoration)
+   *   5. Surface (semi-transparent dark navy)                                       */
+  background:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 12%, transparent 35%, transparent 85%, rgba(0,0,0,0.06) 100%),
+    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, transparent 45%, transparent 78%, rgba(0,0,0,0.05) 100%),
+    radial-gradient(ellipse 90% 90% at 50% 50%, rgba(60,130,200,0.05) 0%, transparent 60%),
+    var(--surface);
   border: 1px solid var(--border-bright);
   border-radius: 20px;
-  margin-bottom: 14px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  margin-bottom: 12px;
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.07),
+    0 14px 40px rgba(0,0,0,0.55),
+    0 2px 8px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.26),
+    inset 1px 0 0 rgba(255,255,255,0.12),
+    inset 0 -1px 0 rgba(0,0,0,0.42),
+    inset -1px 0 0 rgba(0,0,0,0.18),
+    inset 0 6px 14px -6px rgba(255,255,255,0.24),
+    inset 6px 0 14px -7px rgba(255,255,255,0.1),
+    inset 0 -8px 18px -6px rgba(0,0,0,0.4),
+    inset -8px 0 18px -7px rgba(0,0,0,0.26),
+    inset -10px -10px 28px -14px rgba(0,0,0,0.42);
 }
 
 .topbar-main {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: baseline;
+  justify-content: center;
+  margin-bottom: 6px;
 }
 
 .topbar-sub {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid var(--border);
 }
+.topbar-sub-label { margin-left: auto; }
 .topbar-sub-actions {
   display: flex;
   align-items: center;
@@ -96,20 +243,20 @@ body {
 .refresh-btn-hard:active { color: var(--warn); border-color: var(--warn); }
 
 .topbar-sub-label {
-  font-size: 13px;
+  font-size: 10px;
   color: var(--muted);
   letter-spacing: 1px;
   text-transform: uppercase;
-  opacity: 1;
+  opacity: 0.7;
   font-weight: 500;
 }
 
 .topbar-sub-time {
-  font-family: 'Space Mono', monospace;
-  font-size: 14px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
   color: var(--muted-strong);
   letter-spacing: 0.5px;
-  font-weight: 700;
+  font-weight: 600;
   transition: color 0.3s;
 }
 .topbar-sub-time.stale { color: var(--warn); }
@@ -126,20 +273,9 @@ body {
   gap: 8px;
 }
 
-.pulse-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(77,168,216,0.2), 0 0 12px rgba(77,168,216,0.6);
-  animation: pulse 2.5s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,100% { box-shadow: 0 0 0 3px rgba(77,168,216,0.2), 0 0 12px rgba(77,168,216,0.5); }
-  50% { box-shadow: 0 0 0 5px rgba(77,168,216,0.1), 0 0 20px rgba(77,168,216,0.8); }
-}
 
 .location-label {
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 15px;
   letter-spacing: 2.5px;
   color: var(--accent);
@@ -148,7 +284,7 @@ body {
 }
 
 .clock {
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 15px;
   color: var(--muted-strong);
   letter-spacing: 0.5px;
@@ -178,7 +314,7 @@ body {
   border-radius: 16px;
   padding: 14px 16px;
   margin-bottom: 10px;
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -204,7 +340,7 @@ body {
   padding: 7px 12px;
   margin-bottom: 10px;
   border-radius: 12px;
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.5px;
@@ -240,16 +376,36 @@ body {
 
 /* ─── CARD ─────────────────────────────── */
 .card {
-  background: var(--surface);
+  /* Liquid-glass v2 — see .topbar comment for layer breakdown */
+  background:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 12%, transparent 35%, transparent 85%, rgba(0,0,0,0.06) 100%),
+    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, transparent 45%, transparent 78%, rgba(0,0,0,0.05) 100%),
+    radial-gradient(ellipse 90% 90% at 50% 50%, rgba(60,130,200,0.05) 0%, transparent 60%),
+    var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 16px 18px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.025),
-    0 4px 24px rgba(0,0,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.04);
+    /* outer thin outline (subtle white rim) */
+    0 0 0 1px rgba(255,255,255,0.06),
+    /* drop shadow */
+    0 14px 40px rgba(0,0,0,0.55),
+    0 2px 8px rgba(0,0,0,0.35),
+    /* sharp 1 px edge highlights — stronger contrast */
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    inset 1px 0 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.4),
+    inset -1px 0 0 rgba(0,0,0,0.18),
+    /* CHAMFERED BEVEL: soft halos fading inward from each edge */
+    inset 0 6px 14px -6px rgba(255,255,255,0.22),
+    inset 6px 0 14px -7px rgba(255,255,255,0.08),
+    inset 0 -8px 18px -6px rgba(0,0,0,0.38),
+    inset -8px 0 18px -7px rgba(0,0,0,0.24),
+    /* bottom-right corner extra deep concentration */
+    inset -10px -10px 28px -14px rgba(0,0,0,0.4);
   position: relative;
   overflow: hidden;
 }
@@ -263,7 +419,7 @@ body {
 }
 
 .card-title {
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 3px;
@@ -271,6 +427,70 @@ body {
   text-transform: uppercase;
   margin-bottom: 18px;
   opacity: 1;
+}
+
+/* Card title bar — used in Hetkeilm where the card title shares the
+ * row with the current-weather condition icon + text, right-aligned. */
+.card-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+.card-title-bar .card-title { margin-bottom: 0; }
+.wx-cond-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted-strong);
+  font-weight: 500;
+}
+.wx-cond-icon { font-size: 18px; line-height: 1; }
+.wx-cond-text { letter-spacing: 0.3px; }
+
+/* Liquid-glass action buttons (RADAR / SAT) — absolute-positioned at
+ * the bottom-right of wx-hero-right so their bottom edge ends on the
+ * same line as the kastepunkt text on the left, regardless of column
+ * stretch behavior. */
+.wx-actions {
+  display: flex;
+  gap: 6px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+.wx-btn {
+  padding: 6px 12px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 35%, transparent 75%, rgba(0,0,0,0.05) 100%),
+    rgba(20,30,45,0.55);
+  border: 1px solid rgba(95,170,220,0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.2s;
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
+}
+.wx-btn:hover { border-color: rgba(111,193,236,0.55); }
+.wx-btn:active {
+  transform: translateY(2px) scale(0.97);
+  box-shadow:
+    0 1px 4px rgba(0,0,0,0.35),
+    inset 0 2px 6px rgba(0,0,0,0.4),
+    inset 0 -1px 0 rgba(255,255,255,0.05);
+  border-color: rgba(111,193,236,0.7);
 }
 
 /* ─── CURRENT WEATHER ─────────────────── */
@@ -284,7 +504,7 @@ body {
 }
 .wx-hero-row {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: space-between;
 }
 
@@ -292,6 +512,15 @@ body {
  * Inline rows showing nearby weather stations (Kurevere road sensor,
  * Lääne-Nigula and Haapsalu EMHI). Compact — title and one data line
  * per station, no source attribution (saves vertical space). */
+/* Wrapper that holds the 3 alt-location readings as a group at the
+ * bottom of the Hetkeilm card. Margin separates it from the öökülm row
+ * above. Each station has its own dashed border-top for visual breaks. */
+.wx-stations {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .wx-station {
   display: flex;
   flex-direction: column;
@@ -300,7 +529,7 @@ body {
   border-top: 1px dashed var(--border);
 }
 .wx-station-title {
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -320,25 +549,25 @@ body {
   opacity: 0.7;
   margin-top: 2px;
 }
+/* Title alone on line 1. Data row line 2 splits into two columns:
+ *  - col 1 (--label-col wide): temp value at x=0 (stays where it was)
+ *  - col 2 (auto, starts at --label-col): wind + sep + rain. The wind
+ *    value's left edge therefore lines up with the TUUL/SADU/ÕHURÕHK
+ *    data column above. Same column the Tundub/Kastepunkt values use. */
 .wx-station-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--label-col) auto;
+  column-gap: 0;
   align-items: baseline;
-  gap: 6px;
-  flex-wrap: wrap;
   font-size: 14px;
   color: var(--muted-strong);
   font-variant-numeric: tabular-nums;
 }
-/* Each numeric slot gets a fixed minimum width and right-aligns the
- * digits inside, so the trailing unit text (° / mm/h / m/s) sits at
- * the same x position across both station rows regardless of whether
- * the value is "+9.5" or "+16.0". 5ch covers "+16.0" exactly; smaller
- * values get padding-left to keep right-edge consistent. */
-.wx-station-row .val {
-  font-size: 18px;
-  display: inline-block;
-  min-width: 5ch;
-  text-align: right;
+.wx-station-row > .temp-cell,
+.wx-station-row > .wind-rain-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
 }
 .wx-station-row .sep {
   font-size: 13px;
@@ -346,14 +575,19 @@ body {
   opacity: 0.7;
   margin: 0 2px;
 }
+/* Wind value sits in col 1 (alongside its m/s suffix + arrow); rain
+ * value sits in col 2 — col 2's left edge is at --label-col so the
+ * rain figure aligns vertically with Tundub/Kastepunkt/TUUL/SADU values
+ * across the whole card. */
+.wx-station-row .val { font-size: 17px; }
 .wx-station-row .wind-arrow { font-size: 20px; }
 
 .wx-temp-big {
-  font-family: 'Space Mono', monospace;
-  font-size: 64px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 50px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: -2px;
+  letter-spacing: -1.5px;
 }
 .wx-temp-big.warm { color: var(--warm); text-shadow: 0 0 40px rgba(255,204,119,0.25); }
 .wx-temp-big.cold { color: var(--cold); text-shadow: 0 0 40px rgba(126,207,255,0.25); }
@@ -363,17 +597,77 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
-  padding-top: 4px;
+  padding-top: 0;
+  position: relative;
 }
 
-.wx-cond-icon-big { font-size: 44px; line-height: 1; }
+.wx-cond-line {
+  /* Icon stacked ABOVE the condition text, both right-aligned. The
+   * column's last item (text) sits at the bottom — paired with the
+   * row's align-items:flex-end this puts the text bottom on the same
+   * line as the big temp's bottom, while the icon hangs above. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.wx-cond-icon-big {
+  /* Glass container for the filled SVG silhouettes. Drop-shadow gives
+   * the shape weight against the dark surface; a faint cyan outer glow
+   * mirrors the chamfered bevel of the card / button bezels so the icon
+   * reads as the same translucent material. */
+  width: 48px;
+  height: 48px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter:
+    drop-shadow(0 2px 3px rgba(0,0,0,0.5))
+    drop-shadow(0 0 8px rgba(126,207,255,0.2));
+}
+.wx-cond-icon-big svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Meta rows under the big temp — uses 2-col grid so the values
+ * (after "Tundub nagu" and "Kastepunkt") start at the same x.
+ * Labels match the row-label styling elsewhere (uppercase, muted,
+ * letter-spaced) for consistency across the whole page. */
+.wx-meta {
+  display: grid;
+  grid-template-columns: var(--label-col) auto;
+  column-gap: 0;
+  row-gap: 4px;
+  margin-top: 10px;
+  align-items: baseline;
+}
+.wx-meta-label {
+  /* Match .row-label exactly (TUUL, SADU, etc.) */
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted-strong);
+  font-weight: 500;
+}
+.wx-meta-val {
+  /* The trailing ° symbol after each value */
+  font-size: 14px;
+  color: var(--muted-strong);
+  font-weight: 500;
+}
+.wx-meta-val .val { color: var(--text); }
 .wx-cond-text {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--muted-strong);
   text-align: right;
   max-width: 140px;
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* ─── ROW ─────────────────────────────── */
@@ -381,25 +675,21 @@ body {
   display: flex;
   align-items: baseline;
   gap: 0;
-  margin-bottom: 15px;
+  margin-bottom: 4px;
+  line-height: 1;
 }
 .row:last-child { margin-bottom: 0; }
 
-.row-icon {
-  width: 24px;
-  font-size: 15px;
-  line-height: 1;
-  flex-shrink: 0;
-  margin-top: 2px;
-  align-self: flex-start;
-}
+/* Row icons hidden for now — pending replacement with a minimal
+ * Apple-style SF Symbols / SVG set that matches the liquid-glass look. */
+.row-icon { display: none; }
 
 .row-label {
   font-size: 14px;
   color: var(--muted-strong);
   text-transform: uppercase;
   letter-spacing: 1px;
-  min-width: 88px;
+  min-width: var(--label-col);
   flex-shrink: 0;
   font-weight: 500;
 }
@@ -423,14 +713,14 @@ body {
 }
 
 .val {
-  font-family: 'Space Mono', monospace;
-  font-size: 22px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
   line-height: 1;
 }
-.val.sm { font-size: 19px; }
-.val.xs { font-size: 17px; }
+.val.sm { font-size: 17px; }
+.val.xs { font-size: 15px; }
 
 .unit {
   font-size: 14px;
@@ -484,35 +774,42 @@ body {
 
 .hour {
   /* Each tile is exactly 1/4 of the visible strip width (minus gaps),
-   * so 4 tiles always fit cleanly regardless of viewport size. */
+   * so 4 tiles always fit cleanly regardless of viewport size.
+   * Slightly lighter material than the parent card — feels elevated. */
   flex: 0 0 calc((100% - 24px) / 4);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 8px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 35%, transparent 75%, rgba(0,0,0,0.05) 100%),
+    rgba(20,30,45,0.55);
+  border: 1px solid rgba(95,170,220,0.18);
+  border-radius: 14px;
+  padding: 12px 8px;
   text-align: center;
   transition: border-color 0.2s;
   scroll-snap-align: start;
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
 }
 
 .hour-time {
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 15px;
   color: var(--muted-strong);
   letter-spacing: 0.5px;
   font-weight: 700;
 }
-.hour-icon { font-size: 28px; margin: 8px 0 6px; }
+.hour-icon { font-size: 24px; margin: 6px 0 4px; }
 .hour-temp {
-  font-family: 'Space Mono', monospace;
-  font-size: 24px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 19px;
   font-weight: 700;
   line-height: 1;
 }
 .hour-wind, .hour-rain, .hour-uv {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--muted-strong);
-  margin-top: 6px;
+  margin-top: 4px;
   line-height: 1.35;
   font-weight: 500;
 }
@@ -545,33 +842,39 @@ body {
 
 .day-card {
   flex: 0 0 calc((100% - 24px) / 4);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 8px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 35%, transparent 75%, rgba(0,0,0,0.05) 100%),
+    rgba(20,30,45,0.55);
+  border: 1px solid rgba(95,170,220,0.18);
+  border-radius: 14px;
+  padding: 12px 8px;
   text-align: center;
   scroll-snap-align: start;
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
 }
 
 .mini-day {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--muted-strong);
   letter-spacing: 1px;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-weight: 700;
 }
-.mini-icon { font-size: 30px; line-height: 1; margin-bottom: 8px; }
+.mini-icon { font-size: 24px; line-height: 1; margin-bottom: 6px; }
 .mini-main {
-  font-family: 'Space Mono', monospace;
-  font-size: 28px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
 }
 .mini-sub {
-  font-size: 14px;
+  font-size: 11px;
   color: var(--muted-strong);
-  margin-top: 5px;
+  margin-top: 4px;
   font-weight: 500;
 }
 
@@ -590,22 +893,13 @@ body {
  */
 .grid-2 .card .row {
   display: grid;
-  grid-template-columns: 22px 1fr;
-  column-gap: 10px;
+  grid-template-columns: 1fr;
   row-gap: 3px;
   align-items: start;
   margin-bottom: 13px;
 }
-.grid-2 .card .row .row-icon {
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  align-self: center;
-  margin-top: 0;
-  font-size: 16px;
-  text-align: center;
-}
 .grid-2 .card .row .row-label-sm {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
   min-width: 0;
   font-size: 12px;
@@ -615,7 +909,7 @@ body {
   text-overflow: ellipsis;
 }
 .grid-2 .card .row .row-right {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 2;
   margin: 0;
 }
@@ -662,7 +956,7 @@ body {
   box-shadow: 0 0 10px rgba(126, 207, 255, 0.4);
 }
 .card-hero-main {
-  font-family: 'Space Mono', monospace;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -686,10 +980,9 @@ body {
   white-space: nowrap;
 }
 
-/* Aurora card: keep the default 2-col stacked label/value layout to
- * match Õietolm next door (consistency in the same grid row).
- * The 72h chart is moved out of the .row structure so it can span the
- * full card width instead of being squeezed into a 1fr value cell. */
+/* Aurora-card override removed (used to have a 3-col layout with
+ * icons). Now uses the same single-column stacked layout as the other
+ * 2-col cards. */
 .kp-72h {
   margin-top: 10px;
   display: flex;
@@ -746,13 +1039,7 @@ body {
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-main">
-      <div class="topbar-left">
-        <div class="pulse-dot"></div>
-        <div class="location-label">Madise</div>
-      </div>
-      <div class="topbar-right">
-        <div class="clock" id="clock">—</div>
-      </div>
+      <div class="clock" id="clock">—</div>
     </div>
     <div class="topbar-sub">
       <span class="topbar-sub-label">Uuendatud</span>
@@ -781,48 +1068,22 @@ body {
         <div class="wx-hero-row">
           <div>
             <div class="wx-temp-big warm loading" id="wx-temp">—</div>
-            <div style="font-size:15px;color:var(--muted-strong);margin-top:10px;line-height:1.9;font-weight:500;">
-              <div>tundub nagu <span class="val xs" id="wx-feels" style="color:var(--text);">—</span>°</div>
-              <div>kastepunkt <span class="val xs" id="wx-dew" style="color:var(--text);">—</span>°</div>
+            <div class="wx-meta">
+              <span class="wx-meta-label">Tundub</span>
+              <span class="wx-meta-val"><span class="val sm" id="wx-feels">—</span>°</span>
+              <span class="wx-meta-label">Kastepunkt</span>
+              <span class="wx-meta-val"><span class="val sm" id="wx-dew">—</span>°</span>
             </div>
           </div>
           <div class="wx-hero-right">
-            <div class="wx-cond-icon-big" id="wx-cond-icon">⋯</div>
-            <div class="wx-cond-text" id="wx-cond">—</div>
-          </div>
-        </div>
-        <!-- Nearby weather stations (self-contained, easy to remove or rearrange) -->
-        <div class="wx-station" id="kv-block">
-          <div class="wx-station-title">Kurevere</div>
-          <div class="wx-station-row">
-            <span class="val cold" id="kv-temp">—</span><span>°</span>
-            <span class="sep">·</span>
-            <span class="val" id="kv-precip">—</span><span>mm/h</span>
-            <span class="sep">·</span>
-            <span class="val cold" id="kv-wind">—</span><span>m/s</span>
-            <span class="wind-arrow" id="kv-wind-arrow">↑</span>
-          </div>
-        </div>
-        <div class="wx-station" id="ln-block">
-          <div class="wx-station-title">Lääne-Nigula</div>
-          <div class="wx-station-row">
-            <span class="val cold" id="ln-temp">—</span><span>°</span>
-            <span class="sep">·</span>
-            <span class="val" id="ln-precip">—</span><span>mm/h</span>
-            <span class="sep">·</span>
-            <span class="val cold" id="ln-wind">—</span><span>m/s</span>
-            <span class="wind-arrow" id="ln-wind-arrow">↑</span>
-          </div>
-        </div>
-        <div class="wx-station" id="hp-block">
-          <div class="wx-station-title">Haapsalu</div>
-          <div class="wx-station-row">
-            <span class="val cold" id="hp-temp">—</span><span>°</span>
-            <span class="sep">·</span>
-            <span class="val" id="hp-precip">—</span><span>mm/h</span>
-            <span class="sep">·</span>
-            <span class="val cold" id="hp-wind">—</span><span>m/s</span>
-            <span class="wind-arrow" id="hp-wind-arrow">↑</span>
+            <div class="wx-cond-line">
+              <span class="wx-cond-icon-big" id="wx-cond-icon">⋯</span>
+              <span class="wx-cond-text" id="wx-cond">—</span>
+            </div>
+            <div class="wx-actions">
+              <button class="wx-btn" type="button" data-action="radar">RADAR</button>
+              <button class="wx-btn" type="button" data-action="sat">SAT</button>
+            </div>
           </div>
         </div>
       </div>
@@ -831,7 +1092,7 @@ body {
         <span class="row-icon">💨</span>
         <span class="row-label">Tuul</span>
         <div class="row-right">
-          <span class="val cold" id="wx-wind">—</span>
+          <span class="val cold sm" id="wx-wind">—</span>
           <span class="unit">m/s</span>
           <span class="unit" id="wx-dir">—</span>
           <span class="wind-arrow" id="wx-wind-arrow">↑</span>
@@ -844,14 +1105,14 @@ body {
         <span class="row-icon">🌧</span>
         <span class="row-label">Sadu</span>
         <div class="row-right">
-          <span class="val" id="wx-precip">—</span>
+          <span class="val sm" id="wx-precip">—</span>
           <span class="unit">mm/h</span>
         </div>
       </div>
 
       <div class="row">
         <span class="row-icon">⦿</span>
-        <span class="row-label">Rõhk</span>
+        <span class="row-label">Õhurõhk</span>
         <div class="row-right">
           <span class="val sm" id="wx-pressure">—</span>
           <span class="unit">hPa</span>
@@ -902,13 +1163,59 @@ body {
           <span class="val sm ok" id="frost-warning">—</span>
         </div>
       </div>
+
+      <!-- Alternative-location readings -->
+      <div class="wx-stations">
+        <div class="wx-station" id="kv-block">
+          <div class="wx-station-title">Kurevere</div>
+          <div class="wx-station-row">
+            <div class="temp-cell">
+              <span class="val cold sm" id="kv-temp">—</span><span>°</span>
+            </div>
+            <div class="wind-rain-cell">
+              <span class="val cold sm" id="kv-wind">—</span><span>m/s</span>
+              <span class="wind-arrow" id="kv-wind-arrow">↑</span>
+              <span class="sep">·</span>
+              <span class="val sm" id="kv-precip">—</span><span>mm/h</span>
+            </div>
+          </div>
+        </div>
+        <div class="wx-station" id="ln-block">
+          <div class="wx-station-title">Lääne-Nigula</div>
+          <div class="wx-station-row">
+            <div class="temp-cell">
+              <span class="val cold sm" id="ln-temp">—</span><span>°</span>
+            </div>
+            <div class="wind-rain-cell">
+              <span class="val cold sm" id="ln-wind">—</span><span>m/s</span>
+              <span class="wind-arrow" id="ln-wind-arrow">↑</span>
+              <span class="sep">·</span>
+              <span class="val sm" id="ln-precip">—</span><span>mm/h</span>
+            </div>
+          </div>
+        </div>
+        <div class="wx-station" id="hp-block">
+          <div class="wx-station-title">Haapsalu</div>
+          <div class="wx-station-row">
+            <div class="temp-cell">
+              <span class="val cold sm" id="hp-temp">—</span><span>°</span>
+            </div>
+            <div class="wind-rain-cell">
+              <span class="val cold sm" id="hp-wind">—</span><span>m/s</span>
+              <span class="wind-arrow" id="hp-wind-arrow">↑</span>
+              <span class="sep">·</span>
+              <span class="val sm" id="hp-precip">—</span><span>mm/h</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- HOURLY -->
     <div class="card">
       <div class="card-title">Täna tunniti</div>
       <div class="scroll-x" id="hourly-strip"></div>
-      <div class="rain-note">Võimaliku saju alguseni: <span id="rain-start" class="val" style="font-size:16px;color:var(--text);">—</span></div>
+      <div class="rain-note">Saju alguseni: <span id="rain-start" class="val" style="font-size:15px;color:var(--text);">—</span></div>
     </div>
 
     <!-- 7-DAY FORECAST -->
@@ -930,7 +1237,7 @@ body {
           <span class="row-icon">🌅</span>
           <span class="row-label-sm">Tõus</span>
           <div class="row-right">
-            <span class="val sm rise" id="sunrise-time">—</span>
+            <span class="val xs rise" id="sunrise-time">—</span>
             <span class="az-text" id="sunrise-az"></span>
           </div>
         </div>
@@ -938,7 +1245,7 @@ body {
           <span class="row-icon">🌇</span>
           <span class="row-label-sm">Loojang</span>
           <div class="row-right">
-            <span class="val sm set" id="sunset-time">—</span>
+            <span class="val xs set" id="sunset-time">—</span>
             <span class="az-text" id="sunset-az"></span>
           </div>
         </div>
@@ -1133,21 +1440,150 @@ function degToCompass(deg){
   return d[Math.round(deg/22.5)%16];
 }
 
+/* Diffuse-glass SVG weather icons.
+ *
+ * Style: filled silhouettes with a top-down translucent gradient
+ * (white-ish at top → cool blue at bottom for cloud-class shapes; warm
+ * yellow gradient for sun). A faint white inner-stroke acts as a glass
+ * bezel; a subtle radial highlight near the top-left fakes the light
+ * source reflection on glass. Drop-shadow on the wrapper (.wx-cond-icon-big)
+ * gives the shape depth against the dark card.
+ *
+ * All icons share a single <defs> block defined once below — paths
+ * reference the gradients/highlights by URL so the SVG payload stays
+ * compact. */
+var WX_ICON_DEFS =
+  '<defs>'
+  + '<linearGradient id="cl-grad" x1="50%" y1="0%" x2="50%" y2="100%">'
+  +   '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>'
+  +   '<stop offset="55%" stop-color="#d4e7f7" stop-opacity="0.7"/>'
+  +   '<stop offset="100%" stop-color="#7ecfff" stop-opacity="0.45"/>'
+  + '</linearGradient>'
+  + '<radialGradient id="cl-shine" cx="32%" cy="22%" r="55%">'
+  +   '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.65"/>'
+  +   '<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>'
+  + '</radialGradient>'
+  + '<linearGradient id="sun-grad" x1="35%" y1="20%" x2="65%" y2="100%">'
+  +   '<stop offset="0%" stop-color="#fff3d4" stop-opacity="0.98"/>'
+  +   '<stop offset="55%" stop-color="#ffcc77" stop-opacity="0.85"/>'
+  +   '<stop offset="100%" stop-color="#ff9c4a" stop-opacity="0.55"/>'
+  + '</linearGradient>'
+  + '<radialGradient id="sun-shine" cx="35%" cy="30%" r="50%">'
+  +   '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.75"/>'
+  +   '<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>'
+  + '</radialGradient>'
+  + '<linearGradient id="moon-grad" x1="20%" y1="10%" x2="80%" y2="100%">'
+  +   '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>'
+  +   '<stop offset="55%" stop-color="#dfeefb" stop-opacity="0.75"/>'
+  +   '<stop offset="100%" stop-color="#7ecfff" stop-opacity="0.5"/>'
+  + '</linearGradient>'
+  + '<linearGradient id="drop-grad" x1="50%" y1="0%" x2="50%" y2="100%">'
+  +   '<stop offset="0%" stop-color="#cfe7f8" stop-opacity="0.85"/>'
+  +   '<stop offset="100%" stop-color="#5fb5f0" stop-opacity="0.95"/>'
+  + '</linearGradient>'
+  + '</defs>';
+
+/* Cloud silhouette path adapted from Lucide (MIT) — clean three-bump
+ * shape with a smooth flat base. Used as-is for cloud/rain and as a
+ * smaller secondary element behind the sun/moon for partly conditions. */
+var CLOUD_PATH = 'M47 50 H22 a18 18 0 1 1 17 -23 h5 a11.5 11.5 0 1 1 0 23 Z';
+var CLOUD_PATH_SM = 'M48 53 H30 a12 12 0 1 1 11 -16 h4 a8 8 0 1 1 0 16 Z';
+
+function wxIconSvg(inner){
+  return '<svg viewBox="0 0 64 64" aria-hidden="true">' + WX_ICON_DEFS + inner + '</svg>';
+}
+
+var WX_ICONS = {
+  'sun': wxIconSvg(
+    /* Thin warm rays as background lines, then the sun disc on top with
+     * a radial shine highlight near the upper-left. */
+    '<g stroke="#ffd693" stroke-opacity="0.7" stroke-width="1.6" stroke-linecap="round">'
+    + '<line x1="32" y1="4"  x2="32" y2="11"/>'
+    + '<line x1="32" y1="53" x2="32" y2="60"/>'
+    + '<line x1="4"  y1="32" x2="11" y2="32"/>'
+    + '<line x1="53" y1="32" x2="60" y2="32"/>'
+    + '<line x1="12" y1="12" x2="17" y2="17"/>'
+    + '<line x1="47" y1="47" x2="52" y2="52"/>'
+    + '<line x1="12" y1="52" x2="17" y2="47"/>'
+    + '<line x1="47" y1="17" x2="52" y2="12"/>'
+    + '</g>'
+    + '<circle cx="32" cy="32" r="13" fill="url(#sun-grad)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.8"/>'
+    + '<circle cx="32" cy="32" r="13" fill="url(#sun-shine)"/>'
+  ),
+  'moon': wxIconSvg(
+    '<path d="M44 10 A22 22 0 1 0 54 46 A17 17 0 0 1 44 10 Z" '
+    + 'fill="url(#moon-grad)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.8" stroke-linejoin="round"/>'
+    + '<path d="M44 10 A22 22 0 1 0 54 46 A17 17 0 0 1 44 10 Z" fill="url(#cl-shine)"/>'
+  ),
+  'cloud': wxIconSvg(
+    '<path d="' + CLOUD_PATH + '" '
+    + 'fill="url(#cl-grad)" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.9" stroke-linejoin="round"/>'
+    + '<path d="' + CLOUD_PATH + '" fill="url(#cl-shine)"/>'
+  ),
+  'partly-day': wxIconSvg(
+    /* Sun upper-left, smaller cloud lower-right overlapping. */
+    '<g stroke="#ffd693" stroke-opacity="0.7" stroke-width="1.4" stroke-linecap="round" transform="translate(-8,-8)">'
+    + '<line x1="32" y1="4"  x2="32" y2="9"/>'
+    + '<line x1="4"  y1="32" x2="9"  y2="32"/>'
+    + '<line x1="12" y1="12" x2="16" y2="16"/>'
+    + '<line x1="12" y1="52" x2="16" y2="48"/>'
+    + '<line x1="48" y1="16" x2="52" y2="12"/>'
+    + '</g>'
+    + '<circle cx="22" cy="22" r="9" fill="url(#sun-grad)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.7"/>'
+    + '<circle cx="22" cy="22" r="9" fill="url(#sun-shine)"/>'
+    + '<path d="' + CLOUD_PATH_SM + '" '
+    + 'fill="url(#cl-grad)" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.8" stroke-linejoin="round"/>'
+    + '<path d="' + CLOUD_PATH_SM + '" fill="url(#cl-shine)"/>'
+  ),
+  'partly-night': wxIconSvg(
+    '<path d="M28 8 A14 14 0 1 0 34 35 A11 11 0 0 1 28 8 Z" '
+    + 'fill="url(#moon-grad)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.7" stroke-linejoin="round"/>'
+    + '<path d="' + CLOUD_PATH_SM + '" '
+    + 'fill="url(#cl-grad)" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.8" stroke-linejoin="round"/>'
+    + '<path d="' + CLOUD_PATH_SM + '" fill="url(#cl-shine)"/>'
+  ),
+  'rain': wxIconSvg(
+    '<g transform="translate(0,-4)">'
+    + '<path d="' + CLOUD_PATH + '" '
+    + 'fill="url(#cl-grad)" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.9" stroke-linejoin="round"/>'
+    + '<path d="' + CLOUD_PATH + '" fill="url(#cl-shine)"/>'
+    + '</g>'
+    /* Three teardrops — pointed at top, rounded bottom. */
+    + '<path d="M22 50 q-2 4 0 6 a 2.2 2.2 0 0 0 4 0 q 2 -4 -2 -6 z" fill="url(#drop-grad)"/>'
+    + '<path d="M32 52 q-2 4 0 6 a 2.2 2.2 0 0 0 4 0 q 2 -4 -2 -6 z" fill="url(#drop-grad)"/>'
+    + '<path d="M42 50 q-2 4 0 6 a 2.2 2.2 0 0 0 4 0 q 2 -4 -2 -6 z" fill="url(#drop-grad)"/>'
+  ),
+  'light-rain': wxIconSvg(
+    '<g stroke="#ffd693" stroke-opacity="0.7" stroke-width="1.3" stroke-linecap="round" transform="translate(-8,-10)">'
+    + '<line x1="32" y1="6"  x2="32" y2="10"/>'
+    + '<line x1="6"  y1="32" x2="10"  y2="32"/>'
+    + '<line x1="13" y1="13" x2="16" y2="16"/>'
+    + '<line x1="48" y1="16" x2="51" y2="13"/>'
+    + '</g>'
+    + '<circle cx="20" cy="18" r="7" fill="url(#sun-grad)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.7"/>'
+    + '<circle cx="20" cy="18" r="7" fill="url(#sun-shine)"/>'
+    + '<path d="' + CLOUD_PATH_SM + '" '
+    + 'fill="url(#cl-grad)" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.8" stroke-linejoin="round"/>'
+    + '<path d="' + CLOUD_PATH_SM + '" fill="url(#cl-shine)"/>'
+    + '<path d="M36 56 q-1.5 3 0 5 a 1.8 1.8 0 0 0 3 0 q 1.5 -3 -1.5 -5 z" fill="url(#drop-grad)"/>'
+  )
+};
+
 function currentSkyText(cloud, precip){
   var isDaytime = TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null ? (Date.now() >= TODAY_SUNRISE_MS && Date.now() < TODAY_SUNSET_MS) : true;
-  if(precip >= 2) return { text:'Sajab', icon:'🌧️' };
-  if(precip > 0.1) return { text:'Nõrk sadu', icon:'🌦️' };
+  if(precip >= 2) return { text:'Sajab', icon:'rain' };
+  if(precip > 0.1) return { text:'Nõrk sadu', icon: isDaytime ? 'light-rain' : 'rain' };
   if(isDaytime){
-    if(cloud <= 15) return { text:'Päikeseline', icon:'☀️' };
-    if(cloud <= 40) return { text:'Vähese pilvisusega', icon:'🌤️' };
-    if(cloud <= 70) return { text:'Vahelduva pilvisusega', icon:'⛅' };
-    if(cloud <= 90) return { text:'Pilves', icon:'☁️' };
-    return { text:'Lauspilves', icon:'☁️' };
+    if(cloud <= 15) return { text:'Päikeseline', icon:'sun' };
+    if(cloud <= 40) return { text:'Vähese pilvisusega', icon:'partly-day' };
+    if(cloud <= 70) return { text:'Vahelduva pilvisusega', icon:'partly-day' };
+    if(cloud <= 90) return { text:'Pilves', icon:'cloud' };
+    return { text:'Lauspilves', icon:'cloud' };
   }
-  if(cloud <= 20) return { text:'Selge', icon:'🌙' };
-  if(cloud <= 50) return { text:'Vähese pilvisusega', icon:'☁️' };
-  if(cloud <= 85) return { text:'Pilves', icon:'☁️' };
-  return { text:'Lauspilves', icon:'☁️' };
+  if(cloud <= 20) return { text:'Selge', icon:'moon' };
+  if(cloud <= 50) return { text:'Vähese pilvisusega', icon:'partly-night' };
+  if(cloud <= 85) return { text:'Pilves', icon:'cloud' };
+  return { text:'Lauspilves', icon:'cloud' };
 }
 
 function uvLabel(uv){
@@ -1249,7 +1685,7 @@ function renderWeather(data, savedAt){
 
       var sky = currentSkyText(cloud, precip);
       byId('wx-cond').textContent = sky.text;
-      byId('wx-cond-icon').textContent = sky.icon;
+      byId('wx-cond-icon').innerHTML = WX_ICONS[sky.icon] || '';
 
       var pressureTrend = '→', pressureColor = 'var(--text)', oldPoint = null;
       for(var i=0;i<PRESSURE_HISTORY.length;i++){
@@ -1413,7 +1849,7 @@ function updateRainStart(hourly){
   if(!found){ el.textContent = 'Pole oodata'; return; }
   var diff = found.time.getTime() - now.getTime();
   var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
-  el.textContent = h <= 0 ? (m + ' min pärast') : (h + 'h ' + m + 'min');
+  el.textContent = h <= 0 ? (m + ' min') : (h + 'h ' + m + ' min');
 }
 
 function toRad(d){ return d*Math.PI/180; }
@@ -1489,7 +1925,8 @@ function updateSunCountdown(){
   var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
   byId('sun-count-label').textContent = label;
   byId('sun-countdown').textContent = h + 't ' + pad(m) + 'm';
-  byId('sun-countdown').className = 'val xs ' + cls;
+  // Default text colour (same as moon-full), no warm rise/set tint
+  byId('sun-countdown').className = 'val xs';
 }
 setInterval(updateSunCountdown, 1000);
 
@@ -1691,7 +2128,7 @@ function renderStation(prefix, vals){
       // Always one decimal so "+16.0" and "+17.1" stay the same character
       // width — keeps the units/wind arrow aligned across station rows.
       el.textContent = (t >= 0 ? '+' : '') + t.toFixed(1);
-      el.className = 'val ' + (t < 0 ? 'cold' : 'warm');
+      el.className = 'val sm ' + (t < 0 ? 'cold' : 'warm');
     }
   }
   if(vals.precip !== null && vals.precip !== undefined && !isNaN(vals.precip)){

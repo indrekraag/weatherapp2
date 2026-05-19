@@ -218,7 +218,7 @@ print('orphans:', sorted(refs - ids))"
 
 ## Current state
 
-**Status:** All work from the 2026-05-18 sessions committed and pushed. PWA is fully functional with three real weather stations (Kurevere road sensor + Lääne-Nigula and Haapsalu EMHI met stations), MeteoAlarm warning row for Lääne county, redesigned aurora card with 3-day Kp forecast chart, redesigned Päike + Kuu cards with shared hero layout.
+**Status:** Functional and visually iterated. After the data/architecture build-out (earlier 2026-05-18 sessions), spent a long session on visual design — Apple "Liquid Glass" aesthetic for cards/buttons, Hetkeilm hero layout reorganization, shared label-column alignment across all data rows in the Hetkeilm card, inline diffuse-glass SVG weather icons replacing emoji, and a font-consistency pass across the whole page. Changes are **uncommitted on local** as of session end — see `progress.md` for the granular list and any open visual nits.
 
 ## Recent changes (2026-05-18 — PWA + multi-station + warnings session)
 
@@ -292,6 +292,46 @@ This was a long single-day session that built up the project from the bare-bones
 ### Bug fixes
 - The `byId('day-change').textContent = …` line was still referencing a row we deleted earlier in the session — it threw on null and halted all subsequent JS, leaving the page showing only the client-side-computed sun/moon panels. Removed the orphan reference. Added the orphan-ID checker recipe above.
 
+## Recent changes (2026-05-18 — visual design pass)
+
+Long iterative session on the look and feel after the data build-out was stable. Highlights (see `progress.md` for the full list with file/line context):
+
+### Liquid Glass aesthetic
+- Card + button bezels: chamfered look via layered inset `box-shadow` (top-left highlight, bottom-right shadow, faint halo). Saved over many "Preset N" comment blocks in the CSS during iteration.
+- Card surface lowered to `rgba(10,18,28,0.82)` (`--surface`) so the body's multi-layer background (radial cyan/teal blobs + vertical-stripe gradient sweep) shows through subtly. Blobs live in body's `background:` with `background-attachment: fixed` (the earlier `body::before` pseudo-element approach was invisible behind opaque card bgs).
+- RADAR / SAT mini-buttons mirror the card material with their own chamfered bevel.
+
+### Hetkeilm hero layout
+- Big temp on the left; condition **icon stacked above** condition text on the right, both right-aligned, text uppercased (`LAUSPILVES`, `NÕRK SADU` etc.) at 14 px / 1 px letter-spacing so it matches the row label vocabulary.
+- Tundub / Kastepunkt now sit in a 2-col CSS grid (`.wx-meta`) directly under the big temp.
+- "Tundub nagu" → "Tundub". Päikesetõusuni colour now matches Järgmine täiskuu (no warm rise/set tint).
+
+### Shared label column (`--label-col: 105px`)
+The Hetkeilm card has three vertical contexts that all line up at x=105:
+1. `.wx-meta` → grid `var(--label-col) auto` with column-gap 0 → Tundub / Kastepunkt values
+2. `.row-label` → `min-width: var(--label-col)` → TUUL / SADU / ÕHURÕHK / NIISKUS / UV / NÄHTAVUS / ÖÖKÜLM values
+3. `.wx-station-row` → grid `var(--label-col) auto` → alt-loc wind value lands at x=105 (rain follows)
+
+### Alt-location stations (Kurevere / Lääne-Nigula / Haapsalu)
+- Title alone on line 1 (e.g. `KUREVERE`). Line 2 is a 2-col grid: `temp-cell` in col 1 (temp stays at x=0 like before), `wind-rain-cell` in col 2 starting at x=105.
+- Wind / rain order swapped earlier (wind before rain) and both promoted to `val.sm` (17 px) to match Tundub/Kastepunkt vocabulary.
+- `renderStation()` was stripping the `sm` class on the temp element during data update — fixed.
+
+### Inline SVG weather icons (replaced emoji)
+- New `WX_ICONS` library at the top of the JS section. Eight conditions: `sun`, `moon`, `cloud`, `partly-day`, `partly-night`, `rain`, `light-rain` (light-rain falls back to `rain` at night).
+- Style: filled silhouettes with a translucent top-to-bottom gradient (white → cool blue for clouds; warm yellow for sun; cool tone for moon), a faint white bezel stroke (~0.7 px), and a radial highlight overlay to fake the light source on glass. Shared `<defs>` block (`cl-grad`, `sun-grad`, `moon-grad`, `cl-shine`, `sun-shine`, `drop-grad`).
+- Cloud silhouette is a Lucide-derived clean two-bump path scaled into a 64×64 viewBox (`CLOUD_PATH` + smaller `CLOUD_PATH_SM` for combined "partly" / "light-rain" variants).
+- Container `.wx-cond-icon-big` is 48×48 with `drop-shadow(0 2px 3px rgba(0,0,0,0.5))` plus a soft cyan outer glow — the same material vocabulary as the chamfered card / button bevels.
+- `currentSkyText` now returns `{ text, icon: 'sun' | 'moon' | ... }`; the renderer does `byId('wx-cond-icon').innerHTML = WX_ICONS[sky.icon]`.
+
+### Row spacing
+- `.row` margin-bottom dropped 15 → 4 px to match the `row-gap: 4px` in `.wx-meta`. Added `line-height: 1` on `.row` so the inherited 1.2 line-height stops eating the difference.
+
+### Font consistency pass
+- All Hetkeilm data values are `val.sm` (17 px). All row labels and meta labels are 14 px uppercase 1 px-letter-spaced.
+- 2-col cards: Päike Tõus/Loojang dropped from `val.sm` → `val.xs` so they match the Kuu values.
+- Row icons globally hidden (`.row-icon { display: none }`) — the inline SVG aesthetic replaces them.
+
 ## TODO / open questions
 
 - [ ] Verify the new home-screen icon on the actual iPhone after re-installing as a web app
@@ -304,4 +344,8 @@ This was a long single-day session that built up the project from the bare-bones
 
 ## In progress / mid-task
 
-(Nothing in progress — last session ended at a clean checkpoint after the 2026-05-18 session push.)
+- **Uncommitted local changes** to `index.html` from the visual design pass. Nothing pushed yet. Indrek needs to refresh once more and either approve the diffuse-glass icon set + alignment / spacing, or call out specific further tweaks before we commit.
+- Possible follow-ups Indrek may want next session (from open visual nits during the session):
+  - Cloud silhouette could be redrawn with a smoother 3-bump path if the current 2-bump Lucide-derived shape still reads as too simple.
+  - The condition-icon-over-text block no longer enforces "text bottom = big temp bottom" — items just stack naturally at the top of `.wx-hero-right`. If the user wants the old strict bottom-alignment back, it would mean restructuring the hero so `.wx-meta` sits outside the flex row.
+  - RADAR / SAT button placement (absolutely positioned bottom-right of `.wx-hero-right`) currently aligns with Kastepunkt's baseline — verify that still looks right after the row-spacing change.
