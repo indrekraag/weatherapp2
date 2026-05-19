@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Madise Ilmaradar — Redesigned</title>
+<style>
+/* ─── DESIGN TOKENS ─────────────────────────────────────────
+ * Liquid-glass system rebuilt around 3 principles:
+ *   1. ONE material — every card uses the same recipe (no per-card overrides)
+ *   2. TYPOGRAPHIC HIERARCHY — three sizes, three weights, no exceptions
+ *   3. SUBSURFACE LIGHT — colour comes from a single warm/cool blob field
+ *      behind the glass; the glass itself is colourless
+ * ─────────────────────────────────────────────────────────── */
+:root {
+  /* Surface — slightly cooler & more transparent than the original
+   * (alpha .68 vs .82) so the body's blob field actually shows through. */
+  --surface: rgba(12, 14, 18, 0.78);
+  --surface-elev: rgba(20, 30, 45, 0.55);
+
+  /* Border — a single hairline. Cyan tint reduced to ~0.10 so it reads
+   * as glass edge, not as a coloured outline. */
+  --hairline: rgba(255, 255, 255, 0.10);
+  --hairline-bright: rgba(255, 255, 255, 0.18);
+
+  /* Text — bumped contrast on the secondary tier. Original had 4 muted
+   * tiers (--muted, --muted-strong, opacity overrides) — collapsed to 2. */
+  --fg: #f2f7ff;
+  --fg-2: rgba(228, 238, 250, 0.74);   /* secondary labels */
+  --fg-3: rgba(200, 215, 235, 0.65);   /* captions, units */
+
+  /* Accents — desaturated. The originals were neon; this is daylight. */
+  --accent: #7cc4ec;
+  --warm:   #ffb86b;
+  --cold:   #82c8ff;
+  --ok:     #6ed99a;
+  --warn:   #ffc857;
+  --bad:    #ff7a7a;
+
+  /* Glow — softer, used sparingly */
+  --glow-warm: rgba(255, 184, 107, 0.22);
+  --glow-cold: rgba(130, 200, 255, 0.22);
+
+  /* Geometry */
+  --r-lg: 24px;          /* card */
+  --r-md: 16px;          /* tile, pill */
+  --r-sm: 10px;          /* button, chip */
+  --label-col: 96px;
+  --blur: 28px;          /* backdrop-filter strength */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html {
+  min-height: 100vh;
+  /* Dark steel-grey base lives on html. Body itself stays transparent
+   * so body::before (the weather blob layer) can paint over the gradient
+   * without being hidden by an opaque body background. */
+  background:
+    linear-gradient(180deg, #0d0f12 0%, #050608 100%);
+  background-attachment: fixed;
+}
+html, body {
+  min-height: 100vh;
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+body {
+  /* Position relative so body::before (the blob layer) anchors to the
+   * full body height, not the viewport. Body itself is transparent —
+   * the dark gradient comes through from html. */
+  position: relative;
+  background: transparent;
+}
+
+/* Tabular numerics — applied via a utility class instead of long selectors */
+.mono, .val, .clock, .num {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+
+/* ─── BODY ATMOSPHERE ───────────────────────────────────────
+ * The time-of-day base gradient is set on html, body above (so the
+ * html element shows it too, avoiding flat-dark fallback past the
+ * body height on mobile). The blob layer below adds a slow drifting
+ * colour wash on top so the page has atmosphere as well as time-of-day.
+ * ─────────────────────────────────────────────────────────── */
+
+body::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  /* Match the document height so blobs scatter through the entire
+   * scrollable area, not just the viewport. min-height 100vh covers
+   * short-content fallback. */
+  height: 100%;
+  min-height: 100vh;
+  /* z-index 0 (not -1): body is transparent now, so the blobs paint OVER
+   * the html gradient (the dark base) and UNDER the cards. Negative
+   * z-index would push them BEHIND the body's stacking context, which
+   * caused them to be invisible before. */
+  z-index: 0;
+  /* Weather-driven blob field — multiple soft radial-gradient ellipses
+   * scattered top-to-bottom through the document so atmospheric colour
+   * peeks through every gap between cards as you scroll. The .weather-*
+   * class on <body> swaps the blob colours; positions stay constant.
+   *
+   * Six blobs at fixed vertical anchors scattered across the document,
+   * alternating x positions left-right so colour density varies. Each
+   * blob is large (60–70% wide × 28–35% tall) so adjacent blobs OVERLAP
+   * in the middle — creating soft washes where two colours blend, rather
+   * than discrete bright spots. This reads as atmosphere instead of
+   * decoration. The transparent 65% falloff is slightly later than
+   * before so the overlap zones have more colour density. */
+  background:
+    /* Top — primary warm/cool */
+    radial-gradient(ellipse 65% 32% at 22% 7%,
+                    var(--blob1-color, rgba(255, 170, 80, 0.22)) 0%,
+                    transparent 65%),
+    /* Upper-right secondary */
+    radial-gradient(ellipse 60% 28% at 80% 22%,
+                    var(--blob2-color, rgba(160, 160, 170, 0.20)) 0%,
+                    transparent 65%),
+    /* Middle-left */
+    radial-gradient(ellipse 62% 30% at 18% 42%,
+                    var(--blob1-color, rgba(255, 170, 80, 0.18)) 0%,
+                    transparent 65%),
+    /* Middle-right */
+    radial-gradient(ellipse 65% 32% at 82% 60%,
+                    var(--blob2-color, rgba(160, 160, 170, 0.18)) 0%,
+                    transparent 65%),
+    /* Lower-left */
+    radial-gradient(ellipse 70% 35% at 25% 80%,
+                    var(--blob1-color, rgba(255, 170, 80, 0.20)) 0%,
+                    transparent 65%),
+    /* Bottom-right */
+    radial-gradient(ellipse 60% 28% at 78% 95%,
+                    var(--blob2-color, rgba(160, 160, 170, 0.18)) 0%,
+                    transparent 65%);
+  animation: drift var(--drift-speed, 28s) ease-in-out infinite alternate;
+  pointer-events: none;
+  transition: background 1.5s ease;
+}
+
+@keyframes drift {
+  0%   { transform: translate(0, 0)        scale(1.00); filter: hue-rotate(0deg);  }
+
+/* ─── Weather-driven atmosphere ────────────────────────────────────
+ * Each .weather-* class on <body> swaps the blob vars consumed by
+ * body::before. Tuned values:
+ *   - x/y : blob centre position (% of viewport)
+ *   - w/h : ellipse radius (% of viewport)
+ *   - color: rgba — alpha 0.06-0.14 so cards stay readable
+ *   - drift-speed: animation duration; slower for calm weather, faster
+ *                  for stormy/turbulent feel (relative)
+ *
+ * Two blobs per state — one warm and one cool, except clear-night (cold
+ * pair) and rain (cold + darker patch). The pairings give the page
+ * directional colour cast without being one-tone.                  */
+
+/* Default = partly-cloudy fallback (used until JS sets a real class) */
+.weather-partly-cloudy {
+  --blob1-color: rgba(255, 180, 110, 0.18);     /* low warm sun */
+  --blob2-color: rgba(170, 165, 175, 0.16);     /* cool cloud */
+  --drift-speed: 30s;
+}
+
+.weather-clear-day {
+  --blob1-color: rgba(255, 190, 110, 0.24);     /* warm sun glow, upper right */
+  --blob2-color: rgba(170, 160, 150, 0.14);     /* faint sky blue tint */
+  --drift-speed: 38s;
+}
+
+.weather-clear-night {
+  --blob1-color: rgba(95, 100, 130, 0.20);      /* cold navy */
+  --blob2-color: rgba(140, 130, 150, 0.14);     /* faint violet (moon hint) */
+  --drift-speed: 42s;
+}
+
+.weather-cloudy {
+  --blob1-color: rgba(175, 170, 170, 0.16);     /* diffuse grey-blue */
+  --blob2-color: rgba(155, 145, 145, 0.16);     /* grey-violet */
+  --drift-speed: 22s;                            /* faster drift = active sky */
+}
+
+.weather-rain {
+  --blob1-color: rgba(110, 115, 130, 0.22);      /* cool deep teal */
+  --blob2-color: rgba(75, 75, 85, 0.24);       /* heavier dark patch */
+  --drift-speed: 18s;                            /* faster = stormier */
+}
+
+.weather-snow {
+  --blob1-color: rgba(200, 200, 205, 0.18);     /* cold white-blue */
+  --blob2-color: rgba(180, 180, 185, 0.16);     /* faded cool */
+  --drift-speed: 26s;
+}
+
+.weather-fog {
+  --blob1-color: rgba(190, 185, 185, 0.18);     /* lifted near-white centre */
+  --blob2-color: rgba(170, 165, 165, 0.14);     /* second layer for haze */
+  --drift-speed: 50s;                            /* very slow = stillness */
+}
+
+.weather-thunder {
+  --blob1-color: rgba(130, 130, 145, 0.24);     /* heavy charged blue */
+  --blob2-color: rgba(85, 70, 80, 0.28);       /* dark violet brewing */
+  --drift-speed: 14s;                            /* fastest = electric */
+}
+  50%  { transform: translate(-1.5%, 1%)   scale(1.04); filter: hue-rotate(8deg);  }
+  100% { transform: translate(1.5%, -1%)   scale(1.02); filter: hue-rotate(-4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}
+
+/* Vignette layer — separate from blobs so they animate independently */
+/* Vignette — much softer than before so the TOD background isn't
+ * crushed by edge darkening. Just a hint of edge falloff. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  /* Sits ABOVE the blob layer (z 0) but the .app and cards have their
+   * own positioning that puts them above this. Vignette darkens the
+   * corners regardless of scroll position. */
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 130% 110% at 50% 45%, transparent 50%, rgba(0,0,0,0.40) 100%);
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Sits above the body's blob layer and vignette pseudo-elements. */
+  position: relative;
+  z-index: 2;
+}
+
+/* ─── GLASS — the one and only card recipe ──────────────────
+ * Pure frosted glass. No bevels, no chamfered halos, no preset variants.
+ *   - backdrop blur does the refraction work
+ *   - ::before adds a single specular highlight on the top edge
+ *   - ::after adds the SVG noise overlay so the glass has tactile grain
+ * The body's blob field provides all the colour.
+ * ─────────────────────────────────────────────────────────── */
+.glass {
+  position: relative;
+  /* Bento surface — warm orange-to-cool blue gradient over the dark base.
+   * Applied to every glass card so the page reads as one cohesive material.
+   * The angle (140°) matches Apple's product-page treatment. */
+  background:
+    linear-gradient(140deg, rgba(255,180,120,0.03) 0%, transparent 35%, rgba(120,180,255,0.04) 100%),
+    var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(var(--blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(150%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06) inset,         /* top edge highlight */
+    0 -1px 0 rgba(0,0,0,0.25) inset,              /* bottom edge shadow */
+    0 12px 32px -8px rgba(0,0,0,0.55),            /* lift */
+    0 2px 6px rgba(0,0,0,0.30);                   /* contact */
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Top specular sweep — one hairline catching virtual light */
+.glass::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 12%; right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255,255,255,0.45),
+    transparent);
+  z-index: 1;
+}
+
+/* Noise overlay — tactile grain through which the blobs read.
+ * Pulled out as a pseudo-element so we don't repaint it on every card. */
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.glass > * { position: relative; z-index: 2; }
+
+.card { padding: 18px 18px; }
+
+/* ─── HERO BAR ─────────────────────────────────────────────
+ * Thin date/time/sync strip at the top of the hero card. Replaces the
+ * old standalone topbar card so the time travels visually with the
+ * current weather rather than floating up top by itself.
+ *
+ * Layout: date pieces dot-separated on the left, sync chip on the right.
+ * Tone: muted (so it doesn't compete with the 72px temp below), but
+ * legible. Uses the same SF Pro Display sans-serif as the rest of the
+ * dashboard for labels, SF Mono only for the clock and "2 min" values.
+ *
+ * A 1px hairline below the bar separates it from the hero content
+ * without putting a visible card boundary in between.
+ * ─────────────────────────────────────────────────────────── */
+.hero-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,0.70);
+}
+.hero-bar-date {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.hero-bar-date .weekday {
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  text-transform: capitalize;
+}
+.hero-bar-date .datestamp {
+  color: rgba(255,255,255,0.70);
+}
+.hero-bar-date .hero-clock {
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 0.3px;
+}
+.hero-bar-date .dot-sep {
+  color: rgba(255,255,255,0.35);
+}
+
+.hero-bar-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.hero-bar-sync .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: rgba(110,217,154,0.95);
+  text-transform: none;
+  background:
+    linear-gradient(180deg, rgba(110,217,154,0.10) 0%, rgba(110,217,154,0.04) 100%);
+  border: 1px solid rgba(110,217,154,0.22);
+  border-radius: 99px;
+}
+.hero-bar-sync .status .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+  display: inline-block;
+}
+.hero-bar-sync .sync-time {
+  font-size: 10px;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.3px;
+}
+
+/* ─── ALERT BAR ─────────────────────────────────────────── */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  background:
+    linear-gradient(180deg, rgba(110,217,154,0.10) 0%, rgba(110,217,154,0.04) 100%);
+  border: 1px solid rgba(110, 217, 154, 0.18);
+  color: var(--ok);
+  backdrop-filter: blur(12px);
+}
+.alert-icon { font-size: 14px; opacity: 0.9; }
+
+/* ─── HERO CARD — the headline current-weather panel ─────── */
+.hero {
+  /* Hero card now contains a date/time strip (hero-bar) at the top.
+   * Top padding tightened to 14px since the bar has its own visual
+   * separation via the hairline; the bar itself has 4px top padding.
+   * Gap stays at 12px so hero-title sits comfortably below the bar
+   * without the bar feeling cramped against the temp. */
+  padding: 14px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hero-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0;
+}
+.hero-title h2 {
+  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.92);
+  text-transform: none;
+}
+.hero-condition {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: rgba(255,255,255,0.65);
+}
+
+/* Main row: BIG temp left, condition icon right */
+.hero-main {
+  /* Temp + condition icon sit directly on the hero card material — no
+   * inner tile, no extra border, no nested background. Cleaner read. */
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 4px 4px 8px;
+}
+
+.temp-big {
+  font-size: 72px;
+  font-weight: 200;
+  letter-spacing: -3px;
+  line-height: 0.9;
+  color: var(--warm);
+  text-shadow: 0 0 50px var(--glow-warm);
+}
+.temp-big.cold { color: var(--cold); text-shadow: 0 0 50px var(--glow-cold); }
+.temp-big .deg { font-size: 36px; font-weight: 300; opacity: 0.7; vertical-align: top; margin-left: 2px; }
+
+.hero-icon {
+  width: 80px; height: 80px;
+  display: grid;
+  place-items: center;
+  filter:
+    drop-shadow(0 4px 8px rgba(0,0,0,0.4))
+    drop-shadow(0 0 14px rgba(130,200,255,0.25));
+}
+.hero-icon svg { width: 100%; height: 100%; }
+
+/* Tundub / Kastepunkt — two pills under the temp */
+.hero-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+}
+.pill {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+.pill .pill-label {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  color: rgba(255,255,255,0.70);
+}
+.pill .pill-value {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+}
+
+/* Radar / Satelliit — two side-by-side action buttons that open external
+ * map views. Glass tiles with a soft cyan accent so they read as primary
+ * actions without overpowering the temp above them. */
+.hero-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+}
+.hero-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 14px;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.hero-action:hover { background: rgba(124, 196, 236, 0.16); border-color: rgba(124, 196, 236, 0.38); }
+.hero-action:active { transform: scale(0.98); }
+
+/* ─── METRIC GRID ──────────────────────────────────────────
+ * Replaces the long list of label/value rows with a 2-col grid of small
+ * tiles. Each tile = icon, label, value+unit. Easier to scan, easier to
+ * extend, looks like a dashboard instead of a printout.
+ * ─────────────────────────────────────────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+/* .metric — handled via .metric-card .metric, no global rule needed */
+.metric-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.metric-icon {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.metric-value {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.1;
+}
+.metric-value .unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-2);
+  margin-left: 3px;
+  letter-spacing: 0.3px;
+}
+.metric-sub {
+  font-size: 10px;
+  color: var(--fg-3);
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+}
+
+.metric.wind .metric-value { display: flex; align-items: center; gap: 4px; }
+.wind-arrow {
+  display: inline-block;
+  font-size: 16px;
+  color: var(--cold);
+  line-height: 1;
+}
+.metric-value.warm { color: var(--warm); }
+.metric-value.cold { color: var(--cold); }
+.metric-value.ok   { color: var(--ok); }
+.metric-value.warn { color: var(--warn); }
+.metric-value.bad  { color: var(--bad); }
+
+/* UV chip — adds a coloured dot to the otherwise plain number */
+/* ─── NEARBY STATIONS ─────────────────────────────────────
+ * Was: 3 stations stacked vertically with dashed borders, redundant arrows.
+ * Now: 3 chips in one row. Same data, 1/3 the vertical space.
+ * ─────────────────────────────────────────────────────────── */
+.stations {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.station {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  text-align: center;
+}
+.station-name {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.65);
+  text-transform: none;
+}
+.station-temp {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.1;
+}
+.station-sub {
+  font-size: 10px;
+  color: var(--fg-2);
+  letter-spacing: 0.3px;
+}
+
+/* ─── CARD HEADER (used by hourly, 7-day, etc.) ──────────── */
+.card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.card-header h2 {
+  /* Bento header — sans-serif title-case, not the mono-uppercase of v1.
+   * Reads as a section title in a magazine layout. */
+  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.92);
+  text-transform: none;
+}
+.card-header .meta {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+}
+.card-header .meta strong { color: var(--cold); font-weight: 600; }
+
+/* ─── HOURLY STRIP ──────────────────────────────────────── */
+.hour-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 2px 2px 8px;
+  margin: 0 -4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,196,236,0.4) transparent;
+}
+.hour-strip::-webkit-scrollbar { height: 3px; }
+.hour-strip::-webkit-scrollbar-thumb { background: rgba(124,196,236,0.4); border-radius: 2px; }
+
+.hour {
+  /* ~5 tiles visible at once on a 480px parent, more on narrower phones.
+   * Bento-style soft gradient tile, friendly 16px radius. */
+  flex: 0 0 calc((100% - 24px) / 5);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+.hour.now {
+  background:
+    linear-gradient(180deg, rgba(124,196,236,0.18) 0%, rgba(124,196,236,0.06) 100%);
+  border-color: rgba(124,196,236,0.30);
+}
+.hour-time {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.70);
+  text-transform: uppercase;
+}
+.hour.now .hour-time { color: var(--accent); }
+.hour-ico { font-size: 22px; line-height: 1; }
+.hour-temp { font-size: 14px; color: rgba(255,255,255,0.95); font-weight: 600; }
+.hour-rain {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.70);
+  letter-spacing: 0.2px;
+}
+.hour-rain.dry { color: rgba(255,255,255,0.55); }
+
+.rain-bar {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background:
+    linear-gradient(180deg, rgba(124,196,236,0.12) 0%, rgba(124,196,236,0.04) 100%);
+  border: 1px solid rgba(124,196,236,0.22);
+  border-radius: 16px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.70);
+  letter-spacing: 0.2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rain-bar strong { color: var(--cold); font-weight: 600; font-size: 12px; }
+
+/* ─── 7-DAY ────────────────────────────────────────────── */
+/* 7-day forecast as a horizontal scroll strip (mirrors the Hourly
+ * strip pattern). Each day is a small bento tile of fixed width with
+ * day name, weather icon, high temp, low temp stacked vertically.
+ * Scrolls horizontally with snap; ~5 tiles visible at once on a 480px
+ * parent. Today gets a cyan-tinted background so it's identifiable. */
+.daily {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 2px 2px 8px;
+  margin: 0 -4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,196,236,0.4) transparent;
+}
+.daily::-webkit-scrollbar { height: 3px; }
+.daily::-webkit-scrollbar-thumb { background: rgba(124,196,236,0.4); border-radius: 2px; }
+
+.day {
+  flex: 0 0 calc((100% - 24px) / 5);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 4px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+.day-name {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.70);
+  text-transform: uppercase;
+}
+.day-ico { font-size: 22px; line-height: 1; margin: 2px 0; }
+.day-temps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.day-high { font-size: 14px; color: rgba(255,255,255,0.95); font-weight: 600; }
+.day-low  { font-size: 11px; color: rgba(255,255,255,0.70); font-weight: 500; }
+
+/* Today tile — same dimensions, just a tinted background so it's the
+ * one you scroll to "now". Keeps the strip rhythm uniform. */
+.day.today {
+  background:
+    linear-gradient(180deg, rgba(124,196,236,0.18) 0%, rgba(124,196,236,0.06) 100%);
+  border-color: rgba(124,196,236,0.30);
+}
+.day.today .day-name { color: #7cc4ec; }
+
+/* ─── SUN/MOON DUAL CARD ──────────────────────────────── */
+.duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+/* The .duo cards' internal layout is set further down via :has() rules —
+ * either a 2-col grid of dl-row tiles (Päike / Kuu) or a 2-col grid of
+ * gauge-row tiles (Õietolm / Virmalised). */
+
+.celestial-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 14px 10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+.celestial-icon {
+  width: 44px; height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  line-height: 1;
+}
+.sun-disc {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffd58a, #ff9a3e);
+  box-shadow: 0 0 18px rgba(255, 154, 62, 0.6);
+}
+.celestial-main {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.95);
+  text-align: center;
+}
+.celestial-cap {
+  font-size: 10px;
+  color: var(--fg-3);
+  letter-spacing: 0.5px;
+}
+
+.dl-row {
+  /* Data list row inside Päike / Kuu. Asymmetric horizontal padding
+   * (4px left, 20px right) pulls the value column inward from the right
+   * card edge. Label column is 68px to match .gauge-row so the value
+   * columns align vertically across all four small cards (Päike, Kuu,
+   * Õietolm, Virmalised). */
+  display: grid;
+  grid-template-columns: 68px 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 20px 8px 4px;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.dl-row:last-of-type { border-bottom: none; }
+
+/* Pair the Loojang row with its (label-less) countdown row beneath:
+ * kill the divider between them and reduce the countdown's top padding
+ * so the two rows read as one grouped pair, not two list items. */
+.dl-row:has(+ .dl-row > .dl-countdown) { border-bottom: none; padding-bottom: 4px; }
+.dl-row:has(> .dl-countdown) { padding-top: 0; }
+.dl-label {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.70);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.dl-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+  text-align: right;
+  white-space: nowrap;
+}
+.dl-value.rise { color: var(--warm); }
+.dl-value.set  { color: #ff8c5a; }
+
+/* Countdown to next sunset — sits in its own dl-row directly under
+ * "Loojang", with an empty label column so it aligns in the value
+ * column of the grid (no clashing label). Same font, size, weight, and
+ * warm hue as the time above so the two rows read as one pair. The
+ * pulse (45-75 % opacity, 2.4 s loop) is the single differentiator —
+ * signals "live, ticking value." Honours prefers-reduced-motion.
+ *
+ * The leading "−" sign hangs OUTSIDE the value column via ::before,
+ * positioned ~10 px to the left of the cell origin. This way the
+ * countdown digits ("7t 22m") column-align with the loojang time digits
+ * ("21:54") above them, instead of being shifted right by the minus. */
+.dl-countdown {
+  /* The countdown digits must column-align with the Loojang time digits
+   * above — "7t 22m" right-edge MUST land at the same x as "21:54"
+   * right-edge. The leading "−" hangs OUTSIDE the digits so it doesn't
+   * push them off-column.
+   *
+   * Implementation: make .dl-countdown inline-block + position:relative
+   * so it shrink-wraps the digits ("7t 22m"); use justify-self: end on
+   * the grid item so the whole shrink-wrapped block hugs the right edge
+   * of the value cell; the ::before "−" then hangs at right:100% of the
+   * shrink-wrapped block, sitting immediately to the left of the digit
+   * "7" rather than at the left edge of the value cell. */
+  display: inline-block;
+  justify-self: end;
+  position: relative;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff8c5a;
+  letter-spacing: 0;
+  white-space: nowrap;
+  animation: countdown-pulse 2.4s ease-in-out infinite;
+}
+.dl-countdown::before {
+  content: '−';
+  position: absolute;
+  right: 100%;
+  top: 0;
+  margin-right: 2px;
+  color: inherit;
+  pointer-events: none;
+}
+@keyframes countdown-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.75; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dl-countdown { animation: none; opacity: 0.65; }
+}
+
+.dl-az {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  /* Reserve a minimum width even when empty (countdown row has no
+   * azimuth) so the value cell's right edge lands at the same x as
+   * rows that DO have an azimuth. Without this, the empty .dl-az
+   * collapses to 0 and the countdown value drifts right by ~30px. */
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ─── POLLEN / AURORA ──────────────────────────────────── */
+.gauge-row {
+  /* List row inside Õietolm / Virmalised. Same shape as .dl-row but
+   * with no middle gauge column (severity is in the value text colour).
+   * Label column slightly wider (68px vs dl-row's 60px) because the
+   * Virmalised "Tõenäosus" label is 9 chars and needs the room. The
+   * value column right-edge alignment is preserved by the same 20px
+   * right padding as dl-row. */
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 20px 8px 4px;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.gauge-row:last-of-type,
+.gauge-row:has(+ .kp-chart) {
+  /* Kill the divider on the visually-last gauge-row. Two conditions:
+   *   1. :last-of-type → Õietolm (last gauge-row is also the last div)
+   *   2. :has(+ .kp-chart) → Virmalised (last gauge-row is followed
+   *      by the kp-chart div, so :last-of-type misses it)
+   * Both rules together cover both cards. */
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.gauge-label {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.70);
+  text-transform: uppercase;
+  line-height: 1.4;
+  /* Label column is 60px; "Tõenäosus" is the only label that exceeds it.
+   * Nowrap + overflow visible lets it bleed slightly into the gap before
+   * the value column without wrapping or being truncated. */
+  white-space: nowrap;
+  overflow: visible;
+}
+/* Subtle baseline so the user knows the track is a scale, not a fill —
+ * thin enough to read as a scale axis, not as a separator line */
+.gauge-text {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+/* Numeric values inside Virmalised need a mono font with tabular figures
+ * so digits don't shuffle horizontally when values update (2.3 → 12.7).
+ * Higher specificity than .gauge-text or .mono alone, so it wins. */
+.gauge-text.num {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.gauge-text.lo  { color: var(--ok); }
+.gauge-text.mid { color: var(--warn); }
+.gauge-text.hi  { color: var(--bad); }
+
+/* Kp 72h sparkline */
+.kp-chart {
+  margin-top: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 38px;
+  padding: 8px 10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+}
+.kp-bar {
+  flex: 1;
+  border-radius: 1px 1px 0 0;
+  background: var(--cold);
+  opacity: 0.6;
+}
+.kp-bar.now { opacity: 1; outline: 1px solid rgba(255,255,255,0.5); outline-offset: -1px; }
+.kp-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ─── FOOTER ──────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0;
+  color: rgba(255,255,255,0.60);
+  text-transform: none;
+  padding: 10px 0;
+  margin-top: 4px;
+}
+.footer span { color: rgba(255,255,255,0.60); }
+
+/* ─── Side-by-side comparison wrapper ────────────────── */
+body { padding: 0; }
+.frame-host {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+@media (max-width: 900px) {
+  .frame-host { grid-template-columns: 1fr; gap: 28px; padding: 24px 12px; }
+}
+.frame-col h1 {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--fg-2);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.frame-col h1 + p {
+  font-size: 11px;
+  color: var(--fg-3);
+  text-align: center;
+  margin-bottom: 18px;
+  letter-spacing: 0.4px;
+}
+.phone-frame {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  border-radius: 38px;
+  padding: 12px 8px;
+  background: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 30px 80px -20px rgba(0,0,0,0.7);
+}
+
+/* On narrow viewports (real phones), the desktop-only "fake phone"
+ * preview frame should disappear — its near-black background was
+ * covering the body's time-of-day gradient, making the page feel flat
+ * dark. On mobile we let the body TOD bg show through and drop the
+ * decorative chrome (border, shadow, padding). */
+@media (max-width: 700px) {
+  /* On mobile: strip the desktop preview scaffolding so the app lays out
+   * as a single column with the body's TOD gradient as its only backdrop.
+   * frame-host: drop the grid, drop padding, full width.
+   * frame-col (first): full width, no chrome.
+   * frame-col (second, the audit panel): hidden entirely.
+   * phone-frame: transparent passthrough, no chrome.
+   * frame-col titles: hidden (they're labels for the desktop preview). */
+  .frame-host {
+    display: block !important;
+    max-width: none !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  .frame-col + .frame-col { display: none !important; }
+  .frame-col h1,
+  .frame-col h1 + p { display: none !important; }
+  .phone-frame {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+}
+
+/* The phone-frame preview shrinks the app's internal padding to fit the
+ * desktop frame. These overrides should ONLY apply on desktop — on a
+ * real phone, the .app uses its native padding (14px sides + safe-area)
+ * and the .glass.card uses its native 18px. Scoped via min-width so
+ * mobile gets the proper sizing back. */
+@media (min-width: 701px) {
+  .phone-frame .app { padding: 12px; gap: 10px; }
+  .phone-frame .app .glass.card { padding: 16px; }
+  .phone-frame .hero { padding: 18px; }
+}
+
+/* ─── METRIC CARD · Active Bento (Apple/MS/Spotify 2026) ────────
+ * Asymmetric 4-col bento grid. Tuul and Sadu are priority metrics
+ * (wind + rain matter most for the country house) so they get the wide
+ * span and carry inline 24h sparklines built from stacked CSS gradient
+ * bars — no charting library required. The other four (Õhurõhk, Niiskus,
+ * UV, Öökülm) take 2 cols each.
+ *
+ * Subtle warm-to-cool gradient on the card surface (Apple product-page
+ * treatment). Two-accent palette: cool blue for wind values, warm
+ * orange for UV. Friendly 18px tile radius.                       */
+/* .glass.card.metric-card now inherits the base .glass surface — no override needed */
+.metric-card .card-header h2 {
+  color: rgba(255,255,255,0.92);
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  font-size: 13px;
+  text-transform: none;
+  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
+}
+.metric-card .card-header .meta strong { color: #ffb86b; }
+
+/* 4-col bento. Default metric = 2 cols (half row). .wide = full row. */
+.metric-card .metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+}
+.metric-card .metric {
+  grid-column: span 2;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  padding: 14px 16px;
+  min-height: 78px;
+}
+.metric-card .metric.wide { grid-column: span 4; }
+.metric-card .metric-value { font-size: 22px; font-weight: 600; }
+/* UV / Öökülm severity color via metric-value/sub modifiers.
+ * Keeps the standard metric tile structure across all six tiles; no
+ * custom chips or inline styles needed. */
+.metric-card .metric-sub.warn { color: rgba(255, 200, 87, 0.85); }
+.metric-card .metric-sub.ok { color: rgba(110, 217, 154, 0.85); }
+
+.metric-card .metric.wide .metric-value {
+  font-size: 26px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+/* Inline "metric-sub" pinned to the right of the .wide metric-value row */
+.metric-sub-inline {
+  margin-left: auto !important;
+  font-size: 11px !important;
+}
+
+/* The rain-mode dropdown styled to blend with the metric-head label —
+ * looks like part of the label, with a small chevron, no native chrome */
+.rain-mode-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.70);
+  font: inherit;
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0 14px 0 0;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.55) 50%),
+    linear-gradient(135deg, rgba(255,255,255,0.55) 50%, transparent 50%);
+  background-position:
+    calc(100% - 6px) 5px,
+    calc(100% - 2px) 5px;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+}
+.rain-mode-select:focus { outline: none; color: rgba(255,255,255,0.85); }
+.rain-mode-select option { background: #1a2330; color: #f2f7ff; }
+
+/* Inline CSS-bar sparkline. Each <span> child = one hourly bar; height
+ * is set inline via JS as a percentage. Bars use a vertical gradient so
+ * the top is vivid and the base fades — mimics signal-strength bars.
+ * The first bar (current hour) gets a brighter top stop + a thin outline
+ * so it reads as "now". */
+.metric-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 28px;
+  margin-top: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Hour-axis labels beneath the sparkline. Three evenly-spaced markers
+ * at +6h, +12h, +18h give a sense of when the predicted high/low hits
+ * without cluttering the chart. Rendered by renderSpark() alongside the
+ * bars so the labels always match the data. */
+.metric-spark-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding: 0 1px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.55);
+}
+.metric-spark-axis span:first-child,
+.metric-spark-axis span:last-child {
+  /* Edges (current hour + +24h) intentionally faded — the eye reads them
+   * from context (the "now" bar is already highlighted); the three middle
+   * markers carry the actual scanning value. */
+  opacity: 0.5;
+}
+.metric-spark span {
+  flex: 1 1 0;
+  min-width: 0;
+  background: linear-gradient(180deg, rgba(168,212,255,0.7), rgba(168,212,255,0.15));
+  border-radius: 1.5px;
+  min-height: 3px;
+  transition: opacity 0.15s;
+  cursor: pointer;
+}
+.metric-spark span:hover { opacity: 0.55; }
+.metric-spark span.now {
+  background: linear-gradient(180deg, #a8d4ff, rgba(168,212,255,0.30));
+  outline: 1px solid rgba(255,255,255,0.35);
+  outline-offset: -1px;
+}
+.metric.wide.rain .metric-spark span {
+  background: linear-gradient(180deg, rgba(124,196,236,0.65), rgba(124,196,236,0.10));
+}
+.metric.wide.rain .metric-spark span.now {
+  background: linear-gradient(180deg, #7cc4ec, rgba(124,196,236,0.20));
+  outline: 1px solid rgba(255,255,255,0.35);
+  outline-offset: -1px;
+}
+
+/* .station-name handled globally — see base rule */
+
+
+
+/* Note: Päike / Kuu / Õietolm / Virmalised cards use the default
+ * vertical stack of styled list rows (.dl-row, .gauge-row) — no
+ * grid overrides needed. */
+
+</style>
+</head>
+<body>
+
+<div class="frame-host">
+  <div class="frame-col">
+    <h1>Liquid-Glass Redesign</h1>
+    <p>Cohesive material · clear hierarchy · scannable data</p>
+    <div class="phone-frame">
+      <div class="app">
+
+        <!-- ALERT — now the top card. Standalone status pill, replaces
+             the old topbar as the first thing the user sees. -->
+        <!-- ALERT -->
+        <div class="alert">
+          <span class="alert-icon">✓</span>
+          <span>Hoiatusi pole · Lääne maakond</span>
+        </div>
+
+        <!-- HERO -->
+        <div class="glass hero">
+          <!-- Hero-bar: date · time · sync. Folded in from the old topbar.
+               Sits at the top of the hero card as a subtle context strip
+               so the date/time travels with "now" weather visually. -->
+          <div class="hero-bar">
+            <div class="hero-bar-date">
+              <span class="weekday" id="weekday">Teisipäev</span>
+              <span class="dot-sep">·</span>
+              <span class="datestamp" id="datestamp">19. mai</span>
+              <span class="dot-sep">·</span>
+              <span class="hero-clock mono" id="clock">14:32</span>
+            </div>
+            <div class="hero-bar-sync">
+              <span class="status"><span class="dot"></span> Live</span>
+              <span class="sync-time mono">2 min</span>
+            </div>
+          </div>
+
+          <div class="hero-title">
+            <h2>Hetkeilm</h2>
+            <span class="hero-condition">Pilves selgimistega</span>
+          </div>
+
+          <div class="hero-main">
+            <div class="temp-big mono warm">14<span class="deg">°</span></div>
+            <div class="hero-icon">
+              <!-- Partly sunny SVG -->
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <defs>
+                  <radialGradient id="sun-grad" cx="35%" cy="35%">
+                    <stop offset="0%" stop-color="#ffd58a"/>
+                    <stop offset="100%" stop-color="#ff9a3e"/>
+                  </radialGradient>
+                  <linearGradient id="cloud-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#e8f1ff"/>
+                    <stop offset="100%" stop-color="#a8c3e0"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="24" cy="22" r="11" fill="url(#sun-grad)"/>
+                <g stroke="#ffb86b" stroke-width="2" stroke-linecap="round" opacity="0.7">
+                  <line x1="24" y1="3"  x2="24" y2="8"/>
+                  <line x1="24" y1="36" x2="24" y2="41"/>
+                  <line x1="5"  y1="22" x2="10" y2="22"/>
+                  <line x1="38" y1="22" x2="43" y2="22"/>
+                  <line x1="10" y1="8"  x2="14" y2="12"/>
+                  <line x1="34" y1="32" x2="38" y2="36"/>
+                  <line x1="38" y1="8"  x2="34" y2="12"/>
+                  <line x1="14" y1="32" x2="10" y2="36"/>
+                </g>
+                <path d="M22 44 Q22 36 30 36 Q34 30 42 32 Q52 30 54 40 Q60 42 58 50 Q56 56 50 56 L26 56 Q18 56 18 50 Q18 44 22 44 Z"
+                      fill="url(#cloud-grad)" stroke="rgba(0,0,0,0.15)" stroke-width="0.6"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="hero-meta">
+            <div class="pill">
+              <div class="pill-label">Tundub</div>
+              <div class="pill-value mono">12°</div>
+            </div>
+            <div class="pill">
+              <div class="pill-label">Kastepunkt</div>
+              <div class="pill-value mono">9°</div>
+            </div>
+            <div class="pill">
+              <div class="pill-label">Nähtavus</div>
+              <div class="pill-value mono">24 km</div>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <a class="hero-action" href="#" data-action="radar" target="_blank" rel="noopener">Radar</a>
+            <a class="hero-action" href="#" data-action="satelliit" target="_blank" rel="noopener">Satelliit</a>
+          </div>
+        </div>
+
+        <!-- METRICS — Active Bento (Apple/MS/Spotify 2026 pattern). Asymmetric
+             4-col grid: Tuul and Sadu each span all 4 cols with inline 24h
+             sparklines; the other four metrics each take 2 cols (= half row).
+             Sparkline bars are populated by renderSpark() at the bottom of
+             the page from Open-Meteo hourly data — see comments there. -->
+        <div class="glass card metric-card">
+          <div class="card-header">
+            <h2>Mõõtmised</h2>
+            <span class="meta">Open-Meteo · <strong>nüüd</strong></span>
+          </div>
+          <div class="metrics">
+            <div class="metric wind wide">
+              <div class="metric-head"><span class="metric-icon">⌁</span>Tuul · 24 h</div>
+              <div class="metric-value mono cold">
+                <span id="wind-now">4</span><span class="unit">m/s</span>
+                <span class="wind-arrow" id="wind-arrow" style="transform: rotate(45deg)">↑</span>
+                <span class="metric-sub metric-sub-inline" id="wind-sub">SW · puh 8</span>
+              </div>
+              <div class="metric-spark" id="spark-wind" aria-hidden="true"></div>
+            </div>
+            <div class="metric wide rain">
+              <div class="metric-head">
+                <span class="metric-icon">◌</span>
+                <span>Sadu · </span>
+                <!-- Toggle: probability ↔ mm/h. JS swaps both the label and
+                     the sparkline data source on change. -->
+                <select class="rain-mode-select" id="rain-mode">
+                  <option value="prob">tõenäosus 24 h</option>
+                  <option value="mm">kogus 24 h</option>
+                </select>
+              </div>
+              <div class="metric-value mono">
+                <span id="rain-now">0.0</span><span class="unit">mm/h</span>
+                <span class="metric-sub metric-sub-inline" id="rain-sub">kõrgpunkt kl 09</span>
+              </div>
+              <div class="metric-spark" id="spark-rain" aria-hidden="true"></div>
+            </div>
+            <div class="metric">
+              <div class="metric-head"><span class="metric-icon">◐</span>Õhurõhk</div>
+              <div class="metric-value mono">1012<span class="unit">hPa</span></div>
+              <div class="metric-sub">↗ tõuseb</div>
+            </div>
+            <div class="metric">
+              <div class="metric-head"><span class="metric-icon">◔</span>Niiskus</div>
+              <div class="metric-value mono">72<span class="unit">%</span></div>
+              <div class="metric-sub">mõõdukas</div>
+            </div>
+            <div class="metric">
+              <div class="metric-head"><span class="metric-icon">☀</span>UV</div>
+              <div class="metric-value mono warn">3</div>
+              <div class="metric-sub warn">mõõdukas</div>
+            </div>
+            <div class="metric">
+              <div class="metric-head"><span class="metric-icon">❅</span>Öökülm</div>
+              <div class="metric-value mono">+6°<span class="unit">min</span></div>
+              <div class="metric-sub ok">ei ähvarda · kl 04:30</div>
+            </div>
+          </div>
+
+          <!-- NEARBY STATIONS — horizontal chips -->
+          <div class="stations">
+            <div class="station">
+              <div class="station-name">Kurevere</div>
+              <div class="station-temp mono">13°</div>
+              <div class="station-sub mono">3 m/s · 0.0</div>
+            </div>
+            <div class="station">
+              <div class="station-name">Lääne-Nig.</div>
+              <div class="station-temp mono">14°</div>
+              <div class="station-sub mono">4 m/s · 0.0</div>
+            </div>
+            <div class="station">
+              <div class="station-name">Haapsalu</div>
+              <div class="station-temp mono">15°</div>
+              <div class="station-sub mono">5 m/s · 0.0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HOURLY -->
+        <div class="glass card">
+          <div class="card-header">
+            <h2>Täna tunniti</h2>
+            <span class="meta">järgmised 24h</span>
+          </div>
+          <div class="hour-strip">
+            <div class="hour now">
+              <div class="hour-time mono">Nüüd</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">14°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">15</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">15°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">16</div>
+              <div class="hour-ico">☁️</div>
+              <div class="hour-temp mono">15°</div>
+              <div class="hour-rain mono">0.2</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">17</div>
+              <div class="hour-ico">🌧</div>
+              <div class="hour-temp mono">13°</div>
+              <div class="hour-rain mono">1.2</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">18</div>
+              <div class="hour-ico">🌧</div>
+              <div class="hour-temp mono">12°</div>
+              <div class="hour-rain mono">0.8</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">19</div>
+              <div class="hour-ico">☁️</div>
+              <div class="hour-temp mono">12°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">20</div>
+              <div class="hour-ico">☁️</div>
+              <div class="hour-temp mono">11°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">21</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">10°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">22</div>
+              <div class="hour-ico">🌙</div>
+              <div class="hour-temp mono">9°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">23</div>
+              <div class="hour-ico">🌙</div>
+              <div class="hour-temp mono">9°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">00</div>
+              <div class="hour-ico">🌙</div>
+              <div class="hour-temp mono">8°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">01</div>
+              <div class="hour-ico">🌙</div>
+              <div class="hour-temp mono">8°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">02</div>
+              <div class="hour-ico">🌫</div>
+              <div class="hour-temp mono">7°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">03</div>
+              <div class="hour-ico">🌫</div>
+              <div class="hour-temp mono">7°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">04</div>
+              <div class="hour-ico">🌫</div>
+              <div class="hour-temp mono">6°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">05</div>
+              <div class="hour-ico">🌅</div>
+              <div class="hour-temp mono">7°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">06</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">9°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">07</div>
+              <div class="hour-ico">☀️</div>
+              <div class="hour-temp mono">11°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">08</div>
+              <div class="hour-ico">☀️</div>
+              <div class="hour-temp mono">13°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">09</div>
+              <div class="hour-ico">☀️</div>
+              <div class="hour-temp mono">15°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">10</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">17°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">11</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">18°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">12</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">19°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+            <div class="hour">
+              <div class="hour-time mono">13</div>
+              <div class="hour-ico">⛅</div>
+              <div class="hour-temp mono">19°</div>
+              <div class="hour-rain dry mono">—</div>
+            </div>
+          </div>
+          <div class="rain-bar">
+            <span>Saju alguseni</span>
+            <strong class="mono">~2 h 14 min</strong>
+          </div>
+        </div>
+
+        <!-- 7-DAY -->
+        <div class="glass card">
+          <div class="card-header">
+            <h2>7 päeva prognoos</h2>
+            <span class="meta">Lääne maakond</span>
+          </div>
+          <div class="daily">
+            <!-- Today — first tile in the scroll strip, with a cyan tint
+                 so it's the visual anchor as you scroll. Same dimensions
+                 as the other day tiles for layout uniformity. -->
+            <div class="day today">
+              <span class="day-name">Täna</span>
+              <span class="day-ico">⛅</span>
+              <span class="day-temps">
+                <span class="day-high mono">15°</span>
+                <span class="day-low mono">9°</span>
+              </span>
+            </div>
+            <!-- Next 6 days — same shape, slide horizontally in the strip. -->
+            <div class="day">
+              <span class="day-name">Kolm</span>
+              <span class="day-ico">🌧</span>
+              <span class="day-temps">
+                <span class="day-high mono">13°</span>
+                <span class="day-low mono">8°</span>
+              </span>
+            </div>
+            <div class="day">
+              <span class="day-name">Nelj</span>
+              <span class="day-ico">☁️</span>
+              <span class="day-temps">
+                <span class="day-high mono">17°</span>
+                <span class="day-low mono">10°</span>
+              </span>
+            </div>
+            <div class="day">
+              <span class="day-name">Reede</span>
+              <span class="day-ico">☀️</span>
+              <span class="day-temps">
+                <span class="day-high mono">21°</span>
+                <span class="day-low mono">11°</span>
+              </span>
+            </div>
+            <div class="day">
+              <span class="day-name">Laup</span>
+              <span class="day-ico">⛅</span>
+              <span class="day-temps">
+                <span class="day-high mono">19°</span>
+                <span class="day-low mono">10°</span>
+              </span>
+            </div>
+            <div class="day">
+              <span class="day-name">Püh</span>
+              <span class="day-ico">🌧</span>
+              <span class="day-temps">
+                <span class="day-high mono">14°</span>
+                <span class="day-low mono">9°</span>
+              </span>
+            </div>
+            <div class="day">
+              <span class="day-name">Esm</span>
+              <span class="day-ico">☁️</span>
+              <span class="day-temps">
+                <span class="day-high mono">16°</span>
+                <span class="day-low mono">9°</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUN / MOON -->
+        <div class="duo">
+          <div class="glass card">
+            <div class="card-header"><h2>Päike</h2></div>
+            <div class="celestial-hero">
+              <div class="celestial-icon"><span class="sun-disc"></span></div>
+              <div class="celestial-main mono">16 t 42 min</div>
+              <div class="celestial-cap">päikest</div>
+            </div>
+            <div class="dl-row">
+              <span class="dl-label">Tõus</span>
+              <span class="dl-value rise mono">05:12</span>
+              <span class="dl-az mono">42°</span>
+            </div>
+            <div class="dl-row">
+              <span class="dl-label">Loojang</span>
+              <span class="dl-value set mono">21:54</span>
+              <span class="dl-az mono">318°</span>
+            </div>
+            <div class="dl-row">
+              <span class="dl-label"></span>
+              <span class="dl-countdown mono">7t 22m</span>
+              <span class="dl-az"></span>
+            </div>
+          </div>
+          <div class="glass card">
+            <div class="card-header"><h2>Kuu</h2></div>
+            <div class="celestial-hero">
+              <div class="celestial-icon">🌗</div>
+              <div class="celestial-main">Kahanev kuu</div>
+              <div class="celestial-cap mono">48% valgust</div>
+            </div>
+            <div class="dl-row">
+              <span class="dl-label">Tõus</span>
+              <span class="dl-value rise mono">23:47</span>
+              <span class="dl-az mono">128°</span>
+            </div>
+            <div class="dl-row">
+              <span class="dl-label">Loojang</span>
+              <span class="dl-value set mono">10:12</span>
+              <span class="dl-az mono">232°</span>
+            </div>
+            <div class="dl-row">
+              <span class="dl-label">Täiskuu</span>
+              <span class="dl-value mono">31. mai</span>
+              <span class="dl-az"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- POLLEN / AURORA -->
+        <div class="duo">
+          <div class="glass card">
+            <div class="card-header"><h2>Õietolm</h2></div>
+            <div class="gauge-row">
+              <span class="gauge-label">Üldine</span>
+              <span class="gauge-text mid">Mõõdukas</span>
+            </div>
+            <div class="gauge-row">
+              <span class="gauge-label">Kask</span>
+              <span class="gauge-text hi">Kõrge</span>
+            </div>
+            <div class="gauge-row">
+              <span class="gauge-label">Hein</span>
+              <span class="gauge-text lo">Madal</span>
+            </div>
+            <div class="gauge-row">
+              <span class="gauge-label">Lepp</span>
+              <span class="gauge-text lo">Madal</span>
+            </div>
+          </div>
+          <div class="glass card">
+            <div class="card-header"><h2>Virmalised</h2></div>
+            <div class="gauge-row">
+              <span class="gauge-label">Kp 24h</span>
+              <span class="gauge-text num lo">2.3</span>
+            </div>
+            <div class="gauge-row">
+              <span class="gauge-label">Tõenäosus</span>
+              <span class="gauge-text num lo">12%</span>
+            </div>
+            <div class="gauge-row">
+              <span class="gauge-label">Bz</span>
+              <span class="gauge-text num lo">−1.2</span>
+            </div>
+            <div class="kp-chart" id="kp">
+              <!-- bars added by script -->
+            </div>
+            <div class="kp-label"><span>−72h</span><span>nüüd</span><span>+0h</span></div>
+          </div>
+        </div>
+
+        <div class="footer">
+          Ilmaradar · <span>Open-Meteo</span> · <span>NOAA</span> · <span>Ilmateenistus</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-col">
+    <h1>Annotated Audit</h1>
+    <p>Issues spotted in the current build</p>
+    <div style="background:rgba(14,22,34,0.6); border:1px solid rgba(255,255,255,0.10); border-radius:24px; padding:24px; backdrop-filter:blur(20px); font-size:13px; line-height:1.6; color:#e4eefa;">
+      <style>
+        .audit h3 { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #7cc4ec; margin: 18px 0 8px; font-weight: 700; }
+        .audit h3:first-child { margin-top: 0; }
+        .audit ul { list-style: none; padding: 0; }
+        .audit li { padding: 8px 0 8px 22px; position: relative; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12.5px; }
+        .audit li:last-child { border-bottom: none; }
+        .audit li::before { content: '→'; position: absolute; left: 0; color: #7cc4ec; font-weight: 700; }
+        .audit code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 4px; color: #ffb86b; }
+        .audit strong { color: #fff; font-weight: 600; }
+        .audit .sev-hi { color: #ff7a7a; }
+        .audit .sev-md { color: #ffc857; }
+        .audit .sev-lo { color: #6ed99a; }
+      </style>
+      <div class="audit">
+        <h3>Inconsistencies <span class="sev-hi">●</span></h3>
+        <ul>
+          <li><strong>Material drift.</strong> 11 named "Presets" all left in CSS as comments, but the active card uses <code>--surface</code> at .82 alpha while inner tiles (.hour, .day-card) use <code>rgba(20,30,45,.55)</code>. Three different glass recipes coexist.</li>
+          <li><strong>Border colour conflict.</strong> Outer cards: white hairline (.08). Inner tiles: cyan border (.18). Buttons: cyan (.3). The eye reads three different materials.</li>
+          <li><strong>Bevel inconsistency.</strong> Hour/day tiles still carry the old chamfered bevel (<code>inset 0 1px 0 rgba(255,255,255,0.15)</code>) but the parent card has dropped it (Preset 11 "flat diffused glass"). Children look 3D, parent looks flat.</li>
+          <li><strong>Type stack split.</strong> SF Mono for ~14 named selectors, system sans for the rest. Numbers in <code>.hour-rain</code> and pollen <code>.val</code> fall back to sans — they break tabular alignment.</li>
+          <li><strong>Label vocabulary.</strong> Tundub / Kastepunkt are sentence-case; TUUL / SADU / ÕHURÕHK are uppercase + letter-spaced. Both label the same kind of thing.</li>
+          <li><strong>Location naming.</strong> App title is "Madise" but nearby station "Kurevere" is in the hero card. No location label visible in the topbar — only the clock. Add a header so it's clear which house you're checking.</li>
+        </ul>
+
+        <h3>Readability <span class="sev-md">●</span></h3>
+        <ul>
+          <li><strong>Wall-of-rows hero card.</strong> 8 stacked label/value rows + 3 stations = 11 lines of essentially the same visual rhythm. Hard to scan; the eye has no anchor.</li>
+          <li><strong>Big temp competes with itself.</strong> 50px temp + 14px Tundub/Kastepunkt in the same column, plus condition icon + 2 buttons on the right side: 5 elements in a 200px-wide row.</li>
+          <li><strong>Muted text too muted.</strong> <code>--muted</code> = rgba(200,225,245,0.96)·0.7 (via opacity) on dim glass = ~3:1 against the background — below WCAG AA for body text. Bumped to .74 alpha (no opacity multiplier) in the redesign.</li>
+          <li><strong>Wind arrow is a Unicode glyph.</strong> "↑" rotates via CSS transform, but the glyph itself has a non-uniform stroke so off-axis rotations look bent. SVG triangle reads cleaner at every angle.</li>
+          <li><strong>"Hoiatusi pole" is a dashed empty box.</strong> Reads as "this section failed to load." Make it a calm green "OK" affordance instead.</li>
+        </ul>
+
+        <h3>Liquid-glass execution <span class="sev-md">●</span></h3>
+        <ul>
+          <li><strong>No refraction.</strong> Surface alpha .82 + body bg solid means there's nothing for the glass to refract. Drop surface to ~.62, push backdrop blur to 28px, let the coloured body blobs bleed through.</li>
+          <li><strong>Eleven bevel layers.</strong> The committed Preset 10 stacks 11 box-shadows on every card. Apple's actual Liquid Glass uses ~3 layers max (rim light, drop, contact). Heavier ≠ glassier.</li>
+          <li><strong>Atmosphere is static.</strong> Comment claims "animation removed for verifiability" — but a gentle ~20s drift on the body blob field is what sells the material. Honour <code>prefers-reduced-motion</code>.</li>
+          <li><strong>Highlight is uniform.</strong> Top inset highlight runs full-width. A real bevel catches light in a band — try a 1px gradient bar inset from the edges by ~12%.</li>
+        </ul>
+
+        <h3>Information hierarchy <span class="sev-lo">●</span></h3>
+        <ul>
+          <li><strong>7-day forecast loses temperature shape.</strong> Equal-size mini cards make every day look identical. A horizontal min→max range bar lets you spot the cold day and the warm day instantly.</li>
+          <li><strong>Pollen / aurora are mute numbers.</strong> "Üldine: Mõõd" tells you nothing visually. Gauge bars (lo / mid / hi colour) make state readable at a glance.</li>
+          <li><strong>Three nearby stations stacked vertically eat 90+px.</strong> They're peer data — three horizontal chips do the job in 60px and read as a comparison set.</li>
+          <li><strong>Topbar wastes a row.</strong> "Uuendatud — ↻ ⟲" with two near-identical refresh buttons. A status dot + relative time + single tap-target is more honest about state.</li>
+          <li><strong>Radar/Sat buttons hide bottom-right.</strong> Absolute-positioned 10px text inside the hero. Promote to a full-width segmented toggle below the temp — they're the primary action of the whole app.</li>
+        </ul>
+
+        <h3>Small fixes that punch above their weight <span class="sev-lo">●</span></h3>
+        <ul>
+          <li>Delete all 11 preset comment blocks — they're 130 lines of dead code at the top of the file. Move to <code>DESIGN.md</code> in the repo.</li>
+          <li>Use <code>font-feature-settings: "tnum" 1</code> globally for numbers instead of per-class opt-in.</li>
+          <li>Make the title font weight 200 for the big temperature (Apple Weather does this). 700 + 50px feels heavy; 200 + 72px feels temperature.</li>
+          <li>Use a vector wind arrow (rotated SVG triangle), not "↑".</li>
+          <li>Sun and moon cards: cap the rise/set/length section to 3 rows; drop the icon-only column — labels do the work.</li>
+          <li>Add a "Min tonight" prediction to Öökülm — the binary "yes/no" wastes the slot when you could show <em>min +6° kl 04:30</em>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Kp 72h bars — generate a believable shape
+(function(){
+  var kp = document.getElementById('kp');
+  if(!kp) return;
+  // 24 buckets (3-hour each = 72h). Last bar = now.
+  var data = [1.0,1.3,1.7,2.0,2.3,2.0,1.7,1.7,2.0,2.3,2.7,3.0,3.3,3.0,2.7,2.3,2.0,1.7,2.0,2.3,2.0,1.7,2.0,2.3];
+  var max = 5; // Kp scale 0..9 but cap display at 5
+  var nowIdx = data.length - 1;
+  data.forEach(function(v, i){
+    var bar = document.createElement('div');
+    bar.className = 'kp-bar' + (i === nowIdx ? ' now' : '');
+    bar.style.height = Math.max(8, (v / max) * 100) + '%';
+    if(v >= 4) bar.style.background = '#ffc857';
+    else if(v >= 3) bar.style.background = '#82c8ff';
+    kp.appendChild(bar);
+  });
+})();
+
+// Live clock + Estonian weekday/date in the topbar
+(function(){
+  var clock = document.getElementById('clock');
+  var weekday = document.getElementById('weekday');
+  var datestamp = document.getElementById('datestamp');
+  if(!clock) return;
+
+  // Estonian weekdays / months — small enough to inline, avoids Intl quirks
+  var ET_DAYS = ['Pühapäev','Esmaspäev','Teisipäev','Kolmapäev','Neljapäev','Reede','Laupäev'];
+  var ET_MONTHS = ['jaanuar','veebruar','märts','aprill','mai','juuni','juuli','august','september','oktoober','november','detsember'];
+
+  function tick(){
+    var d = new Date();
+    clock.textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    if(weekday)   weekday.textContent   = ET_DAYS[d.getDay()];
+    if(datestamp) datestamp.textContent = d.getDate() + '. ' + ET_MONTHS[d.getMonth()];
+  }
+  tick();
+  setInterval(tick, 30 * 1000);
+})();
+
+/* ─── Estonian moon-phase mapping ──────────────────────────────────
+ * Canonical 8-phase model per the user's spec:
+ *   Kuu loomine (must kuu)    — Sun-Earth syzygy, sky dark (illum ~0)
+ *   Noorkuu (kasvav sirp)     — thin crescent, growing on the right
+ *   I veerand                 — right half lit
+ *   Kasvav kuu (kühmkuu)      — gibbous, growing toward full
+ *   Täiskuu                   — fully lit
+ *   Kahanev kuu (kühmkuu)     — gibbous, lit side shrinking from the left
+ *   III veerand               — left half lit
+ *   Vanakuu                   — thin crescent on the left before re-loomine
+ *
+ * Inputs: illum 0..1 (fraction lit), waxing bool (true = growing).
+ * Returns {label, emoji} for the celestial-main + celestial-icon slots.
+ *
+ * Thresholds: ±2% snap around 0/50/100% so I veerand / III veerand
+ * appear for ~half a day around true quarter, matching how most weather
+ * apps report it. "Kuu loomine" only shown when illum < 1% AND waxing
+ * has just flipped from false → true (= the moment of new moon).
+ * ──────────────────────────────────────────────────────────────── */
+function moonPhaseEt(illum, waxing){
+  if (illum < 0.01)                return { label: 'Kuu loomine', emoji: '🌑' };
+  if (illum > 0.99)                return { label: 'Täiskuu',     emoji: '🌕' };
+  if (waxing) {
+    if (illum < 0.48)              return { label: 'Noorkuu',     emoji: '🌒' };
+    if (illum < 0.52)              return { label: 'I veerand',   emoji: '🌓' };
+    return                                { label: 'Kasvav kuu',  emoji: '🌔' };
+  } else {
+    if (illum > 0.52)              return { label: 'Kahanev kuu', emoji: '🌖' };
+    if (illum > 0.48)              return { label: 'III veerand', emoji: '🌗' };
+    return                                { label: 'Vanakuu',     emoji: '🌘' };
+  }
+}
+// Example wiring (uncomment when you have real lunar data):
+//   var p = moonPhaseEt(0.48, false);
+//   document.querySelector('.celestial-main').textContent = p.label;
+//   document.getElementById('moon-icon').textContent = p.emoji;
+
+
+/* ─── Active-Bento sparklines (wind / rain) ─────────────────────────
+ * renderSpark(elementId, dataArray, opts) writes <span> bars into the
+ * given .metric-spark container, auto-scaling to the max value in the
+ * series. The first bar gets the .now class so it's highlighted as the
+ * current hour. Each bar carries a title attribute so hover/long-press
+ * shows the hour + value (helpful for older users reading 24 bars).
+ *
+ * Wire from Open-Meteo like this (you're already calling this API):
+ *
+ *   fetch('https://api.open-meteo.com/v1/forecast'
+ *     + '?latitude=58.81627&longitude=23.74447'
+ *     + '&hourly=wind_speed_10m,precipitation_probability,precipitation'
+ *     + '&timezone=Europe%2FTallinn&forecast_hours=24')
+ *     .then(r => r.json()).then(d => {
+ *       renderSpark('spark-wind', d.hourly.wind_speed_10m, {unit:'m/s'});
+ *       renderSpark('spark-rain', d.hourly.precipitation_probability, {unit:'%'});
+ *       SPARK_RAIN_DATA = {
+ *         prob: d.hourly.precipitation_probability,
+ *         mm:   d.hourly.precipitation
+ *       };
+ *     });
+ *
+ * The rain-mode <select> calls renderSpark('spark-rain', ...) with the
+ * matching array when the user toggles between probability and mm/h. */
+
+var SPARK_RAIN_DATA = {
+  // Mock data — replace with Open-Meteo hourly arrays. Both 24 elements,
+  // hour 0 = "now", hour 23 = "+23h". Realistic enough that the demo
+  // looks like a believable spring-day forecast in coastal Estonia.
+  prob: [0,0,0,5,12,28,55,68,72,45,20,8,5,0,0,0,0,0,5,12,18,8,0,0],
+  mm:   [0,0,0,0.0,0.1,0.3,1.2,1.8,2.1,0.9,0.3,0.1,0.0,0,0,0,0,0,0,0.1,0.2,0.1,0,0]
+};
+var SPARK_WIND_DATA = [3.2,3.1,3.8,4.1,4.7,5.2,4.6,4.3,3.9,3.4,4.0,4.8,5.6,6.4,6.1,5.5,5.0,4.4,4.1,3.6,3.3,3.1,3.9,4.2];
+
+function renderSpark(elId, data, opts){
+  var el = document.getElementById(elId);
+  if(!el || !data || !data.length) return;
+  opts = opts || {};
+  var unit = opts.unit || '';
+  var max = Math.max.apply(null, data);
+  if(max < 1) max = 1;                          // avoid divide-by-zero on flat-zero rain
+  var startHour = new Date().getHours();
+  el.innerHTML = '';
+  for(var i = 0; i < data.length; i++){
+    var v = data[i];
+    var pct = Math.max(8, (v / max) * 100);     // 8% floor so empty bars still visible
+    var hour = (startHour + i) % 24;
+    var hourStr = String(hour).padStart(2,'0') + ':00';
+    var bar = document.createElement('span');
+    bar.style.height = pct + '%';
+    bar.setAttribute('title', hourStr + ' · ' + (v).toFixed(unit === 'mm/h' ? 1 : 0) + ' ' + unit);
+    if(i === 0) bar.className = 'now';
+    el.appendChild(bar);
+  }
+
+  // Hour-axis labels: 5 evenly-spaced markers along the bottom
+  // (now, +6h, +12h, +18h, +24h). Rendered as a sibling element placed
+  // right after the spark container, so each call refreshes both bars
+  // and axis together. The next/previous-sibling lookup handles repaints
+  // (e.g. when the rain-mode toggle swaps probability ↔ mm/h).
+  var axis = el.nextElementSibling;
+  if(!axis || !axis.classList.contains('metric-spark-axis')) {
+    axis = document.createElement('div');
+    axis.className = 'metric-spark-axis';
+    el.parentNode.insertBefore(axis, el.nextSibling);
+  }
+  axis.innerHTML = '';
+  var stops = [0, 6, 12, 18, 24];
+  stops.forEach(function(offset){
+    var hour = (startHour + offset) % 24;
+    var span = document.createElement('span');
+    span.textContent = String(hour).padStart(2,'0');
+    axis.appendChild(span);
+  });
+}
+
+// Initial paint with mock data
+renderSpark('spark-wind', SPARK_WIND_DATA, {unit: 'm/s'});
+renderSpark('spark-rain', SPARK_RAIN_DATA.prob, {unit: '%'});
+
+// Wire the rain-mode toggle
+(function(){
+  var sel = document.getElementById('rain-mode');
+  if(!sel) return;
+  sel.addEventListener('change', function(){
+    var mode = sel.value;
+    if(mode === 'prob') {
+      renderSpark('spark-rain', SPARK_RAIN_DATA.prob, {unit: '%'});
+    } else {
+      renderSpark('spark-rain', SPARK_RAIN_DATA.mm, {unit: 'mm/h'});
+    }
+  });
+})();
+
+
+
+
+/* ─── Weather → background class mapper ────────────────────────────
+ * Open-Meteo's "weathercode" field maps via the WMO weather code list
+ * (https://open-meteo.com/en/docs#weathervariables) to one of these
+ * background states. Call setWeather(weatherCode, isDaytime) once you
+ * have the data — it just swaps the body class, CSS does the rest.
+ *
+ * Wire from your existing fetch:
+ *   fetch(... &current_weather=true ...)
+ *     .then(r => r.json()).then(d => {
+ *       setWeather(d.current_weather.weathercode, d.current_weather.is_day);
+ *     });
+ *
+ * The mapping is intentionally coarse — 7 states cover the dashboard
+ * mood without needing 30 distinct backgrounds for every WMO subcode. */
+
+function setWeather(weatherCode, isDayInt) {
+  var isDay = (isDayInt === undefined) ? true : !!isDayInt;
+  var cls;
+  if (weatherCode === 0)                         cls = isDay ? 'weather-clear-day' : 'weather-clear-night';
+  else if (weatherCode >= 1 && weatherCode <= 2) cls = 'weather-partly-cloudy';
+  else if (weatherCode === 3)                    cls = 'weather-cloudy';
+  else if (weatherCode === 45 || weatherCode === 48) cls = 'weather-fog';
+  else if (weatherCode >= 51 && weatherCode <= 67) cls = 'weather-rain';      // drizzle, rain, freezing rain
+  else if (weatherCode >= 71 && weatherCode <= 77) cls = 'weather-snow';
+  else if (weatherCode >= 80 && weatherCode <= 82) cls = 'weather-rain';      // rain showers
+  else if (weatherCode >= 85 && weatherCode <= 86) cls = 'weather-snow';      // snow showers
+  else if (weatherCode >= 95)                      cls = 'weather-thunder';
+  else                                             cls = isDay ? 'weather-clear-day' : 'weather-clear-night';
+
+  var body = document.body;
+  // Strip any existing weather-* class, add the new one
+  body.className = body.className
+    .split(' ').filter(function(c){ return !c.startsWith('weather-'); }).join(' ').trim();
+  body.classList.add(cls);
+}
+
+// Demo: cycle through states every 6 seconds so you can see all of them
+// in the preview. REMOVE THIS BLOCK when wiring real weather data.
+(function demoWeatherCycle(){
+  var demoStates = [
+    [0, 1],      // clear-day
+    [1, 1],      // partly cloudy
+    [3, 1],      // cloudy
+    [61, 1],     // rain
+    [73, 1],     // snow
+    [45, 1],     // fog
+    [95, 1],     // thunder
+    [0, 0],      // clear-night
+  ];
+  var i = 0;
+  function tick(){
+    setWeather(demoStates[i][0], demoStates[i][1]);
+    i = (i + 1) % demoStates.length;
+  }
+  tick();
+  window._weatherDemoInterval = setInterval(tick, 6000);
+})();
+// To stop the demo and lock to a specific state, call:
+//   clearInterval(window._weatherDemoInterval); setWeather(1, 1);
+
+</script>
+
+</body>
+</html>
