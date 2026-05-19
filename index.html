@@ -23,6 +23,32 @@
  * To revert the box look-and-feel, swap the values inside .card and .topbar
  * for the snippet of the preset you want.
  *
+ * Preset 10 — chamfered bevel (committed d55c211, 2026-05-18):
+ *   The "3D" liquid-glass look — Preset 4 chamfered bevel + Preset 7
+ *   dimmed-5% + 115° diagonal sweep on a Preset 9 colourful-blob body.
+ *   .card / .topbar background (multi-layer with noise + sweeps + tint):
+ *     background:
+ *       url(noise-svg-data-uri),
+ *       linear-gradient(to bottom, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 12%, transparent 35%, transparent 85%, rgba(0,0,0,0.06) 100%),
+ *       linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, transparent 45%, transparent 78%, rgba(0,0,0,0.05) 100%),
+ *       radial-gradient(ellipse 90% 90% at 50% 50%, rgba(60,130,200,0.05) 0%, transparent 60%),
+ *       var(--surface);
+ *   .card border: 1px solid var(--border);  // cyan-ish edge
+ *   .card box-shadow (the 3D bevel stack):
+ *     box-shadow:
+ *       0 0 0 1px rgba(255,255,255,0.06),
+ *       0 14px 40px rgba(0,0,0,0.55),
+ *       0 2px 8px rgba(0,0,0,0.35),
+ *       inset 0 1px 0 rgba(255,255,255,0.24),
+ *       inset 1px 0 0 rgba(255,255,255,0.1),
+ *       inset 0 -1px 0 rgba(0,0,0,0.4),
+ *       inset -1px 0 0 rgba(0,0,0,0.18),
+ *       inset 0 6px 14px -6px rgba(255,255,255,0.22),
+ *       inset 6px 0 14px -7px rgba(255,255,255,0.08),
+ *       inset 0 -8px 18px -6px rgba(0,0,0,0.38),
+ *       inset -8px 0 18px -7px rgba(0,0,0,0.24),
+ *       inset -10px -10px 28px -14px rgba(0,0,0,0.4);
+ *
  * Preset 1 — soft inner blue glow, subtle (2026-05-18):
  *   body:    background: #060d14;  (no body gradient)
  *   .card / .topbar background:
@@ -192,29 +218,17 @@ body {
    *   4. Dimmed inner blue glow (readability over decoration)
    *   5. Surface (semi-transparent dark navy)                                       */
   background:
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    linear-gradient(to bottom, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 12%, transparent 35%, transparent 85%, rgba(0,0,0,0.06) 100%),
-    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, transparent 45%, transparent 78%, rgba(0,0,0,0.05) 100%),
-    radial-gradient(ellipse 90% 90% at 50% 50%, rgba(60,130,200,0.05) 0%, transparent 60%),
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, transparent 40%),
     var(--surface);
-  border: 1px solid var(--border-bright);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 20px;
   margin-bottom: 12px;
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.07),
-    0 14px 40px rgba(0,0,0,0.55),
-    0 2px 8px rgba(0,0,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.26),
-    inset 1px 0 0 rgba(255,255,255,0.12),
-    inset 0 -1px 0 rgba(0,0,0,0.42),
-    inset -1px 0 0 rgba(0,0,0,0.18),
-    inset 0 6px 14px -6px rgba(255,255,255,0.24),
-    inset 6px 0 14px -7px rgba(255,255,255,0.1),
-    inset 0 -8px 18px -6px rgba(0,0,0,0.4),
-    inset -8px 0 18px -7px rgba(0,0,0,0.26),
-    inset -10px -10px 28px -14px rgba(0,0,0,0.42);
+    0 8px 28px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .topbar-main {
@@ -374,38 +388,31 @@ body {
 /* ─── STACK ─────────────────────────────── */
 .stack { display: flex; flex-direction: column; gap: 10px; }
 
-/* ─── CARD ─────────────────────────────── */
+/* ─── CARD — Preset 11: flat diffused glass (2026-05-19) ──────
+ * No bevel, no inset highlights, no chamfered halos. Pure frosted-glass
+ * material:
+ *   • backdrop-filter: blur(24px) saturate(140%) for the diffuse refraction
+ *   • SVG-noise overlay so the glass has subtle grain
+ *   • One faint top-down highlight gradient for a hint of light without
+ *     making the card feel "lit"
+ *   • Soft white-hairline border (no cyan tint) — barely-there edge
+ *   • Single soft outer drop shadow so the card floats over the body bg
+ *     without competing with it
+ * The body's coloured blobs do most of the visual work through the glass.
+ */
 .card {
-  /* Liquid-glass v2 — see .topbar comment for layer breakdown */
   background:
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    linear-gradient(to bottom, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 12%, transparent 35%, transparent 85%, rgba(0,0,0,0.06) 100%),
-    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, transparent 45%, transparent 78%, rgba(0,0,0,0.05) 100%),
-    radial-gradient(ellipse 90% 90% at 50% 50%, rgba(60,130,200,0.05) 0%, transparent 60%),
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, transparent 40%),
     var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 20px;
   padding: 16px 18px;
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   box-shadow:
-    /* outer thin outline (subtle white rim) */
-    0 0 0 1px rgba(255,255,255,0.06),
-    /* drop shadow */
-    0 14px 40px rgba(0,0,0,0.55),
-    0 2px 8px rgba(0,0,0,0.35),
-    /* sharp 1 px edge highlights — stronger contrast */
-    inset 0 1px 0 rgba(255,255,255,0.24),
-    inset 1px 0 0 rgba(255,255,255,0.1),
-    inset 0 -1px 0 rgba(0,0,0,0.4),
-    inset -1px 0 0 rgba(0,0,0,0.18),
-    /* CHAMFERED BEVEL: soft halos fading inward from each edge */
-    inset 0 6px 14px -6px rgba(255,255,255,0.22),
-    inset 6px 0 14px -7px rgba(255,255,255,0.08),
-    inset 0 -8px 18px -6px rgba(0,0,0,0.38),
-    inset -8px 0 18px -7px rgba(0,0,0,0.24),
-    /* bottom-right corner extra deep concentration */
-    inset -10px -10px 28px -14px rgba(0,0,0,0.4);
+    0 8px 28px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.06);
   position: relative;
   overflow: hidden;
 }
