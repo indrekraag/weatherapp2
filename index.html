@@ -1915,7 +1915,7 @@ body {
               <span class="forecast-row-label">Sadu</span>
               <div class="rain-mode-toggle" role="group" aria-label="Sadu mood">
                 <button type="button" class="rain-mode-btn active" data-mode="prob">tõenäosus</button>
-                <button type="button" class="rain-mode-btn" data-mode="mm">kogus</button>
+                <button type="button" class="rain-mode-btn" data-mode="mm">hulk</button>
               </div>
               <span class="forecast-row-sub" id="rain-sub">—</span>
             </div>
@@ -3830,7 +3830,7 @@ function renderSpark(elId, data, opts){
   }
 }
 
-/* Rain-mode segmented toggle — two buttons (tõenäosus / kogus). The
+/* Rain-mode segmented toggle — two buttons (tõenäosus / hulk). The
  * one with .active sets which array drives the sparkline. Also
  * exposed as a module-level helper so renderWeather can call it after
  * each Open-Meteo refresh to keep the sparkline + the active button
