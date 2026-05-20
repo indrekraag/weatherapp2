@@ -388,6 +388,7 @@ body {
 .alert {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 12px 16px;
   border-radius: 16px;
@@ -1722,11 +1723,11 @@ body {
         <div class="alert-banner" id="alert-banner" style="display:none"></div>
 
         <!-- WARNING-BAR — persistent CAP feed warnings (Lääne maakond). When
-             no warnings, shows "Hoiatusi pole" in muted style. Severity
+             no warnings, shows "Hoiatused puuduvad" in muted style. Severity
              colour applied via .warning-bar.minor / .moderate / .severe. -->
         <div class="alert" id="warning-bar">
           <span class="alert-icon">✓</span>
-          <span>Hoiatusi pole · Lääne maakond</span>
+          <span>Hoiatused puuduvad</span>
         </div>
 
         <!-- HERO -->
@@ -3005,19 +3006,69 @@ function renderEmhiStation(prefix, data, wmo){
 function renderLaaneNigula(data){ renderEmhiStation('ln', data, '26124'); }
 function renderHaapsalu(data){ renderEmhiStation('hp', data, '26123'); }
 
-/* CAP warnings — English → Estonian */
+/* CAP warnings — English event name → Estonian label.
+ * Covers the full MeteoAlarm awareness type taxonomy (EUMETNET):
+ *   Wind, Snow/Ice, Thunderstorms, Fog, Extreme high/low temperature,
+ *   Coastal event, Forest fire, Avalanche, Rain, Flood, Rain-flood,
+ *   Marine hazard, Drought.
+ * Each type has up to 3 levels: 1 (yellow), 2 (orange), 3 (red). */
 var WARN_EVENT_ET = {
-  'Thunderstorms Level 1': 'Äike',  'Thunderstorms Level 2': 'Tugev äike',
-  'Thunderstorms Level 3': 'Väga tugev äike',
-  'Wind Level 1': 'Tugev tuul', 'Wind Level 2': 'Tugev tuul', 'Wind Level 3': 'Tormi tugevusega tuul',
-  'Rain Level 1': 'Tugev vihm', 'Rain Level 2': 'Tugev vihm', 'Rain Level 3': 'Väga tugev vihm',
-  'Snow-Ice Level 1': 'Lumesadu', 'Snow-Ice Level 2': 'Tugev lumesadu',
-  'Fog Level 1': 'Udu',
-  'Low-Temperature Level 1': 'Pakane',
-  'High-Temperature Level 1': 'Kuumus',
-  'Forest-Fire Level 1': 'Tuleoht',
-  'Coastal-Event Level 1': 'Rannikuhoiatus',
-  'Flood Level 1': 'Üleujutus'
+  // Thunderstorms
+  'Thunderstorms Level 1':         'Äike',
+  'Thunderstorms Level 2':         'Tugev äike',
+  'Thunderstorms Level 3':         'Väga tugev äike',
+  // Wind
+  'Wind Level 1':                  'Tugev tuul',
+  'Wind Level 2':                  'Väga tugev tuul',
+  'Wind Level 3':                  'Tormi tugevusega tuul',
+  // Rain
+  'Rain Level 1':                  'Tugev vihm',
+  'Rain Level 2':                  'Väga tugev vihm',
+  'Rain Level 3':                  'Erakordselt tugev vihm',
+  // Snow / Ice
+  'Snow-Ice Level 1':              'Lumesadu või jäide',
+  'Snow-Ice Level 2':              'Tugev lumesadu või jäide',
+  'Snow-Ice Level 3':              'Väga tugev lumesadu või jäide',
+  // Fog
+  'Fog Level 1':                   'Udu',
+  'Fog Level 2':                   'Tihe udu',
+  'Fog Level 3':                   'Väga tihe udu',
+  // Extreme low temperature (cold)
+  'Low-Temperature Level 1':       'Pakane',
+  'Low-Temperature Level 2':       'Tugev pakane',
+  'Low-Temperature Level 3':       'Väga tugev pakane',
+  // Extreme high temperature (heat)
+  'High-Temperature Level 1':      'Kuumus',
+  'High-Temperature Level 2':      'Tugev kuumus',
+  'High-Temperature Level 3':      'Väga tugev kuumus',
+  // Forest fire
+  'Forest-Fire Level 1':           'Tuleoht',
+  'Forest-Fire Level 2':           'Suur tuleoht',
+  'Forest-Fire Level 3':           'Väga suur tuleoht',
+  // Coastal event (storm surge, high tides)
+  'Coastal-Event Level 1':         'Rannikuhoiatus',
+  'Coastal-Event Level 2':         'Tugev rannikuhoiatus',
+  'Coastal-Event Level 3':         'Väga tugev rannikuhoiatus',
+  // Flood
+  'Flood Level 1':                 'Üleujutus',
+  'Flood Level 2':                 'Tugev üleujutus',
+  'Flood Level 3':                 'Väga tugev üleujutus',
+  // Rain-flood (flash flood)
+  'Rain-Flood Level 1':            'Sajust põhjustatud üleujutus',
+  'Rain-Flood Level 2':            'Tugev sajust põhjustatud üleujutus',
+  'Rain-Flood Level 3':            'Erakordne sajust põhjustatud üleujutus',
+  // Avalanche (mostly N/A for Estonia but included for completeness)
+  'Avalanches Level 1':            'Laviinioht',
+  'Avalanches Level 2':            'Suur laviinioht',
+  'Avalanches Level 3':            'Väga suur laviinioht',
+  // Marine hazard (high waves at sea)
+  'Marine-Hazard Level 1':         'Merehoiatus',
+  'Marine-Hazard Level 2':         'Tugev merehoiatus',
+  'Marine-Hazard Level 3':         'Väga tugev merehoiatus',
+  // Drought
+  'Drought Level 1':               'Põud',
+  'Drought Level 2':               'Tugev põud',
+  'Drought Level 3':               'Väga tugev põud'
 };
 function renderWarnings(data){
   var el = byId('warning-bar');
@@ -3028,7 +3079,7 @@ function renderWarnings(data){
     el.style.color = '';
     el.style.background = '';
     el.style.border = '';
-    el.innerHTML = '<span class="alert-icon">✓</span><span>Hoiatusi pole · Lääne maakond</span>';
+    el.innerHTML = '<span class="alert-icon">✓</span><span>Hoiatused puuduvad</span>';
     return;
   }
   var w = arr[0];
@@ -3046,7 +3097,7 @@ function renderWarnings(data){
     el.style.background = 'rgba(233,167,107,0.10)';
     el.style.border = '1px solid rgba(233,167,107,0.30)';
   }
-  el.innerHTML = '<span class="alert-icon">⚠</span><span>' + label + ' · Lääne maakond</span>';
+  el.innerHTML = '<span class="alert-icon">⚠</span><span>' + label + '</span>';
 }
 
 /* ═══════════════════════════════════════════════════════════════
