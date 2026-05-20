@@ -15,6 +15,12 @@ Why this script exists:
   force-pushed to a 'data' orphan branch in the repo, which the PWA reads
   via raw.githubusercontent.com (which DOES allow CORS).
 
+Warnings are sourced from the MeteoAlarm Estonia ATOM feed (CAP 1.2).
+Each warning's expiry timestamp is checked at fetch time, so expired
+warnings never reach the JSON — even if MeteoAlarm leaves them in the
+feed as historical entries. The English-language CAP <info> block is
+preferred so the `event` field matches the app's translation table.
+
 Usage:
     python3 scripts/fetch_emhi.py                       # default station(s)
     python3 scripts/fetch_emhi.py --stations 26124      # by WMO code
@@ -39,8 +45,15 @@ EMHI_URL = "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php"
 METEOALARM_URL = "https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-estonia"
 
 # Counties we care about for warnings (CAP areaDesc match). Madise is in
-# Lääne county; Hiiu/Saare/Pärnu/Harju are immediate neighbors.
-TARGET_COUNTIES = {"Lääne county"}
+# Lääne county. MeteoAlarm publishes areaDesc in multiple languages
+# across info blocks; include both English and Estonian forms so the
+# match works regardless of which language block is parsed first.
+TARGET_COUNTIES = {"Lääne county", "Lääne maakond"}
+
+# How far ahead to surface upcoming warnings. Warnings with onset > now +
+# this delta are dropped at fetch time so the dashboard doesn't get
+# cluttered with multi-day-ahead alerts. Adjust as needed.
+WARNING_LOOKAHEAD_HOURS = 24
 
 # Fields we surface, in the order EMHI publishes them. Empty strings in
 # the XML become None in the JSON so the PWA can detect "not measured".
@@ -74,6 +87,23 @@ def parse_float(s: str):
     try:
         return float(s)
     except ValueError:
+        return None
+
+
+def parse_iso(s):
+    """ISO 8601 → tz-aware UTC datetime. Returns None on failure.
+
+    Handles the "Z" UTC suffix that fromisoformat() didn't accept reliably
+    before Python 3.11, and normalises naive datetimes to UTC."""
+    if not s:
+        return None
+    try:
+        s = s.strip().replace("Z", "+00:00")
+        d = dt.datetime.fromisoformat(s)
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=dt.timezone.utc)
+        return d.astimezone(dt.timezone.utc)
+    except (ValueError, TypeError):
         return None
 
 
@@ -121,10 +151,65 @@ def station_to_dict(s: ET.Element) -> dict:
     return out
 
 
+def extract_info_blocks(entry: ET.Element) -> list[dict]:
+    """Return list of CAP <info> dicts from a MeteoAlarm ATOM entry.
+
+    MeteoAlarm repeats the same alert in multiple languages — one CAP
+    <info> block per language. We extract them all so the caller can
+    pick the preferred language (English, to match WARN_EVENT_ET keys)
+    while still checking areaDesc across translations."""
+    infos: list[dict] = []
+    for info_el in entry.iter():
+        # Match both namespaced and bare <info> tags
+        if not (info_el.tag.endswith("}info") or info_el.tag == "info"):
+            continue
+        block: dict[str, str] = {}
+        # CAP <language> sits inside <info>; pull it out for preference logic
+        for child in info_el:
+            tag = child.tag.split("}")[-1]
+            if child.text and child.text.strip():
+                block.setdefault(tag, child.text.strip())
+        # areaDesc sits inside a nested <area> block — grab the first one
+        for area_el in info_el.iter():
+            if area_el.tag.endswith("}area") or area_el.tag == "area":
+                for ac in area_el:
+                    ac_tag = ac.tag.split("}")[-1]
+                    if ac_tag == "areaDesc" and ac.text:
+                        block["areaDesc"] = ac.text.strip()
+                break
+        infos.append(block)
+    return infos
+
+
+def pick_preferred_info(infos: list[dict]) -> dict:
+    """Pick the English info block if present, else Estonian, else first.
+    This makes `event` come out as 'Thunderstorms Level 1' rather than
+    'Äike Tase 1', so the app's WARN_EVENT_ET lookup table works."""
+    for lang_pref in ("en-GB", "en-US", "en"):
+        for info in infos:
+            if info.get("language", "").startswith(lang_pref):
+                return info
+    for info in infos:
+        if info.get("language", "").startswith("et"):
+            return info
+    return infos[0] if infos else {}
+
+
 def fetch_warnings() -> list:
-    """Pull MeteoAlarm Estonia ATOM and return active CAP warnings for
-    counties listed in TARGET_COUNTIES. Returns a deduplicated list; if
-    the fetch or parse fails, returns an empty list (non-fatal)."""
+    """Pull MeteoAlarm Estonia ATOM and return currently-active CAP
+    warnings for counties in TARGET_COUNTIES.
+
+    Filters applied at fetch time:
+      • areaDesc must match a target county (checked across ALL language
+        blocks since the same area has different names per language)
+      • expires must be in the future
+      • onset must be within WARNING_LOOKAHEAD_HOURS from now (so
+        multi-day-ahead alerts don't clutter the dashboard)
+      • duplicate identifiers are collapsed (same alert appears once
+        per language block in the feed)
+
+    Returns [] on any error — warnings are decorative, not critical, so
+    a failure here doesn't fail the whole workflow."""
     try:
         # MeteoAlarm rejects a strict Accept header with 406; use */*
         req = urllib.request.Request(
@@ -153,32 +238,80 @@ def fetch_warnings() -> list:
         print(f"MeteoAlarm parse failed: {exc}", file=sys.stderr)
         return []
 
+    now = dt.datetime.now(dt.timezone.utc)
+    future_cutoff = now + dt.timedelta(hours=WARNING_LOOKAHEAD_HOURS)
+
     warnings: list[dict] = []
     seen: set[str] = set()
+
     for entry in root.findall("a:entry", ns):
-        cap: dict[str, str] = {}
-        for el in entry.iter():
-            if "cap" in el.tag and el.text and el.text.strip():
-                tag = el.tag.split("}")[-1]
-                # Each CAP field appears once per polygon; keep the first value.
-                cap.setdefault(tag, el.text.strip())
-        area = cap.get("areaDesc", "")
-        if area not in TARGET_COUNTIES:
+        infos = extract_info_blocks(entry)
+
+        # Fallback: if no structured <info> blocks were found, do the
+        # original flat scrape so we don't lose alerts in unexpected
+        # feed shapes.
+        if not infos:
+            flat = {}
+            for el in entry.iter():
+                if "cap" in el.tag and el.text and el.text.strip():
+                    tag = el.tag.split("}")[-1]
+                    flat.setdefault(tag, el.text.strip())
+            if not flat:
+                continue
+            infos = [flat]
+
+        chosen = pick_preferred_info(infos)
+
+        # Area filter — match across ALL info blocks since areaDesc
+        # is translated (Lääne county / Lääne maakond)
+        if not any(b.get("areaDesc") in TARGET_COUNTIES for b in infos):
             continue
-        ident = cap.get("identifier", "")
+
+        # Expiry filter — drop if expired
+        expires = parse_iso(chosen.get("expires"))
+        if expires and expires <= now:
+            continue
+
+        # Future filter — drop if onset is too far ahead
+        onset = parse_iso(chosen.get("onset"))
+        if onset and onset > future_cutoff:
+            continue
+
+        # Identifier may only exist on the parent <alert> wrapper, not
+        # inside <info>. Walk the entry to find it for dedup.
+        ident = chosen.get("identifier") or ""
+        if not ident:
+            for el in entry.iter():
+                if el.tag.endswith("}identifier") or el.tag == "identifier":
+                    if el.text:
+                        ident = el.text.strip()
+                        break
         if ident and ident in seen:
             continue
         if ident:
             seen.add(ident)
+
+        # Use chosen's areaDesc if it's a target, else find one that is.
+        # This way the JSON's areaDesc is in the preferred language when
+        # possible but always a real match for TARGET_COUNTIES.
+        area = chosen.get("areaDesc")
+        if area not in TARGET_COUNTIES:
+            area = next(
+                (b.get("areaDesc") for b in infos
+                 if b.get("areaDesc") in TARGET_COUNTIES),
+                area or "",
+            )
+
         warnings.append({
-            "event": cap.get("event"),
-            "severity": cap.get("severity"),
-            "areaDesc": area,
-            "onset": cap.get("onset"),
-            "expires": cap.get("expires"),
-            "urgency": cap.get("urgency"),
-            "certainty": cap.get("certainty"),
+            "event":     chosen.get("event"),
+            "severity":  chosen.get("severity"),
+            "areaDesc":  area,
+            "onset":     chosen.get("onset"),
+            "expires":   chosen.get("expires"),
+            "urgency":   chosen.get("urgency"),
+            "certainty": chosen.get("certainty"),
         })
+
     return warnings
 
 
@@ -221,7 +354,7 @@ def main() -> int:
         "--stations",
         nargs="+",
         default=DEFAULT_STATIONS,
-        help="WMO codes (default: 26124 Lääne-Nigula)",
+        help="WMO codes (default: 26124 Lääne-Nigula, 26123 Haapsalu)",
     )
     args = parser.parse_args()
 
@@ -247,7 +380,10 @@ def main() -> int:
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(snap, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Wrote {out_path} — observation_time={snap['observation_time']}, stations={list(snap['stations'])}")
+    print(
+        f"Wrote {out_path} — observation_time={snap['observation_time']}, "
+        f"stations={list(snap['stations'])}, warnings={len(snap['warnings'])}"
+    )
     return 0
 
 
