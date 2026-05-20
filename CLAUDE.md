@@ -218,13 +218,40 @@ print('orphans:', sorted(refs - ids))"
 
 ## Current state
 
-**Status:** Functional and visually iterated. Most recent change (2026-05-19): Hetkeilm condition icon pulled up via `margin-top: -28px` on `.wx-cond-line` so the icon's vertical centre sits ~midway between the card's top border and the RADAR/SAT buttons — fixes the recurring "icon hides behind buttons" complaint. Three commits on `main`: chamfered-bevel "Liquid Glass" (`d55c211`), flat "Preset 11" (`b63f611`), and Preset 11 session log (`463d22b`). Cards use the flat treatment (no bevel, no inset highlights — just `backdrop-filter: blur(24px) saturate(140%)` + soft drop shadow + hairline white border). Bevel state preserved as Preset 10 in the design-presets comment for rollback.
+**Status:** `index.html` is now a fully-external redesign (`redesign87`, `5961a29`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html`). I have not yet audited the new file structure against the conventions documented earlier in this file — those CSS-class/section conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`, etc.) may no longer exist. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
 
-## Recent changes (2026-05-19 — Hetkeilm icon position fix)
+## Recent changes (2026-05-19 → 2026-05-20 — external redesign drop-in session)
 
-- The condition icon (cloud / sun / rain SVG) was visually colliding with the abs-positioned RADAR / SAT buttons at the bottom-right of `.wx-hero-right`, because when the condition string wraps (`VAHELDUVA PILVISUSEGA` etc.) the `.wx-cond-line` stack grows tall enough to reach the buttons.
-- Fix: added `margin-top: -28px` to `.wx-cond-line` (`index.html:611`). The whole icon + text stack lifts up into the title-row band on the right side. No horizontal conflict because the "HETKEILM" title is short and left-aligned. Buttons stay where they were (abs at hero-right's bottom, baseline aligned with kastepunkt on the left).
-- Verified at 393 × 851 (Pixel 7) and 430 × 932 (iPhone 14 Pro Max) viewports via the Playwright pipeline.
+This session was a long iteration loop where Indrek produced ~80+ redesign builds outside the repo (`madise-redesign{N}.html` and `madise-v1.0.html` in `~/Downloads/`) and I deployed each one to the local Python `http.server` on port 8123 for live phone review over hotspot (`http://172.20.10.8:8123`). Only a few of those builds were committed to git:
+
+- `04ee68f` — first redesign drop (redesign5)
+- `b230ca1` — redesign13
+- `004f02a` — redesign86 (rebased over `2f8f831` `Update fetch_emhi.py` from the PC)
+- `5961a29` — redesign87 (current `HEAD`)
+
+In between, the rest of the iterations (redesign6 through redesign85, v1.0, etc.) were local-only via `cp ~/Downloads/madise-redesign{N}.html ~/wa2/index.html`. Indrek hard-refreshed the iPhone tab each time to bust the SW cache.
+
+Merge note: while Indrek was iterating, the GitHub web UI was also used to rename old/new files (`8631c7d` "Rename madise-redesign3.html to index.html", `67acf9e` "Rename index.html to indexvana.html", `444baee` "Add files via upload"). One merge conflict was resolved in `264303e` by keeping our local redesign5 over the remote's redesign3. From `004f02a` onward I switched to `git pull --rebase` before every push to avoid further conflicts.
+
+### What the redesign actually changed
+
+I have **not** read through the new `index.html` line by line. From file sizes (54 KB → ~407 KB peak → ~215 KB v1.0 → ~135 KB current) the new build is materially larger than the prior in-repo build (97 KB), which suggests inline SVG / icon work + significant CSS rewriting. **Before doing any future edits to the page, re-read `index.html` from scratch — the older sections of this CLAUDE.md (architecture, conventions, what NOT to do) may still hold for the data/PWA/build layer, but the rendering / CSS layer should be treated as a clean slate until verified.**
+
+### What's still trustworthy in this CLAUDE.md
+
+These sections describe the data + ops layer, which the redesign did not touch:
+
+- "Data sources" — Open-Meteo / NOAA SWPC / tarktee / EMHI endpoints are still the same
+- "Architecture" — single-file PWA, sw.js, manifest.json, GitHub-Actions EMHI bridge → `data` orphan branch, same `raw.githubusercontent.com` read path
+- "Local development" — `python3 -m http.server 8123` workflow, Playwright screenshot pipeline
+- "Deployment" — push main → GitHub Pages
+- "What NOT to do" — gitignore, fetch headers, orphan-ID checker tip
+
+These should be re-verified against the new `index.html`:
+
+- "Conventions" subsections referencing specific CSS classes (`--label-col`, `.card-hero`, `.wx-meta`, etc.) — likely stale
+- The whole "Recent changes (2026-05-18 — visual design pass)" section below — describes pre-redesign CSS that's been replaced
+- The 2026-05-19 icon-position fix (the `.wx-cond-line` margin-top hack) — no longer applies; that selector may not even exist in the new build
 
 ## Recent changes (2026-05-18 — PWA + multi-station + warnings session)
 
