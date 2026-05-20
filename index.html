@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Madise Ilmaradar — Redesigned</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 /* ─── DESIGN TOKENS ─────────────────────────────────────────
  * Liquid-glass system rebuilt around 3 principles:
@@ -51,28 +52,68 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-html {
-  min-height: 100vh;
-  /* Dark steel-grey base lives on html. Body itself stays transparent
-   * so body::before (the weather blob layer) can paint over the gradient
-   * without being hidden by an opaque body background. */
-  background:
-    linear-gradient(180deg, #0a0a0c 0%, #050507 100%);
-  background-attachment: fixed;
-}
+/* ─── DOCUMENT SCROLL PATTERN ───────────────────────────────
+ * IMPORTANT: This pattern is copied verbatim from the original
+ * indexvana.html which scrolls correctly on iOS. The rules below look
+ * minor but each one is load-bearing — DO NOT "refactor" them:
+ *
+ *   1. html and body share the same rules (single `html, body` rule)
+ *   2. min-height: 100vh, NOT height: 100vh (height locks scroll)
+ *   3. overflow-x: hidden on BOTH html and body (combined; works on iOS)
+ *   4. background-attachment: fixed goes on body, not html
+ *   5. body has actual padding (safe-area + spacing); .app does NOT
+ *   6. .app has NO position:relative — that's the trigger for the
+ *      "scroll bounces back" iOS Safari bug we keep regressing
+ *   7. NO separate <div class="bg-blobs"> — blobs live on body
+ *      background. Pseudo-elements + position:fixed children of body
+ *      both broke scroll in past iterations. The all-in-one body bg
+ *      is the only known-working pattern.
+ *
+ * Symptom of regression: page scrolls a few pixels then bounces back,
+ * or doesn't respond to vertical drags at all.
+ * ─────────────────────────────────────────────────────────── */
 html, body {
-  min-height: 100vh;
+  background: #02050a;
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 body {
-  /* Position relative so body::before (the blob layer) anchors to the
-   * full body height, not the viewport. Body itself is transparent —
-   * the dark gradient comes through from html. */
-  position: relative;
-  background: transparent;
+  /* The full background — gradient + vignette + weather blobs — all
+   * baked into one multi-layer body background. background-attachment:
+   * fixed keeps it stable as the document scrolls.
+   *
+   * Blob colours are driven by CSS variables that the .weather-* class
+   * on <body> swaps (see further down). Two default fallback colours
+   * are used if no weather class is applied yet (cool partly-cloudy).
+   *
+   * Layer order (top to bottom = first drawn last):
+   *   1. vignette ellipse (corners darker)
+   *   2. six weather blobs scattered at fixed % positions
+   *   3. solid base colour                                          */
+  background:
+    radial-gradient(ellipse 130% 110% at 50% 45%, transparent 50%, rgba(0,0,0,0.40) 100%),
+    radial-gradient(ellipse 65% 32% at 22% 7%,
+                    var(--blob1-color, rgba(220, 200, 175, 0.18)) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 28% at 80% 22%,
+                    var(--blob2-color, rgba(165, 165, 168, 0.18)) 0%, transparent 65%),
+    radial-gradient(ellipse 62% 30% at 18% 42%,
+                    var(--blob1-color, rgba(220, 200, 175, 0.16)) 0%, transparent 65%),
+    radial-gradient(ellipse 65% 32% at 82% 60%,
+                    var(--blob2-color, rgba(165, 165, 168, 0.16)) 0%, transparent 65%),
+    radial-gradient(ellipse 70% 35% at 25% 80%,
+                    var(--blob1-color, rgba(220, 200, 175, 0.18)) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 28% at 78% 95%,
+                    var(--blob2-color, rgba(165, 165, 168, 0.16)) 0%, transparent 65%),
+    linear-gradient(180deg, #0a0a0c 0%, #050507 100%);
+  background-attachment: fixed;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 14px)
+    14px
+    calc(env(safe-area-inset-bottom, 0px) + 28px);
+  transition: background 1.5s ease;
 }
 
 /* Tabular numerics — applied via a utility class instead of long selectors */
@@ -82,85 +123,17 @@ body {
   font-feature-settings: "tnum" 1, "ss01" 1;
 }
 
-/* ─── BODY ATMOSPHERE ───────────────────────────────────────
- * The time-of-day base gradient is set on html, body above (so the
- * html element shows it too, avoiding flat-dark fallback past the
- * body height on mobile). The blob layer below adds a slow drifting
- * colour wash on top so the page has atmosphere as well as time-of-day.
- * ─────────────────────────────────────────────────────────── */
-
-body::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  /* Match the document height so blobs scatter through the entire
-   * scrollable area, not just the viewport. min-height 100vh covers
-   * short-content fallback. */
-  height: 100%;
-  min-height: 100vh;
-  /* z-index 0 (not -1): body is transparent now, so the blobs paint OVER
-   * the html gradient (the dark base) and UNDER the cards. Negative
-   * z-index would push them BEHIND the body's stacking context, which
-   * caused them to be invisible before. */
-  z-index: 0;
-  /* Weather-driven blob field — multiple soft radial-gradient ellipses
-   * scattered top-to-bottom through the document so atmospheric colour
-   * peeks through every gap between cards as you scroll. The .weather-*
-   * class on <body> swaps the blob colours; positions stay constant.
-   *
-   * Six blobs at fixed vertical anchors scattered across the document,
-   * alternating x positions left-right so colour density varies. Each
-   * blob is large (60–70% wide × 28–35% tall) so adjacent blobs OVERLAP
-   * in the middle — creating soft washes where two colours blend, rather
-   * than discrete bright spots. This reads as atmosphere instead of
-   * decoration. The transparent 65% falloff is slightly later than
-   * before so the overlap zones have more colour density. */
-  background:
-    /* Top — primary warm/cool */
-    radial-gradient(ellipse 65% 32% at 22% 7%,
-                    var(--blob1-color, rgba(220, 200, 175, 0.18)) 0%,
-                    transparent 65%),
-    /* Upper-right secondary */
-    radial-gradient(ellipse 60% 28% at 80% 22%,
-                    var(--blob2-color, rgba(165, 165, 168, 0.18)) 0%,
-                    transparent 65%),
-    /* Middle-left */
-    radial-gradient(ellipse 62% 30% at 18% 42%,
-                    var(--blob1-color, rgba(220, 200, 175, 0.16)) 0%,
-                    transparent 65%),
-    /* Middle-right */
-    radial-gradient(ellipse 65% 32% at 82% 60%,
-                    var(--blob2-color, rgba(165, 165, 168, 0.16)) 0%,
-                    transparent 65%),
-    /* Lower-left */
-    radial-gradient(ellipse 70% 35% at 25% 80%,
-                    var(--blob1-color, rgba(220, 200, 175, 0.18)) 0%,
-                    transparent 65%),
-    /* Bottom-right */
-    radial-gradient(ellipse 60% 28% at 78% 95%,
-                    var(--blob2-color, rgba(165, 165, 168, 0.16)) 0%,
-                    transparent 65%);
-  animation: drift var(--drift-speed, 28s) ease-in-out infinite alternate;
-  pointer-events: none;
-  transition: background 1.5s ease;
-}
-
-@keyframes drift {
-  0%   { transform: translate(0, 0)        scale(1.00); filter: hue-rotate(0deg);  }
-
-/* ─── Weather-driven atmosphere ────────────────────────────────────
- * Each .weather-* class on <body> swaps the blob vars consumed by
- * body::before. Tuned values:
- *   - x/y : blob centre position (% of viewport)
- *   - w/h : ellipse radius (% of viewport)
- *   - color: rgba — alpha 0.06-0.14 so cards stay readable
- *   - drift-speed: animation duration; slower for calm weather, faster
- *                  for stormy/turbulent feel (relative)
+/* ─── WEATHER-DRIVEN ATMOSPHERE ─────────────────────────────
+ * The actual blob gradients live on body's background-image (see the
+ * html, body / body rules above). The .weather-* classes on <body>
+ * just swap the CSS variables that the body's gradients consume —
+ * no separate animated element, no pseudo-elements, no fixed-position
+ * children. This is intentional for iOS scroll compatibility.
  *
- * Two blobs per state — one warm and one cool, except clear-night (cold
- * pair) and rain (cold + darker patch). The pairings give the page
- * directional colour cast without being one-tone.                  */
+ * Each .weather-* class supplies:
+ *   --blob1-color: warm-ish accent for primary/anchor blobs
+ *   --blob2-color: cool/grey for secondary/balance blobs
+ * Alpha 0.10-0.24 — readable through, not opaque.                  */
 
 /* Default = partly-cloudy fallback (used until JS sets a real class) */
 .weather-partly-cloudy {
@@ -210,40 +183,18 @@ body::before {
   --blob2-color: rgba(80, 75, 75, 0.24);       /* dark violet brewing */
   --drift-speed: 14s;                            /* fastest = electric */
 }
-  50%  { transform: translate(-1.5%, 1%)   scale(1.04); filter: hue-rotate(8deg);  }
-  100% { transform: translate(1.5%, -1%)   scale(1.02); filter: hue-rotate(-4deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::before { animation: none; }
-}
-
-/* Vignette layer — separate from blobs so they animate independently */
-/* Vignette — much softer than before so the TOD background isn't
- * crushed by edge darkening. Just a hint of edge falloff. */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  /* Sits ABOVE the blob layer (z 0) but the .app and cards have their
-   * own positioning that puts them above this. Vignette darkens the
-   * corners regardless of scroll position. */
-  z-index: 1;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 130% 110% at 50% 45%, transparent 50%, rgba(0,0,0,0.40) 100%);
-}
 
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 28px);
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* Sits above the body's blob layer and vignette pseudo-elements. */
-  position: relative;
-  z-index: 2;
+  /* IMPORTANT: NO position: relative, NO z-index. The body owns the
+   * scroll context and the padding/safe-area. Adding either of those
+   * properties here regressed iOS Safari scroll multiple times. The
+   * blobs paint behind via body's own background (z-axis untouched),
+   * cards layer naturally via document order. Keep this minimal. */
 }
 
 /* ─── GLASS — the one and only card recipe ──────────────────
@@ -348,7 +299,7 @@ body::after {
   letter-spacing: 0.3px;
 }
 .hero-bar-date .dot-sep {
-  color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.50);
 }
 
 .hero-bar-sync {
@@ -390,6 +341,43 @@ body::after {
   color: rgba(255,255,255,0.65);
   letter-spacing: 0.3px;
 }
+/* Refresh buttons — small borderless icon buttons in the hero-bar.
+ * Same glass recipe as the rest of the hero-bar; visually quiet so
+ * they don't compete with the date/time reading. The hard-refresh
+ * gets a faint amber tint to differentiate it (cache-clearing is a
+ * more destructive action than a soft refresh). */
+.hero-refresh-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 7px;
+  color: rgba(255,255,255,0.65);
+  font-size: 13px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s, border-color 0.15s, transform 0.3s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.hero-refresh-btn:active {
+  color: rgba(255,255,255,0.95);
+  border-color: rgba(255,255,255,0.35);
+  transform: scale(0.92);
+}
+.hero-refresh-btn-hard {
+  color: rgba(233,167,107,0.70);
+  border-color: rgba(233,167,107,0.22);
+}
+.hero-refresh-btn-hard:active {
+  color: #e9a76b;
+  border-color: rgba(233,167,107,0.55);
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.hero-refresh-btn.spinning { animation: spin 0.6s linear; }
 
 /* ─── ALERT BAR ─────────────────────────────────────────── */
 .alert {
@@ -433,11 +421,11 @@ body::after {
 }
 .hero-title h2 {
   font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
   color: rgba(255,255,255,0.92);
-  text-transform: none;
 }
 .hero-condition {
   font-family: -apple-system, "SF Pro Display", sans-serif;
@@ -479,7 +467,11 @@ body::after {
 }
 .hero-icon svg { width: 100%; height: 100%; }
 
-/* Tundub / Kastepunkt — two pills under the temp */
+/* Comfort indicators row — 3 pills: Tundub · Öökülm · Kastepunkt.
+ * Tundub and Kastepunkt are derived comfort values from current temp/
+ * humidity. Öökülm is tonight's predicted min — it sits here because
+ * users think of "how cold will it get tonight" as a comfort question,
+ * not a forecast they need to scrub through hour by hour. */
 .hero-meta {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -499,10 +491,10 @@ body::after {
 }
 .pill .pill-label {
   font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  text-transform: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
   color: rgba(255,255,255,0.70);
 }
 .pill .pill-value {
@@ -511,15 +503,117 @@ body::after {
   font-weight: 600;
   color: rgba(255,255,255,0.95);
 }
+/* Severity tint on the pill-value — used by Öökülm to convey frost
+ * risk through the temperature colour itself. Default white = safe,
+ * warm-amber = possible (under +1°C), soft coral = high risk (≤−2°C).
+ * No separate warning-line element needed — the colour does the work. */
+.pill .pill-value.warn { color: rgba(233, 167, 107, 0.95); }
+.pill .pill-value.bad  { color: rgba(201, 120, 112, 0.95); }
+
+/* ─── HERO READINGS GRID ─────────────────────────────────
+ * 6 current-measurement tiles inside Hetkeilm, 2 rows × 3 cols.
+ * Uses the same .metric tile recipe as the standalone metric-card
+ * (24h prognoos) but scoped so the visual size matches the hero
+ * context — smaller value text, tighter padding, narrower tiles than
+ * the wide forecast bars. The inner .metric rule below targets these
+ * via .hero-readings .metric for size-specific overrides. */
+.hero-readings {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin: 4px 0 0;
+}
+.hero-readings .metric {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
+    rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 10px 10px 9px;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* Match the .pill-label style — sentence-case sans-serif at 10px so
+ * "Tundub kui" / "Õhuniiskus" / "Tuul" / "Sadu" all read with the same
+ * typographic voice across the comfort-pill row and the readings grid. */
+.hero-readings .metric-head {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.70);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.hero-readings .metric-icon { font-size: 11px; }
+.hero-readings .metric-value {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.hero-readings .metric-value .unit {
+  font-size: 10px;
+  margin-left: 1px;
+}
+.hero-readings .metric-sub {
+  font-size: 10px;
+  margin-top: 1px;
+}
+/* Wind tile in the hero readings grid is a special two-column layout:
+ *   [ label / value / puhanguti sub  |  big arrow centered on right ]
+ * The arrow is sized large (32px) and vertically centered to read as
+ * the direction indicator at a glance. Stack everything else on the
+ * left in a column; arrow lives in its own grid cell on the right. */
+.hero-readings .metric.wind-tile {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.hero-readings .metric.wind-tile > .wind-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.hero-readings .metric.wind-tile .wind-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--cold);
+  width: 36px;
+  height: 36px;
+  /* Subtle filled disc behind the arrow so it reads as a compass needle,
+   * not just a stray glyph. Same tile-tinted surface as other glass
+   * children. */
+  background:
+    radial-gradient(circle at 35% 30%, rgba(126,200,255,0.18) 0%, rgba(126,200,255,0.02) 70%);
+  border-radius: 50%;
+  /* Arrow uses transform: rotate(<wind_dir + 180>deg) set by JS — points
+   * in the direction wind is blowing TO. Smooth transition so refreshes
+   * read as gentle compass movement rather than snap. */
+  transition: transform 0.4s ease;
+}
 
 /* Radar / Satelliit — two side-by-side action buttons that open external
  * map views. Glass tiles with a soft cyan accent so they read as primary
  * actions without overpowering the temp above them. */
 .hero-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
-  margin: 0;
+  margin: 12px 0 0;
 }
 .hero-action {
   display: flex;
@@ -657,14 +751,12 @@ body::after {
   margin-bottom: 14px;
 }
 .card-header h2 {
-  /* Bento header — sans-serif title-case, not the mono-uppercase of v1.
-   * Reads as a section title in a magazine layout. */
   font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
   color: rgba(255,255,255,0.92);
-  text-transform: none;
+  text-transform: uppercase;
 }
 .card-header .meta {
   font-size: 10px;
@@ -676,38 +768,17 @@ body::after {
 .card-header .meta strong { color: var(--cold); font-weight: 600; }
 
 /* ─── HOURLY STRIP ────────────────────────────────────────
- * IMPORTANT — scroll capture bug (locked in 2026-05-19):
- *
- *   THE PROBLEM: a vertical drag that starts inside the strip gets
- *   captured by iOS Safari as a horizontal swipe candidate. The page
- *   moves a few pixels then snaps back. User has to retry the gesture
- *   multiple times to make the page scroll. Reproduced across iPhone
- *   12+, iOS 15-17, both standalone PWA and Safari tab.
- *
- *   THE ATTEMPTED FIX (REGRESSED): scroll-snap-type: x proximity +
- *   touch-action: pan-x + overscroll-behavior-x: contain — this DOES
- *   reduce capture frequency but does not eliminate it. iOS still
- *   "considers" snap alignment for ~50ms after touch start regardless
- *   of proximity vs mandatory, and that consideration window catches
- *   vertical drags that originate inside the snap container.
- *
- *   THE ACTUAL FIX: drop scroll-snap entirely. The strips are short
- *   (24/7 tiles), users scroll them by free-flicking, snap points
- *   are not needed for usability. touch-action: pan-y on the strip
- *   is INVERTED from what you'd expect — it tells iOS the strip is
- *   primarily vertical (so vertical drags pass through immediately),
- *   while horizontal scroll still works via the overflow-x: auto.
- *   This is the bulletproof combination. DO NOT add scroll-snap back. */
+ * Horizontal scroll strip. NO scroll-snap (causes iOS capture bug
+ * where vertical drags inside the strip get briefly stolen as
+ * horizontal swipes, making the page bounce back). NO touch-action
+ * override either — default behaviour ('auto') is correct here.
+ * The strip scrolls horizontally because overflow-x: auto; vertical
+ * drags inside it bubble up to the page normally. */
 .hour-strip {
   display: flex;
   gap: 6px;
   overflow-x: auto;
   overflow-y: hidden;
-  /* pan-y lets vertical drags through to the page IMMEDIATELY without
-   * iOS considering whether to capture for horizontal. Horizontal
-   * scroll inside the strip still works because overflow-x: auto
-   * triggers it independently of touch-action's pan hints. */
-  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   padding: 2px 2px 8px;
@@ -786,10 +857,8 @@ body::after {
   gap: 6px;
   overflow-x: auto;
   overflow-y: hidden;
-  /* Same bulletproof scroll-capture fix as .hour-strip — drop snap
-   * entirely, set touch-action: pan-y so iOS lets vertical drags
-   * through immediately. See .hour-strip comment for full rationale. */
-  touch-action: pan-y;
+  /* Same scroll setup as .hour-strip — no snap, no touch-action override,
+   * just default behaviour so vertical drags bubble up to the page. */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   padding: 2px 2px 8px;
@@ -832,6 +901,17 @@ body::after {
 }
 .day-high { font-size: 14px; color: rgba(255,255,255,0.95); font-weight: 600; }
 .day-low  { font-size: 11px; color: rgba(255,255,255,0.70); font-weight: 500; }
+/* Rain total for the day — blue-tinted so it's visually distinct from
+ * the temperature figures above it. "0.0" on a dry day is shown faded
+ * so dry days don't clutter; any rain > 0 gets the full blue. */
+.day-rain {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(100, 170, 240, 0.60);
+  letter-spacing: 0;
+}
+.day-rain.wet { color: rgba(100, 160, 235, 0.95); }
 
 /* Today tile — same dimensions, just a tinted background so it's the
  * one you scroll to "now". Keeps the strip rhythm uniform. */
@@ -1101,6 +1181,12 @@ body::after {
   padding: 10px 0;
   margin-top: 4px;
 }
+.footer-updated {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 6px;
+}
 .footer span { color: rgba(255,255,255,0.60); }
 
 /* ─── METRIC CARD · Active Bento (Apple/MS/Spotify 2026) ────────
@@ -1114,14 +1200,8 @@ body::after {
  * treatment). Two-accent palette: cool blue for wind values, warm
  * orange for UV. Friendly 18px tile radius.                       */
 /* .glass.card.metric-card now inherits the base .glass surface — no override needed */
-.metric-card .card-header h2 {
-  color: rgba(255,255,255,0.92);
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  font-size: 13px;
-  text-transform: none;
-  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
-}
+/* .metric-card .card-header h2 — inherits from .card-header h2 (uppercase,
+ * 11px, 700) — no override needed. Previous override removed. */
 .metric-card .card-header .meta strong { color: #ffb86b; }
 
 /* 4-col bento. Default metric = 2 cols (half row). .wide = full row. */
@@ -1163,37 +1243,64 @@ body::after {
   font-size: 11px !important;
 }
 
-/* The rain-mode dropdown styled to blend with the metric-head label —
- * looks like part of the label, with a small chevron, no native chrome */
-.rain-mode-select {
+/* Sadu mode toggle — segmented control. Two small pill buttons
+ * sitting in the metric-head row, right-aligned via margin-left: auto
+ * on the container. Active state uses the same warm-amber accent as
+ * other "now/today" affordances (hour-strip's .now tile, day-strip's
+ * .today tile) for visual consistency. Inactive button is hairline
+ * border + muted text so it reads as "available but not selected". */
+.rain-mode-toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 99px;
+}
+.rain-mode-btn {
   appearance: none;
   -webkit-appearance: none;
   background: transparent;
   border: none;
-  color: rgba(255,255,255,0.70);
-  font: inherit;
-  font-size: 9.5px;
-  letter-spacing: 1px;
+  border-radius: 99px;
+  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  padding: 4px 10px;
   cursor: pointer;
-  padding: 0 14px 0 0;
-  background-image:
-    linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.55) 50%),
-    linear-gradient(135deg, rgba(255,255,255,0.55) 50%, transparent 50%);
-  background-position:
-    calc(100% - 6px) 5px,
-    calc(100% - 2px) 5px;
-  background-size: 4px 4px;
-  background-repeat: no-repeat;
+  transition: background 0.12s ease, color 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.rain-mode-select:focus { outline: none; color: rgba(255,255,255,0.85); }
-.rain-mode-select option { background: #1a2330; color: #f2f7ff; }
+.rain-mode-btn:hover {
+  color: rgba(255,255,255,0.80);
+}
+.rain-mode-btn.active {
+  background: linear-gradient(180deg, rgba(80,130,220,0.28) 0%, rgba(80,130,220,0.14) 100%);
+  color: rgba(255,255,255,0.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.08) inset,
+    0 1px 2px rgba(0,0,0,0.20);
+}
+.rain-mode-btn:focus { outline: none; }
+.rain-mode-btn:focus-visible {
+  outline: 1px solid rgba(80,130,220,0.55);
+  outline-offset: 2px;
+}
 
 /* Inline CSS-bar sparkline. Each <span> child = one hourly bar; height
  * is set inline via JS as a percentage. Bars use a vertical gradient so
  * the top is vivid and the base fades — mimics signal-strength bars.
  * The first bar (current hour) gets a brighter top stop + a thin outline
  * so it reads as "now". */
+/* ─── SPARKLINE — bars row ─────────────────────────────────
+ * 24 hourly bars in a flex row, each `flex: 1 1 0` with 2px gap.
+ * Full width — no horizontal space reserved for a y-axis column.
+ * The chart's scale is communicated by the sub-line caption above it
+ * ("max 9 m/s · kl 09") rather than a chart axis. */
 .metric-spark {
   display: flex;
   align-items: flex-end;
@@ -1208,55 +1315,395 @@ body::after {
  * at +6h, +12h, +18h give a sense of when the predicted high/low hits
  * without cluttering the chart. Rendered by renderSpark() alongside the
  * bars so the labels always match the data. */
+/* ─── Sparkline hour axis ──────────────────────────────────
+ * Markers at +0 / +6 / +12 / +18 / +24 hours below the bars.
+ *
+ * Alignment math (set inline by renderSpark via `left` percentages):
+ *
+ *   The bars are a 24-cell flex row with a 2px gap between cells. In
+ *   percentage terms (ignoring the 2px gaps for a moment) each bar
+ *   takes 1/24 of the width. Bar N's centre sits at (N + 0.5) / 24 of
+ *   the container width — so bar 0 is at ~2.08%, bar 6 at ~27.08%,
+ *   bar 12 at ~52.08%, bar 18 at ~77.08%. The label for "24" refers
+ *   to the right edge of bar 23, which is at 100% (the end of the last
+ *   bar). renderSpark uses these exact percentages.
+ *
+ *   This replaces the old space-between layout which put labels at
+ *   evenly spaced 0/25/50/75/100% — drifting further off the bars the
+ *   further right you went.
+ *
+ *   The 2px gaps between bars are visually small enough (~1% of a
+ *   320px tile) that the math above is accurate to the eye. If you
+ *   wanted sub-pixel-perfect alignment you'd need to account for the
+ *   23 gaps in the bar row vs 0 gaps in the axis — but at this tile
+ *   width the residual error is below half a pixel. */
 .metric-spark-axis {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 12px;
   margin-top: 4px;
-  padding: 0 1px;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.3px;
   color: rgba(255,255,255,0.55);
 }
-.metric-spark-axis span:first-child,
-.metric-spark-axis span:last-child {
+.metric-spark-axis span {
+  position: absolute;
+  top: 0;
+  /* `left` is set inline per label; transform centers the text on its anchor */
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.metric-spark-axis span.edge {
   /* Edges (current hour + +24h) intentionally faded — the eye reads them
    * from context (the "now" bar is already highlighted); the three middle
    * markers carry the actual scanning value. */
   opacity: 0.5;
 }
-.metric-spark span {
+/* Last-marker tweak: the "+24h" label anchors on the right edge of the
+ * last bar. translateX(-50%) would push it 50% past the edge, clipping
+ * the digits. Use -100% so the right edge of the text sits AT the right
+ * edge of the chart. */
+.metric-spark-axis span.right-edge {
+  transform: translateX(-100%);
+}
+
+/* ─── Wind direction arrow row ──────────────────────────────
+ * Row of 8 small compass arrows beneath the .metric-spark-axis on the
+ * Tuul forecast tile. Each arrow is absolutely positioned at the
+ * center of a specific bar (sampling every 3rd hour: 0, 3, 6, ..., 21).
+ *
+ * Alignment: arrow N's `left` is set to ((bar + 0.5) / 24) * 100%, the
+ * same math the axis uses. translateX(-50%) on transform centers the
+ * arrow horizontally on its anchor. The rotation gets appended after
+ * the translateX so both operations compose into the final transform.
+ *
+ * Built by renderSpark() when opts.directions is provided. The unicode
+ * ↑ glyph is rotated by (dir + 180)° — same convention as the hero
+ * compass arrow (points where wind is going TO). */
+.metric-spark-dirs {
+  position: relative;
+  height: 20px;
+  margin-top: 5px;
+  width: 100%;
+}
+.spark-arrow {
+  position: absolute;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 20px;
+  transition: transform 0.4s ease;
+  transform-origin: 50% 50%;
+  pointer-events: auto;
+}
+/* ─── SPARKLINE BARS — color-coded ──────────────────────────
+ * Bar background is set inline by JS (renderSpark) using windBarColor()
+ * or rainBarColor() helpers. The CSS here provides only the structural
+ * defaults — the color is overridden per-bar at render time.
+ *
+ * The .now bar gets a white outline so the current hour is identifiable
+ * regardless of whatever color it is. */
+.metric-spark > span {
   flex: 1 1 0;
   min-width: 0;
   background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.10));
   border-radius: 1.5px;
   min-height: 3px;
-  transition: opacity 0.15s;
+  transition: background 0.3s ease, opacity 0.15s;
   cursor: pointer;
 }
-.metric-spark span:hover { opacity: 0.55; }
-.metric-spark span.now {
-  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.20));
-  outline: 1px solid rgba(255,255,255,0.35);
-  outline-offset: -1px;
-}
-.metric.wide.rain .metric-spark span {
-  background: linear-gradient(180deg, rgba(233,167,107,0.45), rgba(233,167,107,0.10));
-}
-.metric.wide.rain .metric-spark span.now {
-  background: linear-gradient(180deg, #e9a76b, rgba(255,255,255,0.20));
-  outline: 1px solid rgba(255,255,255,0.35);
+.metric-spark > span:hover { opacity: 0.60; }
+.metric-spark > span.now {
+  outline: 1px solid rgba(255,255,255,0.50);
   outline-offset: -1px;
 }
 
-/* .station-name handled globally — see base rule */
+/* ─── SPARKLINE LEGEND ───────────────────────────────────────
+ * A thin gradient strip + tick labels below the direction arrows (wind)
+ * or below the axis (rain). Tells the viewer what colors mean.
+ * Built and inserted by renderSpark() when opts.legend is provided.
+ *
+ * Structure:
+ *   .metric-spark-legend
+ *     .legend-strip    ← the color gradient bar
+ *     .legend-labels   ← tick labels underneath (absolute-positioned)
+ */
+.metric-spark-legend {
+  margin-top: 6px;
+}
+.legend-strip {
+  height: 6px;
+  border-radius: 3px;
+  width: 100%;
+  /* background set inline by JS as a linear-gradient of the color ramp */
+}
+.legend-labels {
+  position: relative;
+  height: 12px;
+  margin-top: 2px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.55);
+}
+.legend-labels span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.legend-labels span:first-child { transform: translateX(0); }
+.legend-labels span:last-child  { transform: translateX(-100%); }
+
+/* ─── UNIFIED FORECAST CARD ─────────────────────────────────
+ * Three stacked bar rows (Temperatuur / Sadu / Tuul) in one card.
+ * Each row has a header line (label + current value / toggle / sub)
+ * and a .metric-spark bar chart below it. The three charts share
+ * the same horizontal extent so the single time axis at the bottom
+ * aligns with all three.
+ *
+ * No .metric wrapper needed — bars sit directly in the card flow. */
+.forecast-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 10px;
+}
+.forecast-row:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+/* Header line — label on left, toggle or value in middle, sub right */
+.forecast-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+.forecast-row-label {
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.92);
+  flex-shrink: 0;
+}
+/* Current value (Tuul row) */
+.forecast-row-val {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.forecast-row-val .unit {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.55);
+}
+/* Wind arrow in the forecast-row header — smaller than hero tile */
+.forecast-row-val .wind-arrow {
+  font-size: 16px;
+  display: inline-block;
+  line-height: 1;
+  color: var(--cold);
+  transition: transform 0.4s ease;
+}
+/* Sub caption — peak info (temp range, max wind, max rain).
+ * Right-aligned via margin-left: auto. Larger than before so the
+ * key values (e.g. "8° → 16°C", "max 9.3 m/s · kl 14") are
+ * readable at arm's length without squinting. */
+.forecast-row-sub {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.80);
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+/* Rain toggle sits in the head row; margin-left: auto pushes sub
+ * to the far right only when no toggle is present. When toggle IS
+ * present it takes the middle position and sub follows. */
+.forecast-row-head .rain-mode-toggle {
+  flex-shrink: 0;
+}
+/* Forecast card bar — same as .metric-spark but no top margin
+ * (the row-head already provides visual separation). */
+.forecast-card .metric-spark {
+  margin-top: 4px;
+}
+/* Gust sparkline — same structure as wind bars but visually lighter */
+.metric-spark-gusts > span {
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 1.5px;
+  min-height: 2px;
+  opacity: 0.45;
+  transition: background 0.3s ease;
+}
+
+/* Precipitation type icon row — 8 small SVG icons every 3h above
+ * the rain bars. Same absolute-positioning pattern as wind arrows. */
+.precip-type-row {
+  position: relative;
+  height: 20px;
+  margin-top: 4px;
+  width: 100%;
+}
+.precip-type-icon {
+  position: absolute;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 
 
-/* Note: Päike / Kuu / Õietolm / Virmalised cards use the default
- * vertical stack of styled list rows (.dl-row, .gauge-row) — no
- * grid overrides needed. */
+/* ─── RADAR / SATELLIIT CARD ─────────────────────────────────
+ * Leaflet map + timeline controls. The map div has a fixed height so
+ * it doesn't collapse before Leaflet initialises. Controls sit below
+ * in the normal card flow — no absolute positioning needed. */
+
+/* Mode toggle — same recipe as rain-mode-toggle */
+.radar-mode-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 99px;
+}
+.radar-mode-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 99px;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.radar-mode-btn.active {
+  background: linear-gradient(180deg, rgba(233,167,107,0.20) 0%, rgba(233,167,107,0.10) 100%);
+  color: rgba(255,255,255,0.95);
+}
+/* External link button — same shape as .radar-mode-btn but with a
+ * faint underline-hint so it reads as a link not a toggle state */
+.radar-mode-ext {
+  text-decoration: none;
+  opacity: 0.75;
+}
+.radar-mode-ext:hover { opacity: 1; color: rgba(255,255,255,0.95); }
+
+/* Timeline bar */
+.radar-timeline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.radar-ctrl-btn {
+  appearance: none;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.85);
+  font-size: 12px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+.radar-ctrl-btn:active { background: rgba(255,255,255,0.14); }
+.radar-scrub-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.radar-scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.12);
+  outline: none;
+  cursor: pointer;
+}
+.radar-scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(233,167,107,0.90);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.25);
+}
+.radar-scrub::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(233,167,107,0.90);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.25);
+}
+.radar-time-label {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+.radar-status {
+  font-size: 10px;
+  color: rgba(255,255,255,0.40);
+  text-align: center;
+  margin-top: 6px;
+  letter-spacing: 0.2px;
+}
+
+/* Override Leaflet attribution to match dark theme */
+.leaflet-control-attribution {
+  background: rgba(0,0,0,0.55) !important;
+  color: rgba(255,255,255,0.45) !important;
+  font-size: 8px !important;
+}
+.leaflet-control-attribution a { color: rgba(255,255,255,0.55) !important; }
+/* Leaflet zoom controls */
+.leaflet-control-zoom a {
+  background: rgba(10,10,14,0.82) !important;
+  color: rgba(255,255,255,0.80) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+}
 
 </style>
 </head>
@@ -1292,13 +1739,13 @@ body::after {
               <span class="hero-clock mono" id="clock">14:32</span>
             </div>
             <div class="hero-bar-sync">
-              <span class="status"><span class="dot"></span> Live</span>
-              <span class="sync-time mono" id="last-updated">—</span>
+              <button class="hero-refresh-btn" id="refresh-btn" title="Uuenda" onclick="manualRefresh()">↻</button>
+              <button class="hero-refresh-btn hero-refresh-btn-hard" id="hard-refresh-btn" title="Tühjenda vahemälu" onclick="hardRefresh()">⟲</button>
             </div>
           </div>
 
           <div class="hero-title">
-            <h2>Hetkeilm</h2>
+            <h2>Hetkeilm madisel</h2>
             <span class="hero-condition" id="wx-cond">Pilves selgimistega</span>
           </div>
 
@@ -1335,86 +1782,74 @@ body::after {
           </div>
 
           <div class="hero-meta">
+            <!-- Comfort indicators row — 3 pills:
+                   Tundub      derived "feels like" from current temp/wind/humidity
+                   Öökülm      tonight's min — predictive, but the user thinks of it
+                               as "what to expect overnight from where we are now",
+                               so it sits with the comfort indicators rather than
+                               in the forecast card
+                   Kastepunkt  derived dew point from current temp/humidity         -->
             <div class="pill">
-              <div class="pill-label">Tundub</div>
+              <div class="pill-label">Tundub kui</div>
               <div class="pill-value mono"><span id="wx-feels">12</span>°</div>
+            </div>
+            <div class="pill">
+              <div class="pill-label">Öökülm</div>
+              <div class="pill-value mono" id="frost-min">+6°</div>
             </div>
             <div class="pill">
               <div class="pill-label">Kastepunkt</div>
               <div class="pill-value mono"><span id="wx-dew">9</span>°</div>
             </div>
-            <div class="pill">
-              <div class="pill-label">Nähtavus</div>
-              <div class="pill-value mono"><span id="wx-vis">24</span> km</div>
-            </div>
           </div>
 
-          <div class="hero-actions">
-            <a class="hero-action" href="#" data-action="radar" target="_blank" rel="noopener">Radar</a>
-            <a class="hero-action" href="#" data-action="satelliit" target="_blank" rel="noopener">Satelliit</a>
-          </div>
-        </div>
-
-        <!-- METRICS — Active Bento (Apple/MS/Spotify 2026 pattern). Asymmetric
-             4-col grid: Tuul and Sadu each span all 4 cols with inline 24h
-             sparklines; the other four metrics each take 2 cols (= half row).
-             Sparkline bars are populated by renderSpark() at the bottom of
-             the page from Open-Meteo hourly data — see comments there. -->
-        <div class="glass card metric-card">
-          <div class="card-header">
-            <h2>Mõõtmised</h2>
-            <span class="meta">Open-Meteo · <strong>nüüd</strong></span>
-          </div>
-          <div class="metrics">
-            <div class="metric wide rain">
-              <div class="metric-head">
-                <span class="metric-icon">◌</span>
-                <span>Sadu · </span>
-                <!-- Toggle: probability ↔ mm/h. JS swaps both the label and
-                     the sparkline data source on change. -->
-                <select class="rain-mode-select" id="rain-mode">
-                  <option value="prob">tõenäosus 24 h</option>
-                  <option value="mm">kogus 24 h</option>
-                </select>
+          <!-- Current readings grid — 6 measurement tiles in 2 rows × 3 cols.
+               Everything here is a "right now" sensor reading. Forecasts
+               (24h sparklines, öökülm) live in the next card. Layout uses
+               the same .metric tile recipe as the old Mõõtmised card but
+               with a tighter 3-col grid that fits the hero width. -->
+          <div class="hero-readings">
+            <div class="metric wind-tile">
+              <div class="wind-text">
+                <div class="metric-head"><span class="metric-icon">⌁</span>Tuul</div>
+                <div class="metric-value mono cold">
+                  <span id="wind-now">—</span><span class="unit">m/s</span>
+                </div>
+                <div class="metric-sub" id="wind-sub">puhanguti — m/s</div>
               </div>
+              <span class="wind-arrow" id="wind-arrow">↑</span>
+            </div>
+            <div class="metric">
+              <div class="metric-head"><span class="metric-icon">◌</span>Sadu</div>
               <div class="metric-value mono">
                 <span id="rain-now">0.0</span><span class="unit">mm/h</span>
-                <span class="metric-sub metric-sub-inline" id="rain-sub">kõrgpunkt kl 09</span>
               </div>
-              <div class="metric-spark" id="spark-rain" aria-hidden="true"></div>
-            </div>
-            <div class="metric wind wide">
-              <div class="metric-head"><span class="metric-icon">⌁</span>Tuul · 24 h</div>
-              <div class="metric-value mono cold">
-                <span id="wind-now">4</span><span class="unit">m/s</span>
-                <span class="wind-arrow" id="wind-arrow" style="transform: rotate(45deg)">↑</span>
-                <span class="metric-sub metric-sub-inline" id="wind-sub">SW · puh 8</span>
-              </div>
-              <div class="metric-spark" id="spark-wind" aria-hidden="true"></div>
+              <div class="metric-sub" id="rain-current-sub">parasjagu</div>
             </div>
             <div class="metric">
               <div class="metric-head"><span class="metric-icon">◐</span>Õhurõhk</div>
-              <div class="metric-value mono"><span id="wx-pressure">1012</span><span class="unit">hPa</span></div>
-              <div class="metric-sub" id="wx-pressure-trend">↗ tõuseb</div>
+              <div class="metric-value mono"><span id="wx-pressure">—</span><span class="unit">hPa</span></div>
+              <div class="metric-sub" id="wx-pressure-trend">—</div>
             </div>
             <div class="metric">
-              <div class="metric-head"><span class="metric-icon">◔</span>Niiskus</div>
-              <div class="metric-value mono"><span id="wx-humidity">72</span><span class="unit">%</span></div>
-              <div class="metric-sub">mõõdukas</div>
+              <div class="metric-head"><span class="metric-icon">◔</span>Õhuniiskus</div>
+              <div class="metric-value mono"><span id="wx-humidity">—</span><span class="unit">%</span></div>
             </div>
             <div class="metric">
               <div class="metric-head"><span class="metric-icon">☀</span>UV</div>
-              <div class="metric-value mono warn" id="wx-uv">3</div>
-              <div class="metric-sub warn" id="wx-uv-label">mõõdukas</div>
+              <div class="metric-value mono warn" id="wx-uv">—</div>
+              <div class="metric-sub warn" id="wx-uv-label">—</div>
             </div>
             <div class="metric">
-              <div class="metric-head"><span class="metric-icon">❅</span>Öökülm</div>
-              <div class="metric-value mono" id="frost-min">+6°<span class="unit">min</span></div>
-              <div class="metric-sub ok" id="frost-warning">ei ähvarda · kl 04:30</div>
+              <div class="metric-head"><span class="metric-icon">👁</span>Nähtavus</div>
+              <div class="metric-value mono"><span id="wx-vis">—</span><span class="unit">km</span></div>
+              <div class="metric-sub">selge</div>
             </div>
           </div>
 
-          <!-- NEARBY STATIONS — horizontal chips -->
+          <!-- NEARBY STATIONS — horizontal chips. Peer current readings
+               from sensors at other locations. Stays inside Hetkeilm
+               because they're all "right now" data, just elsewhere. -->
           <div class="stations">
             <div class="station" id="kv-block">
               <div class="station-name">Kurevere</div>
@@ -1432,26 +1867,88 @@ body::after {
               <div class="station-sub mono"><span id="hp-wind">—</span> m/s · <span id="hp-precip">—</span></div>
             </div>
           </div>
+
         </div>
 
-        <!-- HOURLY -->
-        <div class="glass card">
+        <!-- 24 H PROGNOOS — the forecast card. Two wide sparkline tiles
+             (Sadu + Tuul over the next 24h). Öökülm (tonight's min) moved
+             to the comfort pills in Hetkeilm — users think of it as a
+             comfort question ("how cold will it get"), not a forecast to
+             scrub through. Uses the same .metric.wide tile recipe with
+             inline CSS-bar sparklines. -->
+        <!-- TÄNA · 24H — unified forecast card.
+             Three stacked bar rows (temp / rain / wind) sharing one time
+             axis. No horizontal scrolling — all 24 bars fixed-width.
+             Öökülm moved up to the comfort-pills row in Hetkeilm. -->
+        <div class="glass card forecast-card">
           <div class="card-header">
-            <h2>Täna tunniti</h2>
-            <span class="meta">järgmised 24h</span>
+            <h2>Täna · 24h</h2>
+            <span class="meta">Saju alguseni: <strong id="rain-start" class="mono">—</strong></span>
           </div>
-          <div class="hour-strip" id="hourly-strip"></div>
-          <div class="rain-bar">
-            <span>Saju alguseni</span>
-            <strong class="mono" id="rain-start">—</strong>
+
+          <!-- ROW 1: TEMPERATUUR -->
+          <div class="forecast-row">
+            <div class="forecast-row-head">
+              <span class="forecast-row-label">Temperatuur</span>
+              <span class="forecast-row-sub" id="temp-spark-sub">—</span>
+            </div>
+            <div class="metric-spark" id="spark-temp" aria-hidden="true"></div>
           </div>
+
+          <!-- ROW 2: TUNDUB KUI (apparent temperature) -->
+          <div class="forecast-row">
+            <div class="forecast-row-head">
+              <span class="forecast-row-label">Tundub kui</span>
+              <span class="forecast-row-sub" id="feels-spark-sub">—</span>
+            </div>
+            <div class="metric-spark" id="spark-feels" aria-hidden="true"></div>
+          </div>
+
+          <!-- ROW 3: SADU — with precip-type icon row above bars -->
+          <div class="forecast-row">
+            <div class="forecast-row-head">
+              <span class="forecast-row-label">Sadu</span>
+              <div class="rain-mode-toggle" role="group" aria-label="Sadu mood">
+                <button type="button" class="rain-mode-btn active" data-mode="prob">tõenäosus</button>
+                <button type="button" class="rain-mode-btn" data-mode="mm">kogus</button>
+              </div>
+              <span class="forecast-row-sub" id="rain-sub">—</span>
+            </div>
+            <!-- Precip type icons every 3h — populated by renderPrecipTypes() -->
+            <div class="precip-type-row" id="precip-types" aria-hidden="true"></div>
+            <div class="metric-spark" id="spark-rain" aria-hidden="true"></div>
+          </div>
+
+          <!-- ROW 4: TUUL + PUHANGUD -->
+          <div class="forecast-row">
+            <div class="forecast-row-head">
+              <span class="forecast-row-label">Tuul</span>
+              <span class="forecast-row-val mono cold">
+                <span id="wind-forecast-now">—</span><span class="unit"> m/s</span>
+                <span class="wind-arrow" id="wind-forecast-arrow">↑</span>
+              </span>
+              <span class="forecast-row-sub" id="wind-spark-sub">—</span>
+            </div>
+            <div class="metric-spark" id="spark-wind" aria-hidden="true"></div>
+            <!-- Gust sparkline — same color ramp, 40% opacity overlay feel -->
+            <div class="forecast-row-head" style="margin-top:4px">
+              <span class="forecast-row-label" style="opacity:0.6">Puhangud</span>
+              <span class="forecast-row-sub" id="gust-spark-sub">—</span>
+            </div>
+            <div class="metric-spark metric-spark-gusts" id="spark-gusts" aria-hidden="true"></div>
+          </div>
+
+          <!-- Shared time axis — rendered by the last renderSpark call
+               (wind), which appends the axis as a sibling of spark-wind.
+               The axis sits in the normal card flow below the three rows
+               and aligns with all three bar charts above it since they
+               all share the same width. -->
         </div>
 
         <!-- 7-DAY -->
         <div class="glass card">
           <div class="card-header">
             <h2>7 päeva prognoos</h2>
-            <span class="meta">Lääne maakond</span>
           </div>
           <div class="daily" id="daily-strip"></div>
         </div>
@@ -1548,8 +2045,38 @@ body::after {
           </div>
         </div>
 
+        <!-- RADAR / SATELLIIT MAP ─────────────────────────────────
+             RainViewer public API — past 2h radar + infrared satellite.
+             No API key required. CORS-open tile server. Leaflet from CDN. -->
+        <div class="glass card" id="radar-card">
+          <div class="card-header">
+            <h2 id="radar-card-title">Vihmaradar</h2>
+            <div class="radar-mode-toggle" role="group">
+              <button type="button" class="radar-mode-btn active" data-layer="radar">Radar</button>
+              <a class="radar-mode-btn radar-mode-ext"
+                 href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/satelliidipildid/infrapunane-pilt/"
+                 target="_blank" rel="noopener">Satelliit ↗</a>
+              <a class="radar-mode-btn radar-mode-ext"
+                 href="https://www.ilmateenistus.ee/ilm/prognoosid/mudelprognoosid/eesti/#layers/temp2mv2,temp2mtx,pilvMada,pilvKesk,pilvKorg"
+                 target="_blank" rel="noopener">Pilvisus ↗</a>
+            </div>
+          </div>
+          <!-- Map container — fixed height so it doesn't collapse -->
+          <div id="radar-map" style="height:260px;border-radius:12px;overflow:hidden;background:#0a0a0c;"></div>
+          <!-- Timeline bar -->
+          <div class="radar-timeline">
+            <button class="radar-ctrl-btn" id="radar-play" title="Mängi / Peata">▶</button>
+            <div class="radar-scrub-wrap">
+              <input type="range" class="radar-scrub" id="radar-scrub" min="0" value="0" step="1">
+              <div class="radar-time-label" id="radar-time-label">—</div>
+            </div>
+          </div>
+          <div class="radar-status" id="radar-status">Laen radaripilte…</div>
+        </div>
+
         <div class="footer">
-          Ilmaradar · <span>Open-Meteo</span> · <span>NOAA</span> · <span>Ilmateenistus</span>
+          <div class="footer-updated" id="last-updated">Viimati uuendatud: —</div>
+          Ilmaradar · <span>Open-Meteo</span> · <span>NOAA</span> · <span>Ilmateenistus</span> · <span>RainViewer</span>
         </div>
   </div>
 <script>
@@ -1602,16 +2129,55 @@ function formatTime(d){ return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
  * Sync chip in hero-bar shows "—" until first fetch, then shows the
  * relative age. If older than 10 min, the chip enters .stale state
  * via the warning amber color. */
+/* ─── Manual refresh buttons ─────────────────────────────────────── */
+function manualRefresh(){
+  var btn = byId('refresh-btn');
+  if(btn){ btn.classList.add('spinning'); setTimeout(function(){ btn.classList.remove('spinning'); }, 650); }
+  fetchWeatherAndForecast();
+  fetchPollen();
+  fetchKpForecast();
+  fetchOvation();
+  fetchSolarWind();
+  fetchKurevere();
+  fetchLaaneNigula();
+}
+
+/* Hard refresh: drops all cached weather data from localStorage, evicts
+ * the service-worker app-shell cache, and reloads. Use when something
+ * looks wrong and you want a guaranteed clean state. */
+function hardRefresh(){
+  var btn = byId('hard-refresh-btn');
+  if(btn){ btn.classList.add('spinning'); }
+  try {
+    var keys = [];
+    for(var i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf('wx.') === 0) keys.push(k);
+    }
+    keys.forEach(function(k){ localStorage.removeItem(k); });
+  } catch(e){}
+  var done = function(){ try { location.reload(); } catch(e){ window.location = window.location.href; } };
+  try {
+    if(window.caches && caches.keys){
+      caches.keys().then(function(names){
+        return Promise.all(names.map(function(n){ return caches.delete(n); }));
+      }).then(done, done);
+    } else { done(); }
+  } catch(e){ done(); }
+}
+
 function updateStaleIndicator(){
   if(!LAST_FETCH_MS) return;
   var el = byId('last-updated');
   if(!el) return;
+  var d = new Date(LAST_FETCH_MS);
+  var dd = String(d.getDate()).padStart(2,'0');
+  var mm = String(d.getMonth()+1).padStart(2,'0');
+  var hh = String(d.getHours()).padStart(2,'0');
+  var min = String(d.getMinutes()).padStart(2,'0');
+  el.textContent = 'Viimati uuendatud: ' + dd + '.' + mm + ' ' + hh + ':' + min;
   var age = Date.now() - LAST_FETCH_MS;
-  var mins = Math.floor(age / 60000);
-  if(mins < 1) el.textContent = 'nüüd';
-  else if(mins < 60) el.textContent = mins + ' min';
-  else el.textContent = Math.floor(mins/60) + ' t';
-  if(age > 10*60*1000){ el.style.color = '#e9a76b'; } else { el.style.color = ''; }
+  el.style.color = age > 10*60*1000 ? '#e9a76b' : '';
 }
 
 /* ─── localStorage cache (6 h max age) ──────────────────────────── */
@@ -1657,6 +2223,78 @@ function currentSkyText(cloud, precip){
 }
 
 /* ─── WMO weathercode → emoji for hourly/daily strips ─────────── */
+/* ─── Weather icon SVGs ────────────────────────────────────────────
+ * Inline SVG icons that match the hero card's art style:
+ *   - Sun: radial gradient amber→orange disc + ray lines
+ *   - Cloud: linear gradient white→blue-grey path
+ *   - Rain: blue angled lines below cloud
+ *   - Snow: white dots/asterisks
+ *   - Fog: horizontal grey lines
+ *   - Thunder: yellow bolt below dark cloud
+ * Used in hourly strip, 7-day strip, and precip type row.
+ * The hero card's large SVG stays as-is (it's custom-drawn);
+ * these compact versions are for 22px tile icons.
+ *
+ * Each returns an SVG string. Sized at 22×22 viewBox to match the
+ * existing .hour-ico / .day-ico font-size: 22px slots. */
+
+var WX_SVG = {
+  /* Reusable gradient defs embedded per-icon (tiny, cacheable by browser) */
+  _sun: function(cx, cy, r){
+    return '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="url(#sg)"/>';
+  },
+  _cloud: function(d){
+    return '<path d="'+d+'" fill="url(#cg)" stroke="rgba(255,255,255,0.18)" stroke-width="0.5"/>';
+  },
+
+  /* Clear day */
+  clearDay: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><radialGradient id="sg" cx="35%" cy="35%"><stop offset="0%" stop-color="#ffd58a"/><stop offset="100%" stop-color="#ff9a3e"/></radialGradient></defs><circle cx="11" cy="11" r="5" fill="url(#sg)"/><g stroke="#ffb86b" stroke-width="1.5" stroke-linecap="round" opacity="0.8"><line x1="11" y1="1" x2="11" y2="3.5"/><line x1="11" y1="18.5" x2="11" y2="21"/><line x1="1" y1="11" x2="3.5" y2="11"/><line x1="18.5" y1="11" x2="21" y2="11"/><line x1="3.5" y1="3.5" x2="5.4" y2="5.4"/><line x1="16.6" y1="16.6" x2="18.5" y2="18.5"/><line x1="18.5" y1="3.5" x2="16.6" y2="5.4"/><line x1="5.4" y1="16.6" x2="3.5" y2="18.5"/></g></svg>',
+
+  /* Clear night */
+  clearNight: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M14 3 Q7 5 7 11 Q7 17 13 18 Q8 19 5 16 Q1 12 3 7 Q5 2 11 2 Q12.5 2 14 3Z" fill="#c8d8f0" opacity="0.9"/><circle cx="17" cy="6" r="0.8" fill="#e8f0ff" opacity="0.6"/><circle cx="19" cy="10" r="0.5" fill="#e8f0ff" opacity="0.5"/><circle cx="15" cy="3" r="0.5" fill="#e8f0ff" opacity="0.4"/></svg>',
+
+  /* Partly cloudy day */
+  partlyCloudy: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><radialGradient id="sg2" cx="35%" cy="35%"><stop offset="0%" stop-color="#ffd58a"/><stop offset="100%" stop-color="#ff9a3e"/></radialGradient><linearGradient id="cg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#eaf2ff"/><stop offset="100%" stop-color="#a8c3e0"/></linearGradient></defs><circle cx="8" cy="9" r="4.5" fill="url(#sg2)" opacity="0.9"/><g stroke="#ffb86b" stroke-width="1.2" stroke-linecap="round" opacity="0.6"><line x1="8" y1="1" x2="8" y2="3"/><line x1="1" y1="9" x2="3" y2="9"/><line x1="2.8" y1="3" x2="4.2" y2="4.4"/><line x1="13" y1="3" x2="11.6" y2="4.4"/></g><path d="M9 18 Q9 14 12 14 Q13.5 11.5 16 12.5 Q19.5 11.5 20 15 Q22 15.5 21.5 18.5 Q21 21 18.5 21 L10 21 Q7.5 21 7.5 18.5 Q7.5 18 9 18Z" fill="url(#cg2)" stroke="rgba(0,0,0,0.1)" stroke-width="0.4"/></svg>',
+
+  /* Overcast */
+  cloudy: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="cg3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#d0dff0"/><stop offset="100%" stop-color="#8aabbf"/></linearGradient></defs><path d="M5 15 Q5 10 9 10 Q10 7 14 8 Q18 7 19 11 Q22 11.5 21.5 15.5 Q21 19 17.5 19 L6.5 19 Q3 19 3 15.5 Q3 15 5 15Z" fill="url(#cg3)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/></svg>',
+
+  /* Fog */
+  fog: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g stroke="#b0c0d4" stroke-width="1.5" stroke-linecap="round" opacity="0.8"><line x1="2" y1="7" x2="20" y2="7"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="2" y1="15" x2="20" y2="15"/><line x1="5" y1="19" x2="17" y2="19"/></g></svg>',
+
+  /* Drizzle / light rain */
+  drizzle: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="cg4" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#c8d8f0"/><stop offset="100%" stop-color="#8aabbf"/></linearGradient></defs><path d="M4 12 Q4 8 7.5 8 Q8.5 5.5 12 6.5 Q16 5.5 17 9 Q20 9.5 19.5 13 Q19 16 16 16 L5.5 16 Q3 16 3 13 Q3 12 4 12Z" fill="url(#cg4)"/><g stroke="#7ab0e0" stroke-width="1.3" stroke-linecap="round" opacity="0.75"><line x1="7" y1="18" x2="6" y2="21"/><line x1="11" y1="18" x2="10" y2="21"/><line x1="15" y1="18" x2="14" y2="21"/></g></svg>',
+
+  /* Rain */
+  rain: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="cg5" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#b0c8e8"/><stop offset="100%" stop-color="#6090b0"/></linearGradient></defs><path d="M4 12 Q4 8 7.5 8 Q8.5 5.5 12 6.5 Q16 5.5 17 9 Q20 9.5 19.5 13 Q19 16 16 16 L5.5 16 Q3 16 3 13 Q3 12 4 12Z" fill="url(#cg5)"/><g stroke="#5090d0" stroke-width="1.5" stroke-linecap="round"><line x1="7" y1="17.5" x2="5.5" y2="21"/><line x1="11" y1="17.5" x2="9.5" y2="21"/><line x1="15" y1="17.5" x2="13.5" y2="21"/></g></svg>',
+
+  /* Snow */
+  snow: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="cg6" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#dde8f8"/><stop offset="100%" stop-color="#aabcd8"/></linearGradient></defs><path d="M4 12 Q4 8 7.5 8 Q8.5 5.5 12 6.5 Q16 5.5 17 9 Q20 9.5 19.5 13 Q19 16 16 16 L5.5 16 Q3 16 3 13 Q3 12 4 12Z" fill="url(#cg6)"/><g fill="#c8e0ff" opacity="0.9"><circle cx="7" cy="19" r="1.2"/><circle cx="11" cy="20.5" r="1.2"/><circle cx="15" cy="19" r="1.2"/><circle cx="9" cy="21.5" r="0.9"/><circle cx="13" cy="21.5" r="0.9"/></g></svg>',
+
+  /* Thunder */
+  thunder: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="cg7" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#7a8898"/><stop offset="100%" stop-color="#4a5868"/></linearGradient></defs><path d="M3 12 Q3 7.5 7 7.5 Q8 5 12 6 Q16.5 5 17.5 9 Q21 9.5 20.5 13.5 Q20 16.5 16.5 16.5 L4.5 16.5 Q2 16.5 2 13 Q2 12 3 12Z" fill="url(#cg7)"/><path d="M12 17 L9.5 20.5 L11.5 20.5 L9 24 L14 19.5 L11.5 19.5 Z" fill="#ffe066" stroke="#ffd700" stroke-width="0.3"/></svg>',
+
+  /* Sunrise/sunset hint */
+  sunrise: '<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><radialGradient id="sg3" cx="50%" cy="80%"><stop offset="0%" stop-color="#ffcc66"/><stop offset="100%" stop-color="#ff8833"/></radialGradient></defs><path d="M2 14 Q11 4 20 14" fill="none" stroke="url(#sg3)" stroke-width="1.5"/><g stroke="#ffaa44" stroke-width="1.3" stroke-linecap="round" opacity="0.7"><line x1="11" y1="2" x2="11" y2="4"/><line x1="4" y1="5" x2="5.5" y2="6.5"/><line x1="18" y1="5" x2="16.5" y2="6.5"/></g><line x1="2" y1="16" x2="20" y2="16" stroke="#ffaa44" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/></svg>'
+};
+
+/* Map WMO weather codes → SVG string */
+function weatherCodeToSVG(code, isDay){
+  if(code === 0)  return isDay ? WX_SVG.clearDay : WX_SVG.clearNight;
+  if(code === 1)  return isDay ? WX_SVG.partlyCloudy : WX_SVG.clearNight;
+  if(code === 2)  return WX_SVG.partlyCloudy;
+  if(code === 3)  return WX_SVG.cloudy;
+  if(code === 45 || code === 48) return WX_SVG.fog;
+  if(code >= 51 && code <= 57)   return WX_SVG.drizzle;
+  if(code >= 61 && code <= 67)   return WX_SVG.rain;
+  if(code >= 71 && code <= 77)   return WX_SVG.snow;
+  if(code >= 80 && code <= 82)   return WX_SVG.rain;
+  if(code >= 85 && code <= 86)   return WX_SVG.snow;
+  if(code >= 95) return WX_SVG.thunder;
+  return isDay ? WX_SVG.clearDay : WX_SVG.clearNight;
+}
+
+/* Keep old emoji function for any legacy references */
 function weatherCodeToIcon(code, isDay){
   if(code === 0) return isDay ? '☀️' : '🌙';
   if(code === 1) return isDay ? '🌤️' : '🌙';
@@ -1669,6 +2307,28 @@ function weatherCodeToIcon(code, isDay){
   if(code >= 85 && code <= 86) return '🌨️';
   if(code >= 95) return '⛈️';
   return '•';
+}
+
+/* ─── Precipitation type icon row ────────────────────────────────
+ * Places SVG weather icons every 3h above the rain sparkline.
+ * Same absolute-position math as the wind arrow row:
+ *   left = ((barIdx + 0.5) / 24) * 100%   translateX(-50%) to centre */
+function renderPrecipTypes(codes, isDayArr){
+  var el = byId('precip-types');
+  if(!el || !codes || !codes.length) return;
+  el.innerHTML = '';
+  var HOURS = [0, 3, 6, 9, 12, 15, 18, 21];
+  HOURS.forEach(function(barIdx){
+    var code = codes[barIdx];
+    var isDay = isDayArr ? isDayArr[barIdx] === 1 : true;
+    var cell = document.createElement('span');
+    cell.className = 'precip-type-icon';
+    cell.style.left = ((barIdx + 0.5) / 24 * 100) + '%';
+    if(typeof code === 'number' && !isNaN(code)){
+      cell.innerHTML = weatherCodeToSVG(code, isDay);
+    }
+    el.appendChild(cell);
+  });
 }
 
 /* ─── UV severity ─────────────────────────────────────────────── */
@@ -1776,14 +2436,47 @@ function renderWeather(data, savedAt){
     if(byId('wx-feels')) byId('wx-feels').textContent = feels;
     if(byId('wx-dew')) byId('wx-dew').textContent = dew;
 
-    // Wind tile — Tuul (in metric-card)
-    if(byId('wind-now')) byId('wind-now').textContent = wind.toFixed(1);
-    if(byId('wind-sub')) byId('wind-sub').textContent = degToCompass(dir) + ' · puh ' + gust.toFixed(0);
-    var wa = byId('wind-arrow');
-    if(wa) wa.style.transform = 'rotate(' + (dir + 180) + 'deg)';
+    // Wind — hero tile current reading + forecast card header value
+    var windEl = byId('wind-now');
+    if(windEl){
+      windEl.textContent = wind.toFixed(1);
+      // Clamp alpha to 1 — bar colors use partial alpha for background
+      // blending but foreground text needs full opacity to be legible.
+      if(typeof windBarColor === 'function'){
+        var wc = windBarColor(wind).replace(/[\d.]+\)$/, '1)');
+        windEl.style.color = wc;
+      }
+    }
+    if(byId('wind-forecast-now')) byId('wind-forecast-now').textContent = wind.toFixed(1);
+    var windSubText = 'puhanguti ' + gust.toFixed(1) + ' m/s';
+    if(byId('wind-sub')) byId('wind-sub').textContent = windSubText;
+    var arrowRotation = 'rotate(' + (dir + 180) + 'deg)';
+    var wa = byId('wind-arrow'); if(wa) wa.style.transform = arrowRotation;
+    var wfa = byId('wind-forecast-arrow'); if(wfa) wfa.style.transform = arrowRotation;
 
-    // Rain tile — Sadu (mm/h current)
-    if(byId('rain-now')) byId('rain-now').textContent = precip.toFixed(1);
+    // Sadu — hero tile current reading only (forecast card has spark sub-line)
+    var rainEl = byId('rain-now');
+    if(rainEl){
+      rainEl.textContent = precip.toFixed(1);
+      // Only apply rain color when it's actually raining — the ramp's
+      // low-end alpha is calibrated for bar backgrounds not foreground
+      // text, so dry (0.0) would be near-invisible. When dry use default
+      // white; when raining use the ramp color but clamp alpha to 1.
+      if(precip >= 0.05 && typeof rainBarColor === 'function'){
+        var rc = rainBarColor(precip, 'mm/h').replace(/[\d.]+\)$/, '1)');
+        rainEl.style.color = rc;
+      } else {
+        rainEl.style.color = '';
+      }
+    }
+    var rainCurSub = byId('rain-current-sub');
+    if(rainCurSub){
+      if(precip < 0.05) rainCurSub.textContent = 'kuiv';
+      else if(precip < 0.5) rainCurSub.textContent = 'nõrk sadu';
+      else if(precip < 2) rainCurSub.textContent = 'mõõdukas';
+      else if(precip < 7) rainCurSub.textContent = 'tugev';
+      else rainCurSub.textContent = 'paduvihm';
+    }
 
     // Pressure
     if(byId('wx-pressure')) byId('wx-pressure').textContent = pressure;
@@ -1824,25 +2517,22 @@ function renderWeather(data, savedAt){
     var visM = data.hourly.visibility ? data.hourly.visibility[curIdx] : null;
     if(byId('wx-vis')) byId('wx-vis').textContent = visText(visM);
 
-    // Öökülm — tonight's min temp + frost warning
+    // Öökülm — tonight's min temp in the comfort-pills row
+    // (Tundub · Öökülm · Kastepunkt). Just the temperature value;
+    // severity is conveyed through the pill-value's text colour
+    // (ok = default white, warn = amber, bad = soft coral) so the
+    // pill stays compact without an extra warning line.
     var minTonight = data.daily && data.daily.temperature_2m_min ? data.daily.temperature_2m_min[0] : null;
     var frostMinEl = byId('frost-min');
-    var frostEl = byId('frost-warning');
-    if(minTonight !== null && !isNaN(minTonight)){
+    if(minTonight !== null && !isNaN(minTonight) && frostMinEl){
       var minR = round1(minTonight);
-      if(frostMinEl) frostMinEl.innerHTML = (minR >= 0 ? '+' : '') + minR + '°<span class="unit">min</span>';
-      if(frostEl){
-        if(minTonight <= -2){
-          frostEl.textContent = 'Kõrge oht · kl 04:30';
-          frostEl.className = 'metric-sub bad';
-        } else if(minTonight < 1){
-          frostEl.textContent = 'Võimalik · kl 04:30';
-          frostEl.className = 'metric-sub warn';
-        } else {
-          frostEl.textContent = 'ei ähvarda · kl 04:30';
-          frostEl.className = 'metric-sub ok';
-        }
-      }
+      frostMinEl.textContent = (minR >= 0 ? '+' : '') + minR + '°';
+      // Severity tint on the pill-value via the existing warm/cold/warn/bad
+      // utility classes. Resets to the base classes first so repaint
+      // doesn't accumulate stale modifiers.
+      frostMinEl.className = 'pill-value mono';
+      if(minTonight <= -2)      frostMinEl.classList.add('bad');
+      else if(minTonight < 1)   frostMinEl.classList.add('warn');
     }
 
     renderHourly(data.hourly);
@@ -1853,16 +2543,50 @@ function renderWeather(data, savedAt){
     // Sparklines (replace mock data with real)
     if(typeof renderSpark === 'function'){
       var next24Wind = data.hourly.wind_speed_10m.slice(curIdx, curIdx + 24);
+      var next24Gusts = data.hourly.wind_gusts_10m
+        ? data.hourly.wind_gusts_10m.slice(curIdx, curIdx + 24) : null;
+      var next24WindDir = data.hourly.wind_direction_10m
+        ? data.hourly.wind_direction_10m.slice(curIdx, curIdx + 24) : null;
       var next24Prob = data.hourly.precipitation_probability
         ? data.hourly.precipitation_probability.slice(curIdx, curIdx + 24) : null;
       var next24Mm = data.hourly.precipitation.slice(curIdx, curIdx + 24);
-      if(next24Wind.length) renderSpark('spark-wind', next24Wind, {unit:'m/s'});
-      // Rain mode toggle still picks prob vs mm; data on both
+      var next24Temp = data.hourly.temperature_2m.slice(curIdx, curIdx + 24);
+      var next24Feels = data.hourly.apparent_temperature
+        ? data.hourly.apparent_temperature.slice(curIdx, curIdx + 24) : null;
+      var next24Code = data.hourly.weathercode
+        ? data.hourly.weathercode.slice(curIdx, curIdx + 24) : null;
+      var next24IsDay = data.hourly.is_day
+        ? data.hourly.is_day.slice(curIdx, curIdx + 24) : null;
+
+      if(next24Wind.length) renderSpark('spark-wind', next24Wind,
+        {unit:'m/s', directions: next24WindDir,
+         colorFn: windBarColor, legend: WIND_LEGEND});
+      if(next24Gusts && next24Gusts.length) renderSpark('spark-gusts', next24Gusts,
+        {unit:'m/s', colorFn: windBarColor, subId: 'gust-spark-sub'});
+      if(next24Temp.length) renderSpark('spark-temp', next24Temp,
+        {unit:'°C', colorFn: tempBarColor, legend: TEMP_LEGEND,
+         relativeBase: true, subId: 'temp-spark-sub'});
+      if(next24Feels && next24Feels.length) renderSpark('spark-feels', next24Feels,
+        {unit:'°C', colorFn: tempBarColor, legend: TEMP_LEGEND,
+         relativeBase: true, subId: 'feels-spark-sub'});
       SPARK_RAIN_DATA = { prob: next24Prob || next24Mm.map(function(v){ return v > 0 ? 50 : 0; }), mm: next24Mm };
-      var rainSel = byId('rain-mode');
-      var mode = rainSel ? rainSel.value : 'prob';
+      var mode = (typeof getRainMode === 'function') ? getRainMode() : 'prob';
       renderSpark('spark-rain', mode === 'prob' ? SPARK_RAIN_DATA.prob : SPARK_RAIN_DATA.mm,
-                  {unit: mode === 'prob' ? '%' : 'mm/h'});
+                  {unit: mode === 'prob' ? '%' : 'mm/h',
+                   colorFn: rainBarColor,
+                   legend: mode === 'prob' ? RAIN_LEGEND_PROB : RAIN_LEGEND_MM});
+      if(next24Code) renderPrecipTypes(next24Code, next24IsDay);
+    }
+
+    // Hero SVG icon — update to match current weather code
+    var heroIconEl = byId('wx-cond-icon-big');
+    if(heroIconEl && typeof weatherCodeToSVG === 'function'){
+      var curCode = data.current && data.current.weathercode != null
+        ? data.current.weathercode
+        : (data.hourly.weathercode ? data.hourly.weathercode[curIdx] : null);
+      var curIsDay = data.current && data.current.is_day != null
+        ? data.current.is_day : 1;
+      if(curCode != null) heroIconEl.innerHTML = weatherCodeToSVG(curCode, curIsDay === 1);
     }
 
     LAST_FETCH_MS = savedAt || Date.now();
@@ -1874,27 +2598,7 @@ function renderWeather(data, savedAt){
  * RENDER — HOURLY STRIP (24 tiles)
  * ═══════════════════════════════════════════════════════════════ */
 function renderHourly(hourly){
-  var strip = byId('hourly-strip');
-  if(!strip) return;
-  strip.innerHTML = '';
-  var now = new Date(), added = 0, firstTile = true;
-  for(var i=0;i<hourly.time.length && added < 24;i++){
-    var t = parseLocalIsoFlexible(hourly.time[i]);
-    if(!t || t.getTime() < now.getTime() - 30*60*1000) continue;
-    var temp = Math.round(hourly.temperature_2m[i]);
-    var rain = round1(hourly.precipitation[i] || 0);
-    var icon = weatherCodeToIcon(hourly.weathercode[i], hourly.is_day[i] === 1);
-    var el = document.createElement('div');
-    el.className = 'hour' + (firstTile ? ' now' : '');
-    el.innerHTML =
-      '<div class="hour-time mono">' + (firstTile ? 'Nüüd' : pad(t.getHours())) + '</div>' +
-      '<div class="hour-ico">' + icon + '</div>' +
-      '<div class="hour-temp mono">' + temp + '°</div>' +
-      '<div class="hour-rain ' + (rain < 0.1 ? 'dry' : '') + ' mono">' + (rain < 0.1 ? '—' : rain.toFixed(1)) + '</div>';
-    strip.appendChild(el);
-    added++;
-    firstTile = false;
-  }
+  // hourly-strip removed — 24h forecast now shown as bar charts in forecast-card
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1905,23 +2609,30 @@ function renderDaily(daily){
   if(!strip) return;
   strip.innerHTML = '';
   var ET_DAY_ABBR = ['Püh','Esm','Teis','Kolm','Nelj','Reede','Laup'];
-  // daily.time[0] is today.
   for(var i=0; i < Math.min(7, daily.time.length); i++){
     var d = new Date(daily.time[i] + 'T12:00:00');
     var tmax = Math.round(daily.temperature_2m_max[i]);
     var tmin = Math.round(daily.temperature_2m_min[i]);
-    var icon = weatherCodeToIcon(daily.weathercode[i], true);
+    var rain = daily.precipitation_sum ? round1(daily.precipitation_sum[i] || 0) : null;
+    var icon = weatherCodeToSVG(daily.weathercode[i], true);
     var isToday = (i === 0);
     var name = isToday ? 'Täna' : ET_DAY_ABBR[d.getDay()];
+    var rainHtml = '';
+    if(rain !== null){
+      var isDry = rain < 0.1;
+      var rainStr = isDry ? '—' : rain.toFixed(1);
+      rainHtml = '<span class="day-rain' + (isDry ? '' : ' wet') + '">' + rainStr + '</span>';
+    }
     var el = document.createElement('div');
     el.className = 'day' + (isToday ? ' today' : '');
     el.innerHTML =
       '<span class="day-name">' + name + '</span>' +
-      '<span class="day-ico">' + icon + '</span>' +
+      '<span class="day-ico" style="font-size:0;line-height:0;width:28px;height:28px;display:block">' + icon + '</span>' +
       '<span class="day-temps">' +
         '<span class="day-high mono">' + tmax + '°</span>' +
         '<span class="day-low mono">' + tmin + '°</span>' +
-      '</span>';
+      '</span>' +
+      rainHtml;
     strip.appendChild(el);
   }
 }
@@ -1950,7 +2661,7 @@ function fetchWeatherAndForecast(){
     + '?latitude=' + CONFIG.lat
     + '&longitude=' + CONFIG.lng
     + '&current=temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,uv_index'
-    + '&hourly=temperature_2m,precipitation,precipitation_probability,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,visibility,snow_depth'
+    + '&hourly=temperature_2m,apparent_temperature,precipitation,precipitation_probability,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,visibility,snow_depth'
     + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode'
     + '&timezone=auto'
     + '&wind_speed_unit=ms'
@@ -2219,7 +2930,10 @@ function renderStation(prefix, vals){
   if(vals.temp !== null && vals.temp !== undefined && !isNaN(vals.temp)){
     var t = round1(vals.temp);
     var el = byId(prefix + '-temp');
-    if(el) el.textContent = (t >= 0 ? '+' : '') + t.toFixed(1);
+    if(el){
+      el.textContent = (t >= 0 ? '+' : '') + t.toFixed(1);
+      el.style.color = t < 0 ? 'var(--cold)' : 'var(--warm)';
+    }
   }
   if(vals.precip !== null && vals.precip !== undefined && !isNaN(vals.precip)){
     var p = round1(vals.precip);
@@ -2482,27 +3196,295 @@ function fetchSolarWind(){
  * SPARKLINES — wire the bento sparkline data to Open-Meteo
  * (renderSpark is also called from renderWeather)
  * ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+ * SPARKLINE COLOR RAMPS
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * windBarColor(ms) — calibrated so 10 m/s lands in yellow (the
+ * "getting interesting for western Estonia" threshold). The ramp
+ * then climbs through amber, orange to coral-red for storm winds.
+ * All stops use rgba so bars read on the dark glass surface.
+ *
+ * Stops (m/s → hue):
+ *   0–3   calm / light air         grey-blue
+ *   3–7   gentle / moderate breeze teal
+ *   7–10  fresh breeze             green → yellow-green
+ *   10    the 10 m/s pivot         yellow  ← calibrated
+ *   10–14 strong breeze            amber
+ *   14–18 gale                     orange
+ *   18+   storm                    coral-red
+ *
+ * rainBarColor(v, unit) — blue → purple → red. For probability (%)
+ * the same ramp is applied against 0-100. For mm/h it's applied
+ * against a 0-20 ceiling (heavy rain in Estonia rarely exceeds 15
+ * mm/h; 20 mm/h = extreme). The ramp matches the radar convention
+ * used by ilmateenistus.ee so it reads familiar.
+ *
+ * Both functions return a CSS rgba() string for the bar's top stop.
+ * renderSpark builds a vertical gradient from that color at the top
+ * to a 25%-alpha version at the base so bars have the "lit from above"
+ * depth of the previous design.
+ * ─────────────────────────────────────────────────────────────── */
+function lerpColor(a, b, t){
+  /* Linear interpolate between two [r,g,b,a] arrays. t in [0,1]. */
+  return [
+    Math.round(a[0] + (b[0]-a[0]) * t),
+    Math.round(a[1] + (b[1]-a[1]) * t),
+    Math.round(a[2] + (b[2]-a[2]) * t),
+    +(a[3] + (b[3]-a[3]) * t).toFixed(2)
+  ];
+}
+function rgbaStr(c){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+c[3]+')'; }
+
+/* Wind color stops — [r,g,b,a] at key m/s thresholds */
+var WIND_STOPS = [
+  { v:  0, c: [110, 175, 230, 0.50] }, /* calm — grey-blue       */
+  { v:  3, c: [ 70, 195, 175, 0.65] }, /* light breeze — teal    */
+  { v:  7, c: [ 90, 200, 100, 0.80] }, /* fresh — green          */
+  { v: 10, c: [230, 210,  60, 0.90] }, /* 10 m/s pivot — yellow  */
+  { v: 14, c: [230, 140,  40, 0.95] }, /* strong — amber-orange  */
+  { v: 18, c: [215,  80,  50, 1.00] }, /* gale — orange-red      */
+  { v: 25, c: [200,  40,  60, 1.00] }, /* storm — coral-red      */
+];
+
+function windBarColor(ms){
+  var stops = WIND_STOPS;
+  if(ms <= stops[0].v) return rgbaStr(stops[0].c);
+  if(ms >= stops[stops.length-1].v) return rgbaStr(stops[stops.length-1].c);
+  for(var i = 1; i < stops.length; i++){
+    if(ms <= stops[i].v){
+      var t = (ms - stops[i-1].v) / (stops[i].v - stops[i-1].v);
+      return rgbaStr(lerpColor(stops[i-1].c, stops[i].c, t));
+    }
+  }
+  return rgbaStr(stops[stops.length-1].c);
+}
+
+/* Rain / probability color stops */
+var RAIN_STOPS_MM = [
+  { v:  0,   c: [ 80, 140, 220, 0.20] }, /* dry — near-transparent blue  */
+  { v:  0.1, c: [ 70, 130, 215, 0.55] }, /* trace / drizzle              */
+  { v:  0.5, c: [ 55, 105, 210, 0.75] }, /* light rain — medium blue     */
+  { v:  2,   c: [ 90,  65, 195, 0.88] }, /* moderate — blue-violet       */
+  { v:  5,   c: [140,  45, 175, 0.95] }, /* heavy — purple               */
+  { v: 10,   c: [185,  35, 100, 1.00] }, /* very heavy — purple-red      */
+  { v: 20,   c: [200,  35,  50, 1.00] }, /* extreme — red                */
+];
+
+function rainBarColor(v, unit){
+  var stops;
+  var val;
+  if(unit === '%'){
+    /* Probability: same hue ramp mapped onto 0–100 */
+    stops = RAIN_STOPS_MM.map(function(s, i){
+      var pct = [0, 1, 3, 12, 30, 55, 100][i];
+      return { v: pct, c: s.c };
+    });
+    val = v;
+  } else {
+    stops = RAIN_STOPS_MM;
+    val = v;
+  }
+  if(val <= stops[0].v) return rgbaStr(stops[0].c);
+  if(val >= stops[stops.length-1].v) return rgbaStr(stops[stops.length-1].c);
+  for(var i = 1; i < stops.length; i++){
+    if(val <= stops[i].v){
+      var t = (val - stops[i-1].v) / (stops[i].v - stops[i-1].v);
+      return rgbaStr(lerpColor(stops[i-1].c, stops[i].c, t));
+    }
+  }
+  return rgbaStr(stops[stops.length-1].c);
+}
+
+/* Temperature color stops — cold blues for below zero, teal for cool,
+ * green for mild, amber for warm, orange-red for hot. Calibrated for
+ * Estonia: +10°C is a pleasant spring day (green), +20°C is warm (amber),
+ * negative is cold (blue). */
+var TEMP_STOPS = [
+  { v: -15, c: [ 50, 100, 200, 0.95] }, /* deep cold — navy blue    */
+  { v:  -5, c: [ 80, 150, 220, 0.90] }, /* cold — sky blue          */
+  { v:   0, c: [100, 190, 210, 0.85] }, /* freezing — cyan          */
+  { v:   5, c: [ 80, 185, 155, 0.82] }, /* cool — teal              */
+  { v:  10, c: [ 90, 195, 100, 0.82] }, /* mild — green             */
+  { v:  15, c: [160, 200,  70, 0.88] }, /* warm-ish — yellow-green  */
+  { v:  20, c: [230, 185,  50, 0.92] }, /* warm — amber             */
+  { v:  25, c: [220, 120,  40, 0.97] }, /* hot — orange             */
+  { v:  30, c: [205,  60,  50, 1.00] }, /* very hot — red           */
+];
+function tempBarColor(v){
+  var stops = TEMP_STOPS;
+  if(v <= stops[0].v) return rgbaStr(stops[0].c);
+  if(v >= stops[stops.length-1].v) return rgbaStr(stops[stops.length-1].c);
+  for(var i = 1; i < stops.length; i++){
+    if(v <= stops[i].v){
+      var t = (v - stops[i-1].v) / (stops[i].v - stops[i-1].v);
+      return rgbaStr(lerpColor(stops[i-1].c, stops[i].c, t));
+    }
+  }
+  return rgbaStr(stops[stops.length-1].c);
+}
+
+var TEMP_LEGEND = {
+  gradient: 'linear-gradient(90deg,' +
+    'rgba(50,100,200,0.9)   0%,' +   /* −15 */
+    'rgba(100,190,210,0.85) 30%,' +  /*   0 */
+    'rgba(90,195,100,0.82)  50%,' +  /*  10 */
+    'rgba(230,185,50,0.92)  70%,' +  /*  20 */
+    'rgba(205,60,50,1)     100%)',    /*  30 */
+  ticks: [
+    {pct:  0, label:'−15°'},
+    {pct: 30, label:'0°'},
+    {pct: 50, label:'10°'},
+    {pct: 70, label:'20°'},
+    {pct:100, label:'30°C'}
+  ]
+};
+/* Wind tick positions are computed as (v / maxStop) * 100 so they
+ * land exactly where that m/s value falls on the gradient, matching
+ * the WIND_STOPS positions. Max stop = 25 m/s (the gradient's right end).
+ *
+ * Rain ticks are evenly spaced at the key perceptual breakpoints.
+ * Fewer ticks = more readable on a narrow phone strip. */
+var WIND_LEGEND = {
+  /* Gradient positions: each stop at (v/25)*100 so 10 m/s is at 40% */
+  gradient: 'linear-gradient(90deg,' +
+    'rgba(110,175,230,0.7)  0%,' +   /*  0 m/s */
+    'rgba(70,195,175,0.75) 12%,' +   /*  3 m/s */
+    'rgba(90,200,100,0.82) 28%,' +   /*  7 m/s */
+    'rgba(230,210,60,0.9)  40%,' +   /* 10 m/s */
+    'rgba(230,140,40,0.95) 56%,' +   /* 14 m/s */
+    'rgba(215,80,50,1)     72%,' +   /* 18 m/s */
+    'rgba(200,40,60,1)    100%)',     /* 25 m/s */
+  ticks: [
+    {pct:  0, label:'0'},
+    {pct: 12, label:'3'},
+    {pct: 28, label:'7'},
+    {pct: 40, label:'10'},
+    {pct: 56, label:'14'},
+    {pct: 72, label:'18'},
+    {pct:100, label:'25+ m/s'}
+  ]
+};
+var RAIN_LEGEND_PROB = {
+  gradient: 'linear-gradient(90deg,' +
+    'rgba(80,140,220,0.25)  0%,' +
+    'rgba(55,105,210,0.75) 30%,' +
+    'rgba(90,65,195,0.9)   55%,' +
+    'rgba(140,45,175,0.97) 75%,' +
+    'rgba(200,35,50,1)    100%)',
+  ticks: [
+    {pct:  0, label:'0%'},
+    {pct: 30, label:'30%'},
+    {pct: 55, label:'55%'},
+    {pct: 75, label:'75%'},
+    {pct:100, label:'100%'}
+  ]
+};
+var RAIN_LEGEND_MM = {
+  gradient: 'linear-gradient(90deg,' +
+    'rgba(80,140,220,0.25)  0%,' +
+    'rgba(55,105,210,0.8)  20%,' +
+    'rgba(90,65,195,0.9)   40%,' +
+    'rgba(140,45,175,0.97) 60%,' +
+    'rgba(185,35,100,1)    80%,' +
+    'rgba(200,35,50,1)    100%)',
+  ticks: [
+    {pct:  0, label:'0'},
+    {pct: 20, label:'0.5'},
+    {pct: 40, label:'2'},
+    {pct: 60, label:'5'},
+    {pct: 80, label:'10'},
+    {pct:100, label:'20+ mm/h'}
+  ]
+};
+
 var SPARK_RAIN_DATA = { prob: [], mm: [] };
+
+/* niceMax — round a data maximum UP to a clean scale ceiling.
+ * Used by the sparkline y-axis so labels read "8 m/s" not "7.3 m/s".
+ *
+ * Rules per unit:
+ *   %      → always 100 (probability is a 0–100 scale; the scale stays
+ *            fixed even when the data peak is lower, so the user gets
+ *            absolute readings rather than data-relative shapes).
+ *   mm/h   → round up to the next 0.5 if <2, next whole if <10, next 5
+ *            if larger. Keeps rain values legible at every scale.
+ *   m/s    → round up to the next whole number, min 4 so the chart
+ *            doesn't compress on calm days (a 1.2 m/s peak shown as
+ *            "2 m/s max" would be misleading; minimum scale = 4 m/s
+ *            ceiling so the bars read as "calm" by being short).
+ *
+ * Falls back to ceiling rounding for any other unit. */
+function niceMax(max, unit){
+  if(unit === '%') return 100;
+  if(unit === 'mm/h'){
+    if(max <= 2)  return Math.ceil(max * 2) / 2;      // next 0.5
+    if(max <= 10) return Math.ceil(max);              // next whole
+    return Math.ceil(max / 5) * 5;                    // next multiple of 5
+  }
+  if(unit === 'm/s'){
+    return Math.max(4, Math.ceil(max));
+  }
+  return Math.ceil(max);
+}
+
 function renderSpark(elId, data, opts){
   var el = byId(elId);
   if(!el || !data || !data.length) return;
   opts = opts || {};
   var unit = opts.unit || '';
-  var max = Math.max.apply(null, data);
-  if(max < 1) max = 1;
+  var dataMax = Math.max.apply(null, data);
+  var dataMin = Math.min.apply(null, data);
+  // relativeBase: scale bars from dataMin rather than 0.
+  // Used for temperature so a +8→+16° range fills the chart height
+  // meaningfully instead of all bars being the same near-100% height.
+  // A 10% floor is preserved so even the coldest bar has some visible height.
+  var base = opts.relativeBase ? dataMin : 0;
+  var scaleMax = opts.relativeBase ? dataMax : niceMax(dataMax, unit);
+  // Enforce a minimum range for relative-base charts (temperature).
+  // If the 24h swing is narrower than 10°, expand symmetrically around
+  // the midpoint so a stable +14°→+16° day shows shallow bars (calm)
+  // rather than bars swinging wildly from 10%→100% for a 2° difference.
+  if(opts.relativeBase){
+    var MIN_RANGE = 10;
+    if(scaleMax - base < MIN_RANGE){
+      var mid = (scaleMax + base) / 2;
+      base     = mid - MIN_RANGE / 2;
+      scaleMax = mid + MIN_RANGE / 2;
+    }
+  }
+  var scaleRange = scaleMax - base;
+  if(scaleRange < 1) scaleRange = 1;
   var startHour = new Date().getHours();
   el.innerHTML = '';
+  /* Bars height = ((value - base) / scaleRange) * 100%, clamped to
+   * a 10% floor so the minimum bar is always visible. The colorFn
+   * receives the raw value (not the scaled percentage) so colors
+   * reflect actual temperature/wind/rain regardless of chart scale. */
   for(var i = 0; i < data.length; i++){
     var v = data[i];
-    var pct = Math.max(8, (v / max) * 100);
+    var pct = Math.max(10, ((v - base) / scaleRange) * 100);
     var hour = (startHour + i) % 24;
     var hourStr = String(hour).padStart(2,'0') + ':00';
     var bar = document.createElement('span');
     bar.style.height = pct + '%';
-    bar.setAttribute('title', hourStr + ' · ' + (v).toFixed(unit === 'mm/h' ? 1 : 0) + ' ' + unit);
+    var titleVal = unit === '°C' ? v.toFixed(1) + unit : (v).toFixed(unit === 'mm/h' ? 1 : 0) + ' ' + unit;
+    bar.setAttribute('title', hourStr + ' · ' + titleVal);
     if(i === 0) bar.className = 'now';
+    var topColor = opts.colorFn ? opts.colorFn(v, unit) : null;
+    if(topColor){
+      var baseColor = topColor.replace(/[\d.]+\)$/, function(m){
+        return (parseFloat(m) * 0.22).toFixed(2) + ')';
+      });
+      bar.style.background = 'linear-gradient(180deg, ' + topColor + ' 0%, ' + baseColor + ' 100%)';
+    }
     el.appendChild(bar);
   }
+
+  /* Y-axis removed — scale communicated via the sub-line caption
+   * "max X unit · kl HH" above the bars. Bars still scale against
+   * scaleMax (rounded ceiling) so the tallest bar has headroom and
+   * calm periods read as visually short. */
   // Axis
   var axis = el.nextElementSibling;
   if(!axis || !axis.classList.contains('metric-spark-axis')){
@@ -2511,51 +3493,183 @@ function renderSpark(elId, data, opts){
     el.parentNode.insertBefore(axis, el.nextSibling);
   }
   axis.innerHTML = '';
-  [0,6,12,18,24].forEach(function(offset){
+  /* Axis label positioning math — keep in sync with .metric-spark-axis CSS.
+   * Bar centers (treating the 2px gaps between bars as negligible at tile
+   * width):
+   *   bar N center  →  ((N + 0.5) / 24) * 100%
+   * Offsets 0, 6, 12, 18 anchor on the corresponding bar's center.
+   * Offset 24 is special: it refers to the right edge of bar 23, i.e.
+   * 100% of the container — translateX(-100%) on the .right-edge class
+   * keeps the text inside the chart. */
+  var AXIS_OFFSETS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
+  AXIS_OFFSETS.forEach(function(offset, idx){
     var hour = (startHour + offset) % 24;
     var span = document.createElement('span');
     span.textContent = String(hour).padStart(2,'0');
+    if(offset === 24){
+      span.style.left = '100%';
+      span.className = 'edge right-edge';
+    } else {
+      // Bar centre as a % of container width
+      span.style.left = ((offset + 0.5) / 24 * 100) + '%';
+      if(idx === 0) span.className = 'edge';
+    }
     axis.appendChild(span);
   });
-  // Update peak caption
-  var subId = elId.replace('spark-', '') + '-sub';
-  var sub = byId(subId);
+
+  /* ─── Wind direction arrow row ──────────────────────────────
+   * When opts.directions is provided (array of degree values, same length
+   * as data), render an additional row of arrows BELOW the axis. Arrows
+   * shown every 3 hours (8 arrows total spanning 24h) so they're large
+   * enough to read clearly while preserving the bar's hourly granularity.
+   *
+   * Each arrow is a unicode ↑ rotated by (dir + 180)° — the same convention
+   * as the hero wind tile's compass arrow (points where wind is going TO).
+   * Positioned via flex with same gap structure as the axis so they align
+   * with the corresponding bar groups beneath them.
+   *
+   * The row lives as a sibling of the axis (.metric-spark-dirs), created
+   * lazily on first call and reused thereafter. If directions array is
+   * missing or empty, any existing arrow row is hidden so the layout
+   * doesn't get an empty gap. */
+  var dirsEl = axis.nextElementSibling;
+  var hasDirs = opts.directions && opts.directions.length;
+  if(hasDirs){
+    if(!dirsEl || !dirsEl.classList.contains('metric-spark-dirs')){
+      dirsEl = document.createElement('div');
+      dirsEl.className = 'metric-spark-dirs';
+      axis.parentNode.insertBefore(dirsEl, axis.nextSibling);
+    }
+    dirsEl.style.display = '';
+    dirsEl.innerHTML = '';
+    /* Position each arrow at the center of a specific bar — same math
+     * as the axis (bar N center at ((N+0.5)/24)*100%). Sampling at every
+     * 3rd hour starting at hour 1 (centers of the 3-bar groups 0-2, 3-5,
+     * ...) would give 8 arrows over indices 1, 4, 7, 10, 13, 16, 19, 22 —
+     * but most users will look at the LEADING hour of each group, so we
+     * sample at 0, 3, 6, 9, 12, 15, 18, 21 (the same convention as the
+     * axis offsets). Each arrow anchors directly above its sampled bar's
+     * center, so the row visually aligns one-to-one with axis markers. */
+    var ARROW_HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 23];
+    ARROW_HOURS.forEach(function(barIdx){
+      var dir = opts.directions[barIdx];
+      var cell = document.createElement('span');
+      cell.className = 'spark-arrow';
+      cell.style.left = ((barIdx + 0.5) / 24 * 100) + '%';
+      if(typeof dir === 'number' && !isNaN(dir)){
+        // SVG arrow: stem from bottom to near top, triangular head at top.
+        // Drawn pointing up; rotation applied via transform so the tip
+        // always indicates wind direction (points where wind goes TO).
+        cell.innerHTML = '<svg viewBox="0 0 10 18" xmlns="http://www.w3.org/2000/svg" style="width:10px;height:18px;display:block">' +
+          '<line x1="5" y1="17" x2="5" y2="7" stroke="rgba(126,200,255,0.90)" stroke-width="1.8" stroke-linecap="round"/>' +
+          '<polygon points="5,1 1.5,8 8.5,8" fill="rgba(126,200,255,0.90)"/>' +
+          '</svg>';
+        cell.style.transform = 'translateX(-50%) rotate(' + (dir + 180) + 'deg)';
+        var arrowHour = (startHour + barIdx) % 24;
+        cell.setAttribute('title', String(arrowHour).padStart(2,'0') + ':00 · ' + degToCompass(dir));
+      } else {
+        cell.textContent = '·';
+        cell.style.transform = 'translateX(-50%)';
+        cell.style.opacity = '0.3';
+      }
+      dirsEl.appendChild(cell);
+    });
+  } else if(dirsEl && dirsEl.classList.contains('metric-spark-dirs')){
+    dirsEl.style.display = 'none';
+  }
+
+  /* ─── Legend ───────────────────────────────────────────────
+   * A thin gradient strip + tick labels explaining the color ramp.
+   * For wind: below the direction arrows. For rain: below the axis.
+   *
+   * IMPORTANT: we find the legend by querying the parent container
+   * by class name — NOT by nextElementSibling — because the direction
+   * row may be present-but-hidden, causing the sibling chain to shift
+   * and creating duplicate legends when the chart type switches. */
+  var parentEl = el.parentNode;
+  var legendEl = parentEl.querySelector('.metric-spark-legend');
+  if(!legendEl){
+    legendEl = document.createElement('div');
+    legendEl.className = 'metric-spark-legend';
+    parentEl.appendChild(legendEl);
+  }
+  if(opts.legend){
+    legendEl.style.display = '';
+    legendEl.innerHTML =
+      '<div class="legend-strip" style="background:' + opts.legend.gradient + '"></div>' +
+      '<div class="legend-labels">' +
+        opts.legend.ticks.map(function(t){
+          return '<span style="left:' + t.pct + '%">' + t.label + '</span>';
+        }).join('') +
+      '</div>';
+  } else {
+    legendEl.style.display = 'none';
+  }
+
+  // Peak caption — opts.subId overrides the map lookup for custom IDs.
+  var subIdMap = {
+    'spark-temp':   'temp-spark-sub',
+    'spark-feels':  'feels-spark-sub',
+    'spark-wind':   'wind-spark-sub',
+    'spark-gusts':  'gust-spark-sub',
+    'spark-rain':   'rain-sub'
+  };
+  var subId = opts.subId || subIdMap[elId];
+  var sub = subId ? byId(subId) : null;
   if(sub){
-    var peakIdx = data.indexOf(max);
+    var peakIdx = data.indexOf(dataMax);
     var peakHour = (startHour + peakIdx) % 24;
-    if(max > 0.05 && peakIdx > 0){
-      sub.textContent = 'kõrgpunkt kl ' + String(peakHour).padStart(2,'0');
+    if(unit === '°C'){
+      // Temperature: show range "8° → 16°C"
+      sub.textContent = Math.round(dataMin) + '° → ' + Math.round(dataMax) + '°C';
+    } else if(dataMax > 0.05){
+      var peakValStr;
+      if(unit === 'mm/h') peakValStr = dataMax.toFixed(1);
+      else if(unit === '%') peakValStr = Math.round(dataMax).toString();
+      else peakValStr = dataMax.toFixed(1);
+      var timeStr = 'kl ' + String(peakHour).padStart(2,'0');
+      // Wind (m/s): prepend min so user sees the full range
+      // "min 2.1 · max 9.3 m/s · kl 14"
+      var prefix = (unit === 'm/s')
+        ? 'min ' + dataMin.toFixed(1) + ' · '
+        : '';
+      sub.textContent = peakIdx === 0
+        ? prefix + 'max ' + peakValStr + ' ' + unit
+        : prefix + 'max ' + peakValStr + ' ' + unit + ' · ' + timeStr;
     } else if(elId === 'spark-rain'){
       sub.textContent = 'kuiv järgmised 24h';
+    } else {
+      sub.textContent = '—';
     }
   }
 }
 
-/* Rain-mode toggle */
-(function(){
-  var sel = byId('rain-mode');
-  if(!sel) return;
-  sel.addEventListener('change', function(){
-    var mode = sel.value;
-    renderSpark('spark-rain',
-                mode === 'prob' ? SPARK_RAIN_DATA.prob : SPARK_RAIN_DATA.mm,
-                {unit: mode === 'prob' ? '%' : 'mm/h'});
+/* Rain-mode segmented toggle — two buttons (tõenäosus / kogus). The
+ * one with .active sets which array drives the sparkline. Also
+ * exposed as a module-level helper so renderWeather can call it after
+ * each Open-Meteo refresh to keep the sparkline + the active button
+ * in sync without depending on a stale select element. */
+function getRainMode(){
+  var active = document.querySelector('.rain-mode-btn.active');
+  return active ? active.getAttribute('data-mode') : 'prob';
+}
+function setRainMode(mode){
+  var btns = document.querySelectorAll('.rain-mode-btn');
+  btns.forEach(function(b){
+    if(b.getAttribute('data-mode') === mode) b.classList.add('active');
+    else b.classList.remove('active');
   });
-})();
-
-/* ═══════════════════════════════════════════════════════════════
- * RADAR / SAT buttons
- * ═══════════════════════════════════════════════════════════════ */
+  renderSpark('spark-rain',
+              mode === 'prob' ? SPARK_RAIN_DATA.prob : SPARK_RAIN_DATA.mm,
+              {unit: mode === 'prob' ? '%' : 'mm/h',
+               colorFn: rainBarColor,
+               legend: mode === 'prob' ? RAIN_LEGEND_PROB : RAIN_LEGEND_MM});
+}
 (function(){
-  var btns = document.querySelectorAll('[data-action="radar"], [data-action="satelliit"]');
+  var btns = document.querySelectorAll('.rain-mode-btn');
   btns.forEach(function(btn){
-    btn.addEventListener('click', function(e){
-      e.preventDefault();
-      var act = btn.getAttribute('data-action');
-      // Same external links as the original used. Update to your preferred
-      // service if you ship something different.
-      if(act === 'radar') window.open('https://www.ilmateenistus.ee/ilm/radarid-ja-satelliit/euroopa-radarid/', '_blank');
-      else window.open('https://www.ilmateenistus.ee/ilm/radarid-ja-satelliit/satelliit/', '_blank');
+    btn.addEventListener('click', function(){
+      setRainMode(btn.getAttribute('data-mode'));
     });
   });
 })();
@@ -2581,6 +3695,24 @@ function hydrateFromCache(){
 }
 hydrateFromCache();
 
+/* ─── Radar / Satelliit hero button helper ─────────────────────────
+ * Scrolls to the radar card and switches to the requested mode. */
+function radarScrollTo(mode){
+  var card = document.getElementById('radar-card');
+  if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
+  // Switch mode — defer slightly so scroll is underway
+  setTimeout(function(){
+    if(typeof RADAR === 'undefined' || !RADAR.map) return;
+    if(RADAR.mode === mode) return;
+    RADAR.mode = mode;
+    document.querySelectorAll('.radar-mode-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-layer') === mode);
+    });
+    radarStop();
+    if(RADAR.apiData) radarApplyData(RADAR.apiData);
+  }, 400);
+}
+
 fetchSunTimes();
 setInterval(fetchSunTimes, 30*60*1000);
 fetchWeatherAndForecast();
@@ -2597,7 +3729,217 @@ fetchKurevere();
 setInterval(fetchKurevere, 5 * 60 * 1000);
 fetchLaaneNigula();
 setInterval(fetchLaaneNigula, 5 * 60 * 1000);
+
+/* ─── Hourly hard reload ──────────────────────────────────────────
+ * Reloads the page once per hour so any code deployments are picked
+ * up automatically when the tab is left open (e.g. on a wall-mounted
+ * phone or iPad). Full page reload resets scroll position — this is
+ * acceptable at 1×/hour. The soft data fetches above (every 5 min)
+ * keep numbers current between reloads without any scroll disruption. */
+setTimeout(function(){ location.reload(); }, 60 * 60 * 1000);
+setInterval(fetchLaaneNigula, 5 * 60 * 1000);
 </script>
 
+<!-- Leaflet — loaded after the main script so it doesn't block the
+     weather data fetches. The radar card initialises once Leaflet
+     is ready via the onload handler below. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+ * RADAR / SATELLIIT CARD — RainViewer public API + Leaflet
+ *
+ * Data flow:
+ *   1. Fetch https://api.rainviewer.com/public/weather-maps.json
+ *      → returns host + arrays of past radar frames (timestamps + paths)
+ *        and satellite frames.
+ *   2. Build a Leaflet map centred on Madise, OSM base tiles.
+ *   3. Add a tile layer for each frame (lazy — only the current frame
+ *      is active at any time; others are preloaded on demand).
+ *   4. Timeline scrubber + play/pause button drives frame switching.
+ *   5. Mode toggle swaps between radar and satellite frame arrays.
+ *   6. Auto-refresh every 5 min pulls new frames.
+ * ═══════════════════════════════════════════════════════════════ */
+
+var RADAR = {
+  map: null,
+  currentLayer: null,
+  frames: [],             // active frame array ({time, path} objects)
+  frameIdx: 0,            // index into frames[]
+  host: '',
+  playing: false,
+  playTimer: null,
+  mode: 'radar',          // 'radar' | 'satellite'
+  apiData: null,          // last weather-maps.json response
+  refreshTimer: null,
+  TILE_SIZE: 256,
+  COLOR: 2,               // RainViewer color scheme (2 = original)
+  SMOOTH: 1,              // 1 = smooth
+  SNOW: 0                 // 0 = no snow color
+};
+
+function initRadar(){
+  // Defer if Leaflet or the DOM or CONFIG aren't ready yet
+  if(typeof L === 'undefined' || typeof CONFIG === 'undefined' || !document.getElementById('radar-map')){
+    setTimeout(initRadar, 300);
+    return;
+  }
+  // Guard against double-init
+  if(RADAR.map) return;
+
+  RADAR.map = L.map('radar-map', {
+    center: [CONFIG.lat, CONFIG.lng],
+    zoom: 7,
+    zoomControl: true,
+    attributionControl: true,
+    tap: true
+  });
+
+  // CartoDB Positron — muted greyscale tiles, no key required. Much
+  // better contrast for the radar colour overlay than OSM's colourful
+  // default tiles. Coastlines and landmass read clearly in grey.
+  L.tileLayer(
+    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    { maxZoom: 19, subdomains: 'abcd',
+      attribution: '© <a href="https://openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>' }
+  ).addTo(RADAR.map);
+
+  // Madise location marker — subtle amber dot
+  var icon = L.divIcon({
+    className: '',
+    html: '<div style="width:10px;height:10px;border-radius:50%;background:#e9a76b;border:2px solid rgba(255,255,255,0.7);box-shadow:0 0 6px rgba(233,167,107,0.8);"></div>',
+    iconSize: [10,10],
+    iconAnchor: [5,5]
+  });
+  L.marker([CONFIG.lat, CONFIG.lng], {icon: icon, interactive: false})
+   .addTo(RADAR.map);
+
+  // Wire up controls
+  document.getElementById('radar-play').addEventListener('click', radarTogglePlay);
+  document.getElementById('radar-scrub').addEventListener('input', function(){
+    radarStop();
+    RADAR.frameIdx = parseInt(this.value);
+    radarShowFrame(RADAR.frameIdx);
+  });
+  document.querySelectorAll('.radar-mode-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.radar-mode-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      RADAR.mode = btn.getAttribute('data-layer');
+      radarStop();
+      if(RADAR.apiData) radarApplyData(RADAR.apiData);
+    });
+  });
+
+  // Fetch data and set up auto-refresh
+  radarFetchData();
+  RADAR.refreshTimer = setInterval(radarFetchData, 5 * 60 * 1000);
+}
+
+function radarFetchData(){
+  fetch('https://api.rainviewer.com/public/weather-maps.json')
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data){
+      RADAR.apiData = data;
+      radarApplyData(data);
+      var d = new Date();
+      document.getElementById('radar-status').textContent =
+        'RainViewer · ' + d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
+    })
+    .catch(function(err){
+      console.warn('RainViewer fetch failed:', err);
+      document.getElementById('radar-status').textContent =
+        'Radaripilte ei saadud (' + err.message + ')';
+    });
+}
+
+function radarApplyData(data){
+  RADAR.host = data.host || 'https://tilecache.rainviewer.com';
+
+  // Pick the right frame array — radar only (satellite opens externally)
+  var past = (data.radar && data.radar.past) || [];
+  var nowcast = (data.radar && data.radar.nowcast) || [];
+  RADAR.frames = past.concat(nowcast);
+
+  if(!RADAR.frames.length){
+    document.getElementById('radar-status').textContent = 'Andmed pole saadaval';
+    return;
+  }
+
+  // Show the latest frame by default
+  RADAR.frameIdx = RADAR.frames.length - 1;
+
+  // Update scrubber range
+  var scrub = document.getElementById('radar-scrub');
+  scrub.max = RADAR.frames.length - 1;
+  scrub.value = RADAR.frameIdx;
+
+  radarShowFrame(RADAR.frameIdx);
+}
+
+function radarTileUrl(frame){
+  var opts = RADAR.SMOOTH + '_' + RADAR.SNOW;
+  return RADAR.host + frame.path + '/' + RADAR.TILE_SIZE + '/{z}/{x}/{y}/' + RADAR.COLOR + '/' + opts + '.png';
+}
+
+function radarShowFrame(idx){
+  if(!RADAR.frames.length) return;
+  idx = Math.max(0, Math.min(idx, RADAR.frames.length - 1));
+  RADAR.frameIdx = idx;
+
+  var frame = RADAR.frames[idx];
+
+  // Remove previous layer
+  if(RADAR.currentLayer){ RADAR.map.removeLayer(RADAR.currentLayer); }
+
+  RADAR.currentLayer = L.tileLayer(radarTileUrl(frame), {
+    tileSize: RADAR.TILE_SIZE,
+    opacity: RADAR.mode === 'satellite' ? 0.85 : 0.70,
+    zIndex: 10
+  });
+  RADAR.currentLayer.addTo(RADAR.map);
+
+  // Update scrubber + time label
+  var scrub = document.getElementById('radar-scrub');
+  if(scrub) scrub.value = idx;
+
+  var d = new Date(frame.time * 1000);
+  var label = d.toLocaleDateString('et-EE', {day:'2-digit',month:'2-digit'}) +
+              ' ' + d.toLocaleTimeString('et-EE', {hour:'2-digit',minute:'2-digit'});
+  var lbl = document.getElementById('radar-time-label');
+  if(lbl) lbl.textContent = label;
+}
+
+function radarTogglePlay(){
+  if(RADAR.playing) radarStop(); else radarPlay();
+}
+
+function radarPlay(){
+  if(!RADAR.frames.length) return;
+  RADAR.playing = true;
+  var btn = document.getElementById('radar-play');
+  if(btn) btn.textContent = '⏸';
+  // Advance one frame every 500ms
+  RADAR.playTimer = setInterval(function(){
+    var next = (RADAR.frameIdx + 1) % RADAR.frames.length;
+    radarShowFrame(next);
+  }, 500);
+}
+
+function radarStop(){
+  RADAR.playing = false;
+  if(RADAR.playTimer){ clearInterval(RADAR.playTimer); RADAR.playTimer = null; }
+  var btn = document.getElementById('radar-play');
+  if(btn) btn.textContent = '▶';
+}
+
+// Start the radar card once the page is fully loaded
+window.addEventListener('DOMContentLoaded', function(){
+  // Small delay so the main script block (CONFIG etc.) has run
+  setTimeout(initRadar, 500);
+});
+</script>
 </body>
 </html>
