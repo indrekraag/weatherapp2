@@ -918,6 +918,18 @@ body {
   letter-spacing: 0;
 }
 .day-rain.wet { color: rgba(100, 160, 235, 0.95); }
+/* Max wind speed for the day. Same compact 10px mono treatment as rain
+ * so the bottom of the tile reads as two stacked metrics: rain ÷ wind.
+ * Color picks up the same teal-blue used in the wind sparkline so the
+ * value is immediately legible as wind without needing a label. */
+.day-wind {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0;
+  margin-top: 1px;
+}
 
 /* Today tile — same dimensions, just a tinted background so it's the
  * one you scroll to "now". Keeps the strip rhythm uniform. */
@@ -1860,17 +1872,17 @@ body {
             <div class="station" id="kv-block">
               <div class="station-name">Kurevere</div>
               <div class="station-temp mono"><span id="kv-temp">—</span>°</div>
-              <div class="station-sub mono"><span id="kv-wind">—</span> m/s · <span id="kv-precip">—</span></div>
+              <div class="station-sub mono"><span id="kv-wind">—</span> m/s · <span class="station-precip" id="kv-precip">—</span> mm</div>
             </div>
             <div class="station" id="ln-block">
               <div class="station-name">Lääne-Nig.</div>
               <div class="station-temp mono"><span id="ln-temp">—</span>°</div>
-              <div class="station-sub mono"><span id="ln-wind">—</span> m/s · <span id="ln-precip">—</span></div>
+              <div class="station-sub mono"><span id="ln-wind">—</span> m/s · <span class="station-precip" id="ln-precip">—</span> mm</div>
             </div>
             <div class="station" id="hp-block">
               <div class="station-name">Haapsalu</div>
               <div class="station-temp mono"><span id="hp-temp">—</span>°</div>
-              <div class="station-sub mono"><span id="hp-wind">—</span> m/s · <span id="hp-precip">—</span></div>
+              <div class="station-sub mono"><span id="hp-wind">—</span> m/s · <span class="station-precip" id="hp-precip">—</span> mm</div>
             </div>
           </div>
 
@@ -1916,7 +1928,7 @@ body {
               <span class="forecast-row-label">Sadu</span>
               <div class="rain-mode-toggle" role="group" aria-label="Sadu mood">
                 <button type="button" class="rain-mode-btn active" data-mode="prob">tõenäosus</button>
-                <button type="button" class="rain-mode-btn" data-mode="mm">kogus</button>
+                <button type="button" class="rain-mode-btn" data-mode="mm">hulk</button>
               </div>
               <span class="forecast-row-sub" id="rain-sub">—</span>
             </div>
@@ -2624,6 +2636,7 @@ function renderDaily(daily){
     var tmax = Math.round(daily.temperature_2m_max[i]);
     var tmin = Math.round(daily.temperature_2m_min[i]);
     var rain = daily.precipitation_sum ? round1(daily.precipitation_sum[i] || 0) : null;
+    var wind = daily.wind_speed_10m_max ? Math.round(daily.wind_speed_10m_max[i] || 0) : null;
     var icon = weatherCodeToSVG(daily.weathercode[i], true);
     var isToday = (i === 0);
     var name = isToday ? 'Täna' : ET_DAY_ABBR[d.getDay()];
@@ -2632,6 +2645,11 @@ function renderDaily(daily){
       var isDry = rain < 0.1;
       var rainStr = isDry ? '—' : rain.toFixed(1);
       rainHtml = '<span class="day-rain' + (isDry ? '' : ' wet') + '">' + rainStr + '</span>';
+    }
+    // Wind row — small, muted, sits directly under the rain row
+    var windHtml = '';
+    if(wind !== null && !isNaN(wind)){
+      windHtml = '<span class="day-wind">' + wind + ' m/s</span>';
     }
     var el = document.createElement('div');
     el.className = 'day' + (isToday ? ' today' : '');
@@ -2642,7 +2660,8 @@ function renderDaily(daily){
         '<span class="day-high mono">' + tmax + '°</span>' +
         '<span class="day-low mono">' + tmin + '°</span>' +
       '</span>' +
-      rainHtml;
+      rainHtml +
+      windHtml;
     strip.appendChild(el);
   }
 }
@@ -2672,7 +2691,7 @@ function fetchWeatherAndForecast(){
     + '&longitude=' + CONFIG.lng
     + '&current=temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,uv_index'
     + '&hourly=temperature_2m,apparent_temperature,precipitation,precipitation_probability,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,visibility,snow_depth'
-    + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode'
+    + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode,wind_speed_10m_max'
     + '&timezone=auto'
     + '&wind_speed_unit=ms'
     + '&forecast_days=8'
@@ -2953,7 +2972,11 @@ function renderStation(prefix, vals){
   if(vals.precip !== null && vals.precip !== undefined && !isNaN(vals.precip)){
     var p = round1(vals.precip);
     var pe = byId(prefix + '-precip');
-    if(pe) pe.textContent = p.toFixed(1);
+    if(pe){
+      pe.textContent = p.toFixed(1);
+      // Match the 7-day's .day-rain.wet blue when there's measurable precip
+      pe.style.color = p >= 0.05 ? 'rgba(100, 160, 235, 0.95)' : '';
+    }
   }
   if(vals.wind !== null && vals.wind !== undefined && !isNaN(vals.wind)){
     var w = round1(vals.wind);
