@@ -218,7 +218,20 @@ print('orphans:', sorted(refs - ids))"
 
 ## Current state
 
-**Status:** `index.html` is now a fully-external redesign (`redesign87`, `5961a29`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html`). I have not yet audited the new file structure against the conventions documented earlier in this file — those CSS-class/section conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`, etc.) may no longer exist. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
+**Status:** `index.html` is now a fully-external redesign (`redesign_90`, `6a67369`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html` or `~/Downloads/madise-redesign_{N}.html` — both numbering styles in use). I have not yet audited the new file structure against the conventions documented earlier in this file — those CSS-class/section conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`, etc.) may no longer exist. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
+
+A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
+
+## Recent changes (2026-05-21 → 2026-05-24 — redesign_86 / _90 iteration cycle)
+
+Two more drop-ins from `~/Downloads/` on top of the small in-repo touch-ups (`600baea`, `023b9fc`, `59e5b77` — three "Update index.html" web-UI edits between this session and the prior one):
+
+- `54bfdcd` — `madise-redesign_86.html` drop-in (+4 −3 lines vs upstream once rebased; size 301 KB)
+- `6a67369` — `madise-redesign_90.html` drop-in (+30 −7 lines vs `_86`; size 302 KB) — current HEAD
+
+Naming note: Indrek's Downloads now uses `madise-redesign_{N}.html` (with underscore) — not the same numbering line as the earlier `madise-redesign{N}.html` (no underscore) commits like `004f02a` redesign86 / `5961a29` redesign87. Treat the underscored vs non-underscored series as independent counters.
+
+Workflow nit: when deploying, `git pull --rebase` first inside `~/wa2/` — there have been several upstream `Update index.html` web-UI edits between drop-ins, and skipping the pull risks a divergent push. The local Python http.server stayed running across sessions; no need to restart it for each drop-in.
 
 ## Recent changes (2026-05-19 → 2026-05-20 — external redesign drop-in session)
 
