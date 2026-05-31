@@ -2764,9 +2764,9 @@ function _buildDayPanel(di){
         + '<span>Tuul kuni <b>' + wmax + ' m/s</b></span>'
         + (sunStr ? '<span>' + sunStr + '</span>' : '')
       + '</div>'
-    + '<div class="dsheet-row"><div class="dsheet-row-lab">Temperatuur</div><div class="dsheet-spark" id="' + idT + '"></div></div>'
-    + '<div class="dsheet-row"><div class="dsheet-row-lab">Sadu — tõenäosus %</div><div class="dsheet-spark" id="' + idP + '"></div></div>'
-    + '<div class="dsheet-row"><div class="dsheet-row-lab">Tuul (m/s)</div><div class="dsheet-spark" id="' + idW + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab">Temperatuur</div><div class="metric-spark dsheet-spark" id="' + idT + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab">Sadu — tõenäosus %</div><div class="metric-spark dsheet-spark" id="' + idP + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab">Tuul (m/s)</div><div class="metric-spark dsheet-spark" id="' + idW + '"></div></div>'
     + '<div class="dsheet-icons">' + icons + '</div>';
   p._spark = function(){
     if(!s || typeof renderSpark !== 'function') return;
