@@ -222,6 +222,14 @@ print('orphans:', sorted(refs - ids))"
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
 
+## Recent changes (2026-05-31 — precip-aware icons + Erik Flowers glyph swap)
+
+First real in-repo edit to the redesign_90 JS. Two intertwined changes to the weather-symbol logic:
+
+- **No rain glyph when there's effectively no rain.** Open-Meteo's WMO `weathercode` flags "drizzle/rain" even for a 0.1 mm trace, so the 7-day strip painted a raindrop on dry days. New unified picker `skyIconSVG(code, precipAmt, isDay)` with `var RAIN_MIN_MM = 0.5;` — a precip code (51 drizzle … 86 snow-showers) with `< 0.5 mm` returns the cloud glyph instead; thunderstorms (≥95) always show. Threshold chosen with Indrek. Wired into all three weather-symbol surfaces: **Hetkeilm hero**, the **3-hourly precip-type row** (`renderPrecipTypes` gained a `precipArr` param, fed `next24Mm`), and the **7-day strip**. Also: `currentSkyText`'s "Nõrk sadu" cutoff moved `0.1 → RAIN_MIN_MM` so phrase and icon agree, and the 7-day rain figure now reads `—` (dry) below 0.5 mm (was `< 0.1`).
+- **Icon set → Erik Flowers "Weather Icons"** (SIL OFL 1.1, github.com/erikflowers/weather-icons). Replaced each `WX_SVG` condition glyph (keys preserved: `clearDay clearNight partlyCloudy cloudy fog drizzle rain snow thunder`) with the official single-path SVG, viewBox `0 0 30 30`, tinted inline (sun amber `#f5b942`, thunder violet, rest cool greys/blues). Embedded inline — no webfont, stays single-file & offline. The `sunrise` key was left as the old gradient art (not a condition icon).
+- **Gotcha logged:** Erik Flowers' raw SVG `d=""` path data contains **literal newlines** — embedding verbatim into a single-quoted JS string breaks it (`SyntaxError: Invalid or unexpected token`). Collapse whitespace (`re.sub(r'\s+',' ',d)`) before embedding. Verified after: `node --check` on both inline scripts OK, 16/16 logic unit-tests pass, orphan-ID check clean, icons render (Playwright).
+
 ## Recent changes (2026-05-21 → 2026-05-24 — redesign_86 / _90 iteration cycle)
 
 Two more drop-ins from `~/Downloads/` on top of the small in-repo touch-ups (`600baea`, `023b9fc`, `59e5b77` — three "Update index.html" web-UI edits between this session and the prior one):
