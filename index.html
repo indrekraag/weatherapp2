@@ -1761,7 +1761,12 @@ body {
 .dsheet-sum .cold{color:var(--cold,#7fb4e6);}
 .dsheet-row{margin:13px 0;}
 .dsheet-row-lab{font-size:11px;letter-spacing:.6px;text-transform:uppercase;
-  color:rgba(255,255,255,0.5);margin-bottom:5px;}
+  color:rgba(255,255,255,0.5);margin-bottom:5px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.dsheet-val{font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.metric-spark > span.sel{outline:1px solid rgba(255,255,255,0.85);outline-offset:-1px;
+  filter:brightness(1.25);}
 .dsheet-spark{position:relative;height:54px;width:100%;}
 .dsheet-icons{position:relative;display:flex;justify-content:space-between;margin-top:8px;}
 .dsheet-icons .ic{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1 1 0;}
@@ -2733,7 +2738,28 @@ function _hourSliceForDay(di){
   return { temp: pick(H.temperature_2m), precip: pick(H.precipitation),
            prob: pick(H.precipitation_probability),
            code: pick(H.weathercode), isDay: pick(H.is_day),
-           wind: pick(H.wind_speed_10m), dir: pick(H.wind_direction_10m) };
+           wind: pick(H.wind_speed_10m), dir: pick(H.wind_direction_10m),
+           hour: idx.map(function(k){ return (H.time[k] || '').slice(11, 16); }) };
+}
+
+/* Tap a sparkline bar → write "HH:MM · value" into that row's readout.
+ * Mobile has no hover tooltip, so this exposes the per-hour figures.
+ * fmt(v) formats one value; hours[] holds the matching "HH:MM" labels. */
+function _wireSparkTap(cid, data, hours, fmt, readoutId){
+  var c = byId(cid); if(!c || !data) return;
+  c.addEventListener('click', function(e){
+    var bar = e.target;
+    while(bar && bar.parentNode !== c) bar = bar.parentNode;
+    if(!bar) return;
+    var idx = Array.prototype.indexOf.call(c.children, bar);
+    if(idx < 0 || idx >= data.length) return;
+    for(var k=0;k<c.children.length;k++) c.children[k].classList.remove('sel');
+    bar.classList.add('sel');
+    var ro = byId(readoutId);
+    var v = data[idx];
+    if(ro) ro.textContent = (v == null || isNaN(v)) ? '—'
+      : ((hours[idx] || '') + ' · ' + fmt(v));
+  });
 }
 
 function _buildDayPanel(di){
@@ -2746,6 +2772,7 @@ function _buildDayPanel(di){
   var wmax = D.wind_speed_10m_max ? Math.round(D.wind_speed_10m_max[di] || 0) : 0;
   var sun = (typeof calcSunTimes === 'function') ? calcSunTimes(CONFIG.lat, CONFIG.lng, dObj) : null;
   var idT = 'dsheet-t' + di, idP = 'dsheet-p' + di, idW = 'dsheet-w' + di;
+  var idTv = 'dsheet-tv' + di, idPv = 'dsheet-pv' + di, idWv = 'dsheet-wv' + di;
   var icons = '';
   if(s && s.code){
     for(var hh=0; hh<s.code.length; hh+=3){
@@ -2764,20 +2791,26 @@ function _buildDayPanel(di){
         + '<span>Tuul kuni <b>' + wmax + ' m/s</b></span>'
         + (sunStr ? '<span>' + sunStr + '</span>' : '')
       + '</div>'
-    + '<div class="dsheet-row"><div class="dsheet-row-lab">Temperatuur</div><div class="metric-spark dsheet-spark" id="' + idT + '"></div></div>'
-    + '<div class="dsheet-row"><div class="dsheet-row-lab">Sadu — tõenäosus %</div><div class="metric-spark dsheet-spark" id="' + idP + '"></div></div>'
-    + '<div class="dsheet-row"><div class="dsheet-row-lab">Tuul (m/s)</div><div class="metric-spark dsheet-spark" id="' + idW + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab"><span>Temperatuur</span><span class="dsheet-val" id="' + idTv + '">—</span></div><div class="metric-spark dsheet-spark" id="' + idT + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab"><span>Sadu — tõenäosus %</span><span class="dsheet-val" id="' + idPv + '">—</span></div><div class="metric-spark dsheet-spark" id="' + idP + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab"><span>Tuul (m/s)</span><span class="dsheet-val" id="' + idWv + '">—</span></div><div class="metric-spark dsheet-spark" id="' + idW + '"></div></div>'
     + '<div class="dsheet-icons">' + icons + '</div>';
   p._spark = function(){
     if(!s || typeof renderSpark !== 'function') return;
     renderSpark(idT, s.temp, { unit:'°C', relativeBase:true,
       colorFn: (typeof tempBarColor === 'function') ? tempBarColor : null });
     var _hasProb = s.prob && s.prob.some(function(v){ return v != null && !isNaN(v); });
-    renderSpark(idP, _hasProb ? s.prob : s.precip,
+    var _pData = _hasProb ? s.prob : s.precip;
+    renderSpark(idP, _pData,
       { unit: _hasProb ? '%' : 'mm/h',
         colorFn: (typeof rainBarColor === 'function') ? rainBarColor : null });
     renderSpark(idW, s.wind, { unit:'m/s', directions: s.dir,
       colorFn: (typeof windBarColor === 'function') ? windBarColor : null });
+    _wireSparkTap(idT, s.temp, s.hour, function(v){ return Math.round(v) + '°'; }, idTv);
+    _wireSparkTap(idP, _pData, s.hour,
+      _hasProb ? function(v){ return Math.round(v) + '%'; }
+               : function(v){ return round1(v).toFixed(1) + ' mm'; }, idPv);
+    _wireSparkTap(idW, s.wind, s.hour, function(v){ return Math.round(v) + ' m/s'; }, idWv);
   };
   return p;
 }
