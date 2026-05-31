@@ -222,6 +222,16 @@ print('orphans:', sorted(refs - ids))"
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
 
+## Recent changes (2026-05-31 — 7-day tap → day-detail bottom sheet)
+
+Tap any day in the **7 päeva** strip → a glass **bottom sheet** opens showing that day's 24 h; **swipe left/right** to move between days without closing (native scroll-snap carousel, one panel per day). Built entirely in JS (no body-HTML edits), appended to `<body>` on first open.
+
+- Per-day panel: header (weekday + `D. kuu`, e.g. "Teisipäev · 3. juuni"; day 0 = "Täna", day 1 = "Homme"), summary row (hi/lo, total precip, max wind, sunrise·sunset via `calcSunTimes`), then three `renderSpark` sparklines (temp / precip mm·h⁻¹ / wind, the last with direction arrows) + a **3-hourly condition-icon row** using the precip-aware `skyIconSVG`.
+- **No extra network** — every value is sliced from the already-fetched hourly arrays (`forecast_days=8`), matched to the day by `hourly.time[k].slice(0,10) === daily.time[di]`. The full payload is stashed in a new global `WX_LAST` (set at the top of `renderWeather`).
+- New helpers: `openDaySheet(di)` / `closeDaySheet()` / `_buildDayPanel` / `_hourSliceForDay` / `_daySheetEnsure` / `_wireDaySheet`; arrays `ET_DAY_FULL`, `ET_MONTHS`. Day tiles got `data-di` + `cursor:pointer`; a single delegated click listener on `#daily-strip` (guarded by `strip.__sheetWired`) opens the sheet. Close via backdrop tap, ✕ button, Esc, or swipe-down on the grip.
+- `renderSpark` reads `el.clientWidth`, so sparklines are drawn in a double-`requestAnimationFrame` **after** the sheet is visible (else width 0 → no bars). All `.daysheet*` CSS is appended before the last `</style>`.
+- Verified (Playwright, real data): 7 panels, 24 bars per sparkline, 8 icons, correct ET date header, tiles tappable, **0 console errors**; `node --check` both inline scripts OK; orphan-ID check clean.
+
 ## Recent changes (2026-05-31 — precip-aware icons + Erik Flowers glyph swap)
 
 First real in-repo edit to the redesign_90 JS. Two intertwined changes to the weather-symbol logic:

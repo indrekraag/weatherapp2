@@ -1723,6 +1723,51 @@ body {
   border-color: rgba(255,255,255,0.10) !important;
 }
 
+
+/* ─── 7-day detail bottom sheet ───────────────────────────────────
+ * Tap a day in the 7-day strip → glass bottom sheet, swipe between
+ * days. Built/sized in JS; sparklines reuse renderSpark. */
+.daysheet-backdrop{position:fixed;inset:0;background:rgba(4,8,14,0.55);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:900;
+  display:none;opacity:0;transition:opacity .22s ease;}
+.daysheet-backdrop.open{opacity:1;}
+.daysheet{position:fixed;left:0;right:0;bottom:0;z-index:901;display:none;
+  flex-direction:column;max-height:84vh;
+  background:rgba(12,20,30,0.94);
+  -webkit-backdrop-filter:blur(26px) saturate(150%);backdrop-filter:blur(26px) saturate(150%);
+  border-top:1px solid rgba(255,255,255,0.12);border-radius:22px 22px 0 0;
+  box-shadow:0 -12px 44px rgba(0,0,0,0.55);
+  transform:translateY(101%);transition:transform .28s cubic-bezier(.22,.61,.36,1);
+  padding-bottom:env(safe-area-inset-bottom,0px);}
+.daysheet.open{transform:translateY(0);}
+.daysheet-grip{flex:0 0 auto;display:flex;justify-content:center;align-items:center;
+  height:24px;touch-action:none;cursor:grab;}
+.daysheet-grip::before{content:'';width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,0.30);}
+.daysheet-close{position:absolute;top:10px;right:12px;width:30px;height:30px;border:0;
+  border-radius:50%;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.82);
+  font-size:14px;line-height:30px;text-align:center;cursor:pointer;z-index:3;}
+.daysheet-track{display:flex;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.daysheet-track::-webkit-scrollbar{display:none;}
+.daysheet-panel{flex:0 0 100%;scroll-snap-align:center;box-sizing:border-box;
+  padding:4px 20px 22px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.dsheet-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.dsheet-day{font-size:19px;font-weight:600;color:#fff;}
+.dsheet-date{font-size:13px;color:rgba(255,255,255,0.55);}
+.dsheet-sum{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;
+  color:rgba(255,255,255,0.78);margin:9px 0 4px;}
+.dsheet-sum b{font-weight:600;color:#fff;}
+.dsheet-sum .warm{color:var(--warm,#f0a868);}
+.dsheet-sum .cold{color:var(--cold,#7fb4e6);}
+.dsheet-row{margin:13px 0;}
+.dsheet-row-lab{font-size:11px;letter-spacing:.6px;text-transform:uppercase;
+  color:rgba(255,255,255,0.5);margin-bottom:5px;}
+.dsheet-spark{position:relative;height:54px;width:100%;}
+.dsheet-icons{position:relative;display:flex;justify-content:space-between;margin-top:8px;}
+.dsheet-icons .ic{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1 1 0;}
+.dsheet-icons .ic svg{width:26px;height:26px;}
+.dsheet-icons .ic .hr{font-size:10px;color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums;}
+
 </style>
 </head>
 <body>
@@ -2440,6 +2485,7 @@ function checkAlerts(hourly){
  * Writes Open-Meteo current data into the redesigned bento tiles.
  * ═══════════════════════════════════════════════════════════════ */
 function renderWeather(data, savedAt){
+  WX_LAST = data;
   try{
     var cur = data.current;
     var temp = round1(cur.temperature_2m);
@@ -2642,6 +2688,138 @@ function renderHourly(hourly){
 /* ═══════════════════════════════════════════════════════════════
  * RENDER — 7-DAY STRIP
  * ═══════════════════════════════════════════════════════════════ */
+
+/* ─── 7-day detail bottom sheet ────────────────────────────────────
+ * Tap a day tile → bottom sheet showing that day's 24h (temp / precip
+ * / wind sparklines + 3-hourly icons). Swipe left/right to move
+ * between days without closing. All values are sliced from the already
+ * fetched hourly arrays — no extra network. Reuses renderSpark,
+ * skyIconSVG, calcSunTimes, the *BarColor ramps. (added 2026-05-31) */
+var WX_LAST = null;
+var _sheetEls = null, _sheetOpen = false;
+var ET_DAY_FULL = ['Pühapäev','Esmaspäev','Teisipäev','Kolmapäev','Neljapäev','Reede','Laupäev'];
+var ET_MONTHS = ['jaanuar','veebruar','märts','aprill','mai','juuni','juuli','august','september','oktoober','november','detsember'];
+
+function _daySheetEnsure(){
+  if(_sheetEls) return _sheetEls;
+  var bd = document.createElement('div'); bd.className = 'daysheet-backdrop';
+  var sh = document.createElement('div'); sh.className = 'daysheet';
+  sh.innerHTML = '<div class="daysheet-grip"></div>'
+    + '<button class="daysheet-close" aria-label="Sulge">✕</button>'
+    + '<div class="daysheet-track"></div>';
+  document.body.appendChild(bd); document.body.appendChild(sh);
+  bd.addEventListener('click', closeDaySheet);
+  sh.querySelector('.daysheet-close').addEventListener('click', closeDaySheet);
+  var grip = sh.querySelector('.daysheet-grip'), y0 = null;
+  grip.addEventListener('touchstart', function(e){ y0 = e.touches[0].clientY; }, {passive:true});
+  grip.addEventListener('touchmove', function(e){
+    if(y0 != null){ var dy = e.touches[0].clientY - y0; if(dy > 0) sh.style.transform = 'translateY(' + dy + 'px)'; }
+  }, {passive:true});
+  grip.addEventListener('touchend', function(e){
+    var dy = (e.changedTouches[0].clientY - (y0 || 0)); sh.style.transform = '';
+    if(dy > 70) closeDaySheet(); y0 = null;
+  });
+  _sheetEls = { bd: bd, sh: sh, track: sh.querySelector('.daysheet-track') };
+  return _sheetEls;
+}
+
+function _hourSliceForDay(di){
+  var H = WX_LAST && WX_LAST.hourly, D = WX_LAST && WX_LAST.daily;
+  if(!H || !D || !H.time || !D.time) return null;
+  var date = D.time[di], idx = [];
+  for(var k=0;k<H.time.length;k++){ if((H.time[k] || '').slice(0,10) === date) idx.push(k); }
+  if(!idx.length) return null;
+  function pick(a){ return a ? idx.map(function(k){ return a[k]; }) : null; }
+  return { temp: pick(H.temperature_2m), precip: pick(H.precipitation),
+           code: pick(H.weathercode), isDay: pick(H.is_day),
+           wind: pick(H.wind_speed_10m), dir: pick(H.wind_direction_10m) };
+}
+
+function _buildDayPanel(di){
+  var D = WX_LAST.daily, s = _hourSliceForDay(di);
+  var dObj = new Date(D.time[di] + 'T12:00:00');
+  var dayName = di === 0 ? 'Täna' : (di === 1 ? 'Homme' : ET_DAY_FULL[dObj.getDay()]);
+  var dateStr = dObj.getDate() + '. ' + ET_MONTHS[dObj.getMonth()];
+  var hi = Math.round(D.temperature_2m_max[di]), lo = Math.round(D.temperature_2m_min[di]);
+  var psum = D.precipitation_sum ? round1(D.precipitation_sum[di] || 0) : 0;
+  var wmax = D.wind_speed_10m_max ? Math.round(D.wind_speed_10m_max[di] || 0) : 0;
+  var sun = (typeof calcSunTimes === 'function') ? calcSunTimes(CONFIG.lat, CONFIG.lng, dObj) : null;
+  var idT = 'dsheet-t' + di, idP = 'dsheet-p' + di, idW = 'dsheet-w' + di;
+  var icons = '';
+  if(s && s.code){
+    for(var hh=0; hh<s.code.length; hh+=3){
+      var ic = skyIconSVG(s.code[hh], (s.precip ? s.precip[hh] : 0), s.isDay ? s.isDay[hh] === 1 : true);
+      icons += '<span class="ic">' + ic + '<span class="hr">' + (hh < 10 ? '0' + hh : hh) + '</span></span>';
+    }
+  }
+  var sunStr = sun && sun.sunrise ? ('☀ ' + formatTime(sun.sunrise) + ' · ' + formatTime(sun.sunset)) : '';
+  var p = document.createElement('div'); p.className = 'daysheet-panel';
+  p.innerHTML =
+      '<div class="dsheet-h"><span class="dsheet-day">' + dayName + '</span>'
+        + '<span class="dsheet-date">' + dateStr + '</span></div>'
+    + '<div class="dsheet-sum">'
+        + '<span><b class="warm">' + hi + '°</b> / <b class="cold">' + lo + '°</b></span>'
+        + '<span>Sadu <b>' + (psum >= RAIN_MIN_MM ? psum.toFixed(1) + ' mm' : '—') + '</b></span>'
+        + '<span>Tuul kuni <b>' + wmax + ' m/s</b></span>'
+        + (sunStr ? '<span>' + sunStr + '</span>' : '')
+      + '</div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab">Temperatuur</div><div class="dsheet-spark" id="' + idT + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab">Sadu (mm/h)</div><div class="dsheet-spark" id="' + idP + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab">Tuul (m/s)</div><div class="dsheet-spark" id="' + idW + '"></div></div>'
+    + '<div class="dsheet-icons">' + icons + '</div>';
+  p._spark = function(){
+    if(!s || typeof renderSpark !== 'function') return;
+    renderSpark(idT, s.temp, { unit:'°C', relativeBase:true,
+      colorFn: (typeof tempBarColor === 'function') ? tempBarColor : null });
+    renderSpark(idP, s.precip, { unit:'mm/h',
+      colorFn: (typeof rainBarColor === 'function') ? rainBarColor : null });
+    renderSpark(idW, s.wind, { unit:'m/s', directions: s.dir,
+      colorFn: (typeof windBarColor === 'function') ? windBarColor : null });
+  };
+  return p;
+}
+
+function openDaySheet(di){
+  if(!WX_LAST || !WX_LAST.daily || !WX_LAST.daily.time) return;
+  var E = _daySheetEnsure();
+  var n = Math.min(7, WX_LAST.daily.time.length);
+  if(di < 0) di = 0; if(di >= n) di = n - 1;
+  E.track.innerHTML = ''; var panels = [];
+  for(var i=0;i<n;i++){ var pn = _buildDayPanel(i); E.track.appendChild(pn); panels.push(pn); }
+  E.bd.style.display = 'block'; E.sh.style.display = 'flex'; _sheetOpen = true;
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(function(){
+    E.bd.classList.add('open'); E.sh.classList.add('open');
+    E.track.scrollLeft = di * E.track.clientWidth;
+    requestAnimationFrame(function(){ panels.forEach(function(pn){ if(pn._spark) pn._spark(); }); });
+  });
+}
+
+function closeDaySheet(){
+  if(!_sheetEls || !_sheetOpen) return;
+  _sheetOpen = false;
+  _sheetEls.bd.classList.remove('open'); _sheetEls.sh.classList.remove('open');
+  document.body.style.overflow = '';
+  var E = _sheetEls;
+  setTimeout(function(){ E.bd.style.display = 'none'; E.sh.style.display = 'none'; }, 280);
+}
+
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && _sheetOpen) closeDaySheet(); });
+
+function _wireDaySheet(){
+  var strip = byId('daily-strip');
+  if(strip && !strip.__sheetWired){
+    strip.__sheetWired = true;
+    strip.addEventListener('click', function(e){
+      var t = e.target.closest ? e.target.closest('.day') : null;
+      if(t && t.dataset && t.dataset.di != null) openDaySheet(parseInt(t.dataset.di, 10));
+    });
+  }
+}
+if(document.readyState !== 'loading') _wireDaySheet();
+else document.addEventListener('DOMContentLoaded', _wireDaySheet);
+
+
 function renderDaily(daily){
   var strip = byId('daily-strip');
   if(!strip) return;
@@ -2669,6 +2847,8 @@ function renderDaily(daily){
     }
     var el = document.createElement('div');
     el.className = 'day' + (isToday ? ' today' : '');
+    el.dataset.di = i;
+    el.style.cursor = 'pointer';
     el.innerHTML =
       '<span class="day-name">' + name + '</span>' +
       '<span class="day-ico" style="font-size:0;line-height:0;width:28px;height:28px;display:block">' + icon + '</span>' +
