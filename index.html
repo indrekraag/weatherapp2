@@ -2731,6 +2731,7 @@ function _hourSliceForDay(di){
   if(!idx.length) return null;
   function pick(a){ return a ? idx.map(function(k){ return a[k]; }) : null; }
   return { temp: pick(H.temperature_2m), precip: pick(H.precipitation),
+           prob: pick(H.precipitation_probability),
            code: pick(H.weathercode), isDay: pick(H.is_day),
            wind: pick(H.wind_speed_10m), dir: pick(H.wind_direction_10m) };
 }
@@ -2764,15 +2765,17 @@ function _buildDayPanel(di){
         + (sunStr ? '<span>' + sunStr + '</span>' : '')
       + '</div>'
     + '<div class="dsheet-row"><div class="dsheet-row-lab">Temperatuur</div><div class="dsheet-spark" id="' + idT + '"></div></div>'
-    + '<div class="dsheet-row"><div class="dsheet-row-lab">Sadu (mm/h)</div><div class="dsheet-spark" id="' + idP + '"></div></div>'
+    + '<div class="dsheet-row"><div class="dsheet-row-lab">Sadu — tõenäosus %</div><div class="dsheet-spark" id="' + idP + '"></div></div>'
     + '<div class="dsheet-row"><div class="dsheet-row-lab">Tuul (m/s)</div><div class="dsheet-spark" id="' + idW + '"></div></div>'
     + '<div class="dsheet-icons">' + icons + '</div>';
   p._spark = function(){
     if(!s || typeof renderSpark !== 'function') return;
     renderSpark(idT, s.temp, { unit:'°C', relativeBase:true,
       colorFn: (typeof tempBarColor === 'function') ? tempBarColor : null });
-    renderSpark(idP, s.precip, { unit:'mm/h',
-      colorFn: (typeof rainBarColor === 'function') ? rainBarColor : null });
+    var _hasProb = s.prob && s.prob.some(function(v){ return v != null && !isNaN(v); });
+    renderSpark(idP, _hasProb ? s.prob : s.precip,
+      { unit: _hasProb ? '%' : 'mm/h',
+        colorFn: (typeof rainBarColor === 'function') ? rainBarColor : null });
     renderSpark(idW, s.wind, { unit:'m/s', directions: s.dir,
       colorFn: (typeof windBarColor === 'function') ? windBarColor : null });
   };
