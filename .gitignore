@@ -7,3 +7,5 @@ __pycache__/
 # Local-only data snapshots; live data is published to the 'data' branch
 # by the EMHI workflow and served via raw.githubusercontent.com.
 data/
+# Transient Claude Code scheduler lock — machine-local, never commit
+.claude/scheduled_tasks.lock
