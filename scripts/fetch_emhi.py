@@ -26,8 +26,12 @@ Usage:
     python3 scripts/fetch_emhi.py --stations 26124      # by WMO code
     python3 scripts/fetch_emhi.py --out data/emhi.json  # custom output
 
-Exits non-zero on network or parse failure so the workflow can fail
-loudly instead of silently committing stale data.
+Network/Cloudflare hiccups are retried (3 attempts with backoff). If
+every attempt fails, the script exits 0 *without* writing the output
+file and sets the GitHub Actions step output ``wrote=false``, so the
+workflow skips the push and the data branch keeps its last good
+snapshot — a transient outage no longer emails a cron-failure alert.
+Genuine bugs (argument errors, etc.) still raise and fail loudly.
 """
 
 from __future__ import annotations
@@ -35,8 +39,9 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import sys
-import urllib.error
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -76,6 +81,13 @@ FIELDS = [
 ]
 
 DEFAULT_STATIONS = ["26124", "26123"]  # Lääne-Nigula, Haapsalu
+
+# Retry policy for the EMHI fetch. EMHI sits behind Cloudflare and
+# occasionally serves a slow response or an HTML challenge page; retrying
+# a few times with a short backoff clears the vast majority of transient
+# failures. Backoff applies *between* attempts, so 3 attempts sleep twice.
+FETCH_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = (5, 15)
 
 
 def parse_float(s: str):
@@ -315,7 +327,7 @@ def fetch_warnings() -> list:
     return warnings
 
 
-def build_snapshot(xml_bytes: bytes, wmo_codes: list[str]) -> dict:
+def build_snapshot(xml_bytes: bytes, wmo_codes: list[str], warnings=None) -> dict:
     root = ET.fromstring(xml_bytes)
     xml_ts = root.get("timestamp")
     obs_time = None
@@ -338,13 +350,65 @@ def build_snapshot(xml_bytes: bytes, wmo_codes: list[str]) -> dict:
         "observation_time": obs_time,
         "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "stations": stations,
-        "warnings": fetch_warnings(),
+        "warnings": fetch_warnings() if warnings is None else warnings,
         "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
         "warnings_target_counties": sorted(TARGET_COUNTIES),
     }
     if missing:
         snapshot["missing_wmo_codes"] = missing
     return snapshot
+
+
+def set_action_output(name: str, value: str) -> None:
+    """Expose a step output when running under GitHub Actions (no-op
+    locally). The workflow gates its push step on ``wrote == 'true'`` so a
+    soft failure leaves the data branch untouched."""
+    out = os.environ.get("GITHUB_OUTPUT")
+    if not out:
+        return
+    with open(out, "a", encoding="utf-8") as fh:
+        fh.write(f"{name}={value}\n")
+
+
+def fetch_snapshot_with_retries(wmo_codes: list[str], attempts: int = FETCH_ATTEMPTS):
+    """Fetch + parse the EMHI XML, retrying transient failures.
+
+    A single attempt must clear every transient hazard: the HTTP fetch
+    (timeouts, 5xx), the XML parse (Cloudflare serves an HTML challenge
+    page that won't parse), and a sanity check that at least one requested
+    station is present (a truncated response is treated as a miss and
+    retried). MeteoAlarm warnings are fetched once, only after EMHI
+    succeeds, so a retried EMHI fetch doesn't hammer the warnings feed.
+
+    Returns the assembled snapshot dict, or None if every attempt failed."""
+    last_err = None
+    for i in range(1, attempts + 1):
+        try:
+            xml_bytes = fetch_xml(EMHI_URL)
+            # warnings=[] skips the MeteoAlarm fetch during validation.
+            snap = build_snapshot(xml_bytes, wmo_codes, warnings=[])
+            if not snap["stations"]:
+                raise RuntimeError(
+                    "response had none of the target stations "
+                    f"(missing {snap.get('missing_wmo_codes')})"
+                )
+        except Exception as exc:  # noqa: BLE001 — catch-all is intentional for retry
+            last_err = exc
+            print(f"EMHI fetch attempt {i}/{attempts} failed: {exc}", file=sys.stderr)
+            if i < attempts:
+                delay = RETRY_BACKOFF_SECONDS[min(i - 1, len(RETRY_BACKOFF_SECONDS) - 1)]
+                print(f"  retrying in {delay}s…", file=sys.stderr)
+                time.sleep(delay)
+            continue
+        # EMHI is good — warnings are decorative and soft-fail to [].
+        snap["warnings"] = fetch_warnings()
+        return snap
+
+    print(
+        f"EMHI fetch failed after {attempts} attempts; last error: {last_err}",
+        file=sys.stderr,
+    )
+    return None
 
 
 def main() -> int:
@@ -358,24 +422,17 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    try:
-        xml_bytes = fetch_xml(EMHI_URL)
-    except urllib.error.HTTPError as e:
-        print(f"HTTP error fetching EMHI: {e.code} {e.reason}", file=sys.stderr)
-        return 2
-    except Exception as e:
-        print(f"Network error fetching EMHI: {e}", file=sys.stderr)
-        return 2
-
-    try:
-        snap = build_snapshot(xml_bytes, args.stations)
-    except ET.ParseError as e:
-        print(f"XML parse error: {e}", file=sys.stderr)
-        return 3
-
-    if not snap["stations"]:
-        print(f"No requested stations found. Missing: {snap.get('missing_wmo_codes')}", file=sys.stderr)
-        return 4
+    snap = fetch_snapshot_with_retries(args.stations)
+    if snap is None:
+        # Soft failure: every attempt hit a transient error. Write nothing
+        # and tell the workflow not to push, so the data branch keeps its
+        # last good snapshot. Exit 0 so the cron doesn't email on a blip.
+        print(
+            "Soft failure: EMHI unreachable after retries — keeping the "
+            "previous snapshot (no file written, no push)."
+        )
+        set_action_output("wrote", "false")
+        return 0
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -384,6 +441,7 @@ def main() -> int:
         f"Wrote {out_path} — observation_time={snap['observation_time']}, "
         f"stations={list(snap['stations'])}, warnings={len(snap['warnings'])}"
     )
+    set_action_output("wrote", "true")
     return 0
 
 

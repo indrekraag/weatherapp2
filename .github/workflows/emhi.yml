@@ -33,21 +33,30 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Fetch EMHI snapshot
         id: fetch
         run: |
+          # The script soft-fails (exit 0, no file, wrote=false) on a
+          # transient EMHI/Cloudflare outage so the cron doesn't email.
           python3 scripts/fetch_emhi.py --out /tmp/emhi.json
-          echo "--- snapshot ---"
-          cat /tmp/emhi.json
+          if [ -f /tmp/emhi.json ]; then
+            echo "--- snapshot ---"
+            cat /tmp/emhi.json
+          else
+            echo "No fresh snapshot this run — keeping the previous data."
+          fi
 
+      # Only push when this run actually produced a snapshot. On a soft
+      # failure the data branch is left untouched (no stale commit).
       - name: Push to data branch
+        if: steps.fetch.outputs.wrote == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -222,6 +222,42 @@ print('orphans:', sorted(refs - ids))"
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
 
+## Recent changes (2026-06-08 — EMHI cron hardening, no more failure emails)
+
+Ops-layer session, **no app/UI changes**. Hardened the EMHI GitHub Actions
+bridge so a transient EMHI/Cloudflare outage stops emailing a
+workflow-failure alert:
+
+- `scripts/fetch_emhi.py` retries the fetch **3× with backoff (5 s, 15 s)** —
+  each attempt must clear HTTP fetch + XML parse (catches Cloudflare HTML
+  challenge pages) + a station-present check. If all attempts fail it writes
+  **no file**, sets the Actions step output `wrote=false`, and **exits 0**
+  (no email). Warnings are fetched **once**, only after EMHI succeeds, so
+  retries don't hammer MeteoAlarm. New helpers: `fetch_snapshot_with_retries`,
+  `set_action_output`; `build_snapshot` gained a `warnings=` param.
+- `.github/workflows/emhi.yml` gates the push step on
+  `steps.fetch.outputs.wrote == 'true'`, so a soft failure leaves the `data`
+  branch's last-good `emhi.json` untouched (no stale commit). `cat` guarded.
+- Node 20 deprecation cleared: `actions/checkout@v4 → v5`,
+  `actions/setup-python@v5 → v6` (Node 24).
+- Verified: live run writes valid JSON (both stations) + `wrote=true`/exit 0;
+  simulated outage → 3 retries → `wrote=false`/no file/exit 0; `py_compile`
+  + YAML valid.
+
+**Sibling-repo note (the real culprit):** the cron actually emailing was
+**not** this one — it was the **`weatherapp` repo (wa1, the iPad kiosk)**'s
+`kurevere.yml` bridge, which had the identical single-shot weakness and got
+the same hardening in the same session (see wa1's `HANDOFF.md`). Reminder of
+the split: **wa1 bridges Kurevere server-side** because the kiosk iPad can't
+reach tarktee directly (TLS profile); **wa2 fetches Kurevere directly in the
+browser** (`index.html` `fetchKurevere()`, tarktee is CORS-open) and needs no
+bridge. So there is intentionally no `fetch_kurevere.py` in this repo.
+
+**Open follow-up (parked):** a transient MeteoAlarm outage makes
+`fetch_warnings()` return `[]`, so an active CAP warning could briefly vanish
+for one ~15-min cycle. Cheap mitigation = give `fetch_warnings()` the same
+retry; fuller fix = preserve last-known warnings across an outage.
+
 ## Recent changes (2026-05-31 — 7-day tap → day-detail bottom sheet)
 
 Tap any day in the **7 päeva** strip → a glass **bottom sheet** opens showing that day's 24 h; **swipe left/right** to move between days without closing (native scroll-snap carousel, one panel per day). Built entirely in JS (no body-HTML edits), appended to `<body>` on first open.
