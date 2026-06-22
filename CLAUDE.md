@@ -249,8 +249,15 @@ radar) showing Nord Pool day-ahead spot price for the EE zone.
   (no fabricated bars). `priceSnt()` = €/MWh ÷ 10 × (1+vat/100); VAT from
   the feed's `vat_pct` (24). Refetch 15 min; hydrated from `wx.nps` cache.
 - Unit shown as **`s/kWh`**. Verified: Playwright render, 0 console errors.
-- TODO/next: mirror the card to the iPad build; optional "cheapest
-  upcoming window" finder; optional today/tomorrow toggle.
+- **Done since:** the card was mirrored to the iPad kiosk (`wa1`,
+  commit `2aaacaa`), reading this same `nps.json`. The iPad version then
+  gained **value tags on the peak + current-hour bars** (`wa1` `e0298e5`)
+  — NOT yet on this mobile build.
+- **TODO/next:** mirror the iPad's peak/current-hour **value tags** back to
+  this mobile card (keep the two in sync); optional "cheapest upcoming
+  window" finder; optional today/tomorrow toggle; price-card height tuning.
+- Live & self-updating: `data/nps.json` confirmed published to the data
+  branch by the cron (push-triggered run on `c191d48`).
 
 ## Recent changes (2026-06-22 — Kurevere fix + radar widget upgrade)
 
