@@ -58,8 +58,9 @@ All endpoints listed below are confirmed CORS-open from `indrekraag.github.io` *
   - `services.swpc.noaa.gov/json/ovation_aurora_latest.json` — Ovation aurora visibility model (lat/lng grid of probabilities)
   - `services.swpc.noaa.gov/products/solar-wind/mag-1-day.json` — solar wind interplanetary magnetic field (Bz is what we read)
   - NOTE: NOAA changed the planetary-k-index JSON shape from array-of-arrays to array-of-objects (see `renderAurora` / `renderKpForecast`).
-- **Estonian Transport Administration (tarktee.mnt.ee) — ArcGIS REST**:
-  - `tarktee.mnt.ee/tarktee/rest/services/road_weather_stations/MapServer/0/query?where=site_name='Kurevere'&outFields=*&f=json` — Kurevere road weather station (air_temp, road_temp, road_status, precipitation_type/intensity, wind_speed/dir, air_humidity, visibility, measurement_time)
+- **Estonian Transport Administration (tarktee.transpordiamet.ee) — ArcGIS REST**:
+  - `tarktee.transpordiamet.ee/tarktee/rest/services/road_weather_stations/MapServer/0/query?where=site_name='Kurevere'&outFields=*&f=json` — Kurevere road weather station (air_temp, road_temp, road_status, precipitation_type/intensity, wind_speed/dir, air_humidity, visibility, measurement_time)
+  - **NB:** tarktee migrated `mnt.ee → transpordiamet.ee` (~2026-06-04). The old host 301-redirects, but its redirect response carries **no CORS headers**, so an in-browser cross-origin fetch to the old URL breaks. Always use the new canonical host directly. (The new host *does* send `Access-Control-Allow-Origin`.)
   - Other DATEX endpoints under `/api/v1/datex/…` require auth (cookie-based) and have **no CORS** — only the ArcGIS REST endpoints are open.
 - **EMHI (Estonian Weather Service)** `ilmateenistus.ee/ilma_andmed/xml/observations.php` — **CORS-closed, Cloudflare-bot-protected**. We bridge it via GitHub Actions (see Architecture below). Has 152 stations including Lääne-Nigula (WMO 26124), Haapsalu (26123), and many more.
 - **MeteoAlarm** `feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-estonia` — Pan-European warning aggregator, CAP/ATOM format. **CORS-closed** — same GH Actions bridge. (Tip: Accept header must be `*/*` — strict `application/atom+xml` returns 406.)
@@ -221,6 +222,49 @@ print('orphans:', sorted(refs - ids))"
 **Status:** `index.html` is now a fully-external redesign (`redesign_90`, `6a67369`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html` or `~/Downloads/madise-redesign_{N}.html` — both numbering styles in use). As of 2026-05-31 the JS render layer **has** been read/edited (icon + rain-threshold work, see below) — confirmed the file is a fully functional app (~4150 lines, single main `<script>` block). Key render fns: `currentSkyText`, `weatherCodeToSVG`, `skyIconSVG`, `renderPrecipTypes`, `renderDaily`. `renderHourly` is an **empty stub** ("hourly-strip removed — now bar charts in forecast-card"), so the hourly weather-symbol surface is the 3-hourly **precip-type row** (`renderPrecipTypes`). **2026-05-31/06-01:** added a tappable **7-day → day-detail bottom sheet** (`openDaySheet`/`_buildDayPanel`/`_hourSliceForDay`/`_wireSparkTap`, `WX_LAST` global) — see Recent changes — plus precip-aware icons (`skyIconSVG` + `RAIN_MIN_MM`) and the Erik Flowers glyph set. HEAD `fb0fc0e`. The old CSS-class conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`) are stale; the CSS layer is still un-audited. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
+
+## Recent changes (2026-06-22 — Kurevere fix + radar widget upgrade)
+
+App-layer session. Backup of the pre-radar `index.html` saved locally as
+`index_backup_pre_radar_20260622.html` (now gitignored via a new
+`index_backup_*.html` pattern in `.gitignore`).
+
+- **Kurevere fetch fixed.** `fetchKurevere()` URL → `tarktee.transpordiamet.ee`
+  (was `mnt.ee`, which now 301-redirects without CORS headers on the redirect,
+  breaking the in-browser fetch). See the updated tarktee note under Data
+  sources. The sibling `wa1` (iPad kiosk) cron got the same domain fix.
+- **7-day strip titles.** Today shows `TÄNA` (no date); the other six show the
+  date only, `DD/MM` (weekday abbreviations dropped), centered
+  (`renderDaily`, `.day-name { text-align:center }`).
+- **Radar widget upgraded to match the iPad kiosk (wa1)**, fitted into the
+  existing 260 px radar box. New self-contained module after the radar script
+  (`RX` state + `initRadarExtras`):
+  - **Esri World Imagery satellite** base layer + in-map **MAP / SAT** toggle
+    (`rxBaseMap`, defaults to SAT — "same map style" as the iPad).
+  - **Zoom presets** 2km / 10km / 80km / EE (`rxZoom`); **default view = EE**
+    (zoom 7). `radarShowFrame` now caps `maxNativeZoom:7` so the tighter
+    presets don't request non-existent RainViewer tiles.
+  - **Precip colour legend** (top-right) + **auto-play** with a `userPaused`
+    guard (mirrors wa1).
+  - **SVG overlay** drawn inside the map div (`drawOverlay`): full-day **sun
+    arc** (past solid amber / future dashed, glowing current-sun disc +
+    altitude°, rise/set glyphs + times), **moon arc** (gray, same radius as
+    the sun, drawn only while the moon is above the horizon in the ±12 h
+    window; glowing disc + altitude° + moonrise/moonset glyphs & times when
+    up), **wind arrow** pointing AT Madise from upwind + a drifting
+    `wind-particle` stream + speed/gust label.
+  - **Anti-overlap** (`placeText`): every value label is nudged radially
+    outward until it clears already-placed labels (priority wind → sun →
+    moon), so sun & moon values never stack when their bearings coincide.
+  - Wired in: `renderWeather` → `updateWindOverlay(dir,wind,gust)`;
+    `fetchSunTimes` → `updateSunOverlays()`. Reuses the existing
+    `solarPosition` / `moonPosition` / `findMoonRiseSet` astronomy.
+  - **Not ported:** the OWM "PILV" cloud button (needs an API key; hidden on
+    the iPad too) and `syncRadarToForecast` (iPad-landscape-only; the phone
+    box stays a fixed 260 px).
+- Verified: both inline scripts `node --check` OK; orphan-ID check clean;
+  Playwright render at 393×932 shows the satellite map + sun/moon/wind overlay
+  with **0 console errors**; label min-spacing ≥ 39 px (no overlap).
 
 ## Recent changes (2026-06-08 — EMHI cron hardening, no more failure emails)
 

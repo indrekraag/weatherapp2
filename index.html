@@ -896,6 +896,8 @@ body {
   letter-spacing: 0.4px;
   color: rgba(255,255,255,0.70);
   text-transform: uppercase;
+  text-align: center;
+  width: 100%;
 }
 .day-ico { font-size: 22px; line-height: 1; margin: 2px 0; }
 .day-temps {
@@ -1723,6 +1725,125 @@ body {
   border-color: rgba(255,255,255,0.10) !important;
 }
 
+/* ─── Radar map overlay (sun arc + moon arc + wind) ───────────────
+ * Ported from the iPad kiosk (wa1). Two absolutely-positioned SVG
+ * layers inside #radar-map: a persistent wind-particle stream and a
+ * per-frame map-overlay (sun/moon arcs, wind arrow, glyphs). Both
+ * pointer-events:none so they never steal pan/zoom gestures. Plus the
+ * precip colour legend and the in-map zoom/MAP·SAT preset row. */
+#radar-map { position: relative; }
+#wind-particle-overlay,
+#map-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+#wind-particle-overlay { z-index: 399; }
+#map-overlay           { z-index: 400; }
+
+@keyframes wind-drift {
+  0%   { transform: translateX(-480px); opacity: 0; }
+  12%  { opacity: 0.55; }
+  88%  { opacity: 0.55; }
+  100% { transform: translateX(480px);  opacity: 0; }
+}
+.wind-particle {
+  animation-name: wind-drift;
+  animation-duration: var(--wind-dur, 8s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wind-particle { animation: none; opacity: 0.25; }
+}
+
+/* Precipitation colour legend — top-right corner of the map, mirrors
+ * the Leaflet +/- block on the opposite top corner. */
+.precip-legend {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 500;
+  padding: 4px 7px 5px;
+  background: rgba(10,10,14,0.82);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  color: rgba(255,255,255,0.82);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+}
+.precip-legend-title {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.92);
+  margin-bottom: 2px;
+}
+.precip-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  line-height: 1.3;
+}
+.precip-sw {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.30) inset;
+}
+
+/* Zoom-preset + MAP/SAT row — floating pill over the bottom-center of
+ * the map. Same amber-accent treatment as .radar-mode-btn. */
+.zoom-presets {
+  position: absolute;
+  bottom: 8px; left: 50%; transform: translateX(-50%);
+  z-index: 500;
+  display: flex; gap: 3px;
+  padding: 3px;
+  max-width: calc(100% - 16px);
+  flex-wrap: nowrap;
+  background: rgba(10,10,14,0.78);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 99px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.zoom-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 99px;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.zoom-btn:hover { color: rgba(255,255,255,0.92); }
+.zoom-btn.active {
+  background: linear-gradient(180deg, rgba(233,167,107,0.26) 0%, rgba(233,167,107,0.10) 100%);
+  color: rgba(255,255,255,0.96);
+}
+.zoom-sep {
+  align-self: center;
+  width: 1px; height: 13px;
+  background: rgba(255,255,255,0.14);
+}
+
 
 /* ─── 7-day detail bottom sheet ───────────────────────────────────
  * Tap a day in the 7-day strip → glass bottom sheet, swipe between
@@ -2129,8 +2250,31 @@ body {
                  target="_blank" rel="noopener">Pilvisus ↗</a>
             </div>
           </div>
-          <!-- Map container — fixed height so it doesn't collapse -->
-          <div id="radar-map" style="height:260px;border-radius:12px;overflow:hidden;background:#0a0a0c;"></div>
+          <!-- Map container — fixed height so it doesn't collapse.
+               The precip legend, zoom presets and the wind/sun SVG
+               overlays live INSIDE this div so they anchor to the map
+               area (Leaflet makes the container position:relative). -->
+          <div id="radar-map" style="height:260px;border-radius:12px;overflow:hidden;background:#0a0a0c;">
+            <!-- Precipitation colour legend — top-right corner -->
+            <div class="precip-legend" id="precip-legend">
+              <div class="precip-legend-title">Sadu</div>
+              <div class="precip-legend-row"><span class="precip-sw" style="background:#3da9f5"></span>Kerge</div>
+              <div class="precip-legend-row"><span class="precip-sw" style="background:#3edd5f"></span>Mõõdukas</div>
+              <div class="precip-legend-row"><span class="precip-sw" style="background:#f5d83a"></span>Tugev</div>
+              <div class="precip-legend-row"><span class="precip-sw" style="background:#e8533b"></span>Väga tugev</div>
+            </div>
+            <!-- Zoom-preset + base-map row — bottom-center -->
+            <div class="zoom-presets" id="zoom-presets">
+              <button class="zoom-btn" onclick="rxZoom(14)">2km</button>
+              <button class="zoom-btn" onclick="rxZoom(10)">10km</button>
+              <button class="zoom-btn" onclick="rxZoom(8)">80km</button>
+              <button class="zoom-btn active" onclick="rxZoom(7)">EE</button>
+              <span class="zoom-sep"></span>
+              <button class="zoom-btn" onclick="rxBaseMap('light')" id="rx-base-light">MAP</button>
+              <button class="zoom-btn active" onclick="rxBaseMap('satellite')" id="rx-base-sat">SAT</button>
+            </div>
+            <!-- SVG overlays injected here by initRadarExtras() -->
+          </div>
           <!-- Timeline bar -->
           <div class="radar-timeline">
             <button class="radar-ctrl-btn" id="radar-play" title="Mängi / Peata">▶</button>
@@ -2508,6 +2652,9 @@ function renderWeather(data, savedAt){
     PRESSURE_HISTORY.push({t:Date.now(), p:pressure});
     PRESSURE_HISTORY = PRESSURE_HISTORY.filter(function(x){ return Date.now() - x.t <= 4*60*60*1000; });
 
+    // Feed the radar map's wind overlay (arrow + drifting particles)
+    if(typeof updateWindOverlay === 'function') updateWindOverlay(dir, wind, gust);
+
     // Big temp
     var tempEl = byId('wx-temp');
     if(tempEl){
@@ -2869,7 +3016,9 @@ function renderDaily(daily){
     var wind = daily.wind_speed_10m_max ? Math.round(daily.wind_speed_10m_max[i] || 0) : null;
     var icon = skyIconSVG(daily.weathercode[i], (rain || 0), true);
     var isToday = (i === 0);
-    var name = isToday ? 'Täna' : ET_DAY_ABBR[d.getDay()];
+    var dd = ('0' + d.getDate()).slice(-2);
+    var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+    var name = isToday ? 'Täna' : dd + '/' + mm;
     var rainHtml = '';
     if(rain !== null){
       var isDry = rain < RAIN_MIN_MM;
@@ -3006,6 +3155,8 @@ function fetchSunTimes(){
   var dayLen = Math.floor(mins/60) + ' t ' + pad(mins%60) + ' min';
   if(byId('sun-hero-length')) byId('sun-hero-length').textContent = dayLen;
   updateSunCountdown();
+  // Refresh the radar map's sun arc now that today's rise/set are known
+  if(typeof updateSunOverlays === 'function') updateSunOverlays();
 }
 
 /* Sun-disc day/night state — celestial-hero icon switches between
@@ -3473,7 +3624,10 @@ function fetchLaaneNigula(){
 function fetchKurevere(){
   // Request all fields (*) so we can see what the API actually returns
   // if the named fields have changed. Log the first feature attributes.
-  var url = 'https://tarktee.mnt.ee/tarktee/rest/services/road_weather_stations/MapServer/0/query'
+  // tarktee migrated mnt.ee → transpordiamet.ee (~2026-06-04). The old host
+  // 301-redirects, but its redirect response carries no CORS headers, so an
+  // in-browser cross-origin fetch breaks. Hit the new canonical host directly.
+  var url = 'https://tarktee.transpordiamet.ee/tarktee/rest/services/road_weather_stations/MapServer/0/query'
     + '?where=' + encodeURIComponent("site_name='Kurevere'")
     + '&outFields=*'
     + '&f=json';
@@ -4320,6 +4474,13 @@ function radarApplyData(data){
   scrub.value = RADAR.frameIdx;
 
   radarShowFrame(RADAR.frameIdx);
+
+  // Auto-play once frames are loaded (matches the iPad kiosk — the radar
+  // is meant to be ambient/animated). userPaused guard stops the 5-min
+  // refresh from restarting a loop the user manually paused.
+  if(!RADAR.userPaused && !RADAR.playing){
+    setTimeout(radarPlay, 300);
+  }
 }
 
 function radarTileUrl(frame){
@@ -4340,7 +4501,13 @@ function radarShowFrame(idx){
   RADAR.currentLayer = L.tileLayer(radarTileUrl(frame), {
     tileSize: RADAR.TILE_SIZE,
     opacity: RADAR.mode === 'satellite' ? 0.85 : 0.70,
-    zIndex: 10
+    zIndex: 10,
+    // RainViewer only has tiles through zoom 7. Above that the server
+    // returns "Zoom Level Not Supported" placeholders, so cap native
+    // zoom and let Leaflet upscale — fuzzy but no error tiles at the
+    // 2km / 10km presets.
+    maxNativeZoom: 7,
+    maxZoom: 19
   });
   RADAR.currentLayer.addTo(RADAR.map);
 
@@ -4356,7 +4523,10 @@ function radarShowFrame(idx){
 }
 
 function radarTogglePlay(){
-  if(RADAR.playing) radarStop(); else radarPlay();
+  // Track explicit user pause so radarApplyData()'s auto-play doesn't
+  // restart the loop when fresh frames arrive every 5 min.
+  if(RADAR.playing){ RADAR.userPaused = true;  radarStop(); }
+  else             { RADAR.userPaused = false; radarPlay(); }
 }
 
 function radarPlay(){
@@ -4382,7 +4552,445 @@ function radarStop(){
 window.addEventListener('DOMContentLoaded', function(){
   // Small delay so the main script block (CONFIG etc.) has run
   setTimeout(initRadar, 500);
+  setTimeout(initRadarExtras, 900);
 });
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * RADAR EXTRAS — ported from the iPad kiosk (wa1).
+ *
+ * Adds, on top of the base RainViewer radar card:
+ *   1. An Esri World Imagery satellite base layer + a MAP / SAT toggle
+ *      (default SAT — the "same map style" as the iPad build).
+ *   2. Zoom-preset buttons (2km / 10km / 80km / EE).
+ *   3. An SVG overlay painted inside the map div:
+ *        • Full-day SUN arc (past solid amber, future dashed, glowing
+ *          current-sun disc with altitude°, rise/set glyphs + times)
+ *        • MOON arc (cool blue, drawn when the moon is above the horizon)
+ *        • WIND arrow pointing AT Madise from where the wind blows, with
+ *          a faint drifting-particle stream and a speed/gust label.
+ *
+ * Unlike wa1 (gated to landscape iPad), this runs on the phone too — it's
+ * sized to the existing 260 px radar box.
+ * ═══════════════════════════════════════════════════════════════════════ */
+var RX = {
+  active: false,
+  satLayer: null,
+  baseLayer: null,
+  windDir: null,
+  windSpeed: null,
+  windGust: null,
+  resizeTimer: null
+};
+
+function initRadarExtras(){
+  // Wait for the base radar map to exist
+  if(typeof RADAR === 'undefined' || !RADAR.map){ setTimeout(initRadarExtras, 400); return; }
+  if(RX.active) return;
+  RX.active = true;
+
+  // Capture the existing CartoDB Positron layer so MAP/SAT can flip it
+  RADAR.map.eachLayer(function(layer){
+    if(layer && layer._url && layer._url.indexOf('basemaps.cartocdn') !== -1){
+      RX.baseLayer = layer;
+    }
+  });
+
+  // Esri World Imagery — colour aerial photography, no API key, CORS-open
+  RX.satLayer = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { maxZoom: 18, updateWhenIdle: true, keepBuffer: 1, attribution: 'Tiles © Esri' }
+  );
+  // Default to satellite (matches the iPad design language)
+  rxBaseMap('satellite');
+
+  // Keep in-map control rows from triggering map drag/zoom on tap
+  ['precip-legend','zoom-presets'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el && L.DomEvent){
+      L.DomEvent.disableClickPropagation(el);
+      L.DomEvent.disableScrollPropagation(el);
+    }
+  });
+
+  // Inject the two SVG overlay layers inside the map div
+  var mapDiv = document.getElementById('radar-map');
+  if(mapDiv){
+    if(!document.getElementById('wind-particle-overlay')){
+      var psvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      psvg.id = 'wind-particle-overlay';
+      var pg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      pg.id = 'wind-particle-group';
+      for(var i = 0; i < 14; i++){
+        var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('class', 'wind-particle');
+        r.setAttribute('width', '16');
+        r.setAttribute('height', '1.4');
+        r.setAttribute('rx', '0.7');
+        r.setAttribute('fill', 'rgba(150,210,250,0.75)');
+        r.setAttribute('x', '-8');
+        var y = (Math.random() - 0.5) * 520;
+        r.setAttribute('y', y.toFixed(1));
+        r.style.animationDelay = (-Math.random() * 8).toFixed(2) + 's';
+        pg.appendChild(r);
+      }
+      psvg.appendChild(pg);
+      mapDiv.appendChild(psvg);
+    }
+    if(!document.getElementById('map-overlay')){
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.id = 'map-overlay';
+      mapDiv.appendChild(svg);
+    }
+  }
+
+  // Redraw the overlay whenever the map moves / zooms / resizes, plus a
+  // minute tick so the current-sun position advances.
+  RADAR.map.on('move zoom viewreset resize load', drawOverlay);
+  setInterval(drawOverlay, 60 * 1000);
+
+  // Default to the EE (whole-Estonia) view
+  RADAR.map.setView([CONFIG.lat, CONFIG.lng], 7, { animate: false });
+  setTimeout(function(){ RADAR.map.invalidateSize(); drawOverlay(); }, 200);
+  setTimeout(drawOverlay, 1500);
+
+  window.addEventListener('resize', function(){
+    if(RX.resizeTimer) clearTimeout(RX.resizeTimer);
+    RX.resizeTimer = setTimeout(function(){
+      if(RADAR.map) RADAR.map.invalidateSize();
+      drawOverlay();
+    }, 150);
+  });
+}
+
+function rxBaseMap(mode){
+  if(!RX.satLayer || !RX.baseLayer || !RADAR.map) return;
+  if(mode === 'satellite'){
+    if(RADAR.map.hasLayer(RX.baseLayer)) RADAR.map.removeLayer(RX.baseLayer);
+    if(!RADAR.map.hasLayer(RX.satLayer)) RX.satLayer.addTo(RADAR.map);
+  } else {
+    if(RADAR.map.hasLayer(RX.satLayer)) RADAR.map.removeLayer(RX.satLayer);
+    if(!RADAR.map.hasLayer(RX.baseLayer)) RX.baseLayer.addTo(RADAR.map);
+  }
+  if(RADAR.currentLayer) RADAR.currentLayer.bringToFront();
+  var sat = document.getElementById('rx-base-sat');
+  var lt  = document.getElementById('rx-base-light');
+  if(sat) sat.classList.toggle('active', mode === 'satellite');
+  if(lt)  lt.classList.toggle('active',  mode !== 'satellite');
+}
+
+function rxZoom(z){
+  if(!RADAR.map) return;
+  RADAR.map.setView([CONFIG.lat, CONFIG.lng], z, { animate: false });
+  document.querySelectorAll('#zoom-presets .zoom-btn').forEach(function(btn){
+    var txt = btn.textContent.trim();
+    var hit = (z===14 && txt==='2km') || (z===10 && txt==='10km') ||
+              (z===8 && txt==='80km') || (z===7 && txt==='EE');
+    if(txt !== 'MAP' && txt !== 'SAT'){ btn.classList.toggle('active', hit); }
+  });
+}
+
+/* ─── SVG overlay geometry helpers ───────────────────────────────────
+ * For an azimuth θ (0=N, 90=E, clockwise) and length L from origin
+ * (cx,cy): screen x = cx + cos(θ-90)·L, y = cy + sin(θ-90)·L. */
+function latlngToPixel(lat, lng){
+  var p = RADAR.map.latLngToContainerPoint(L.latLng(lat, lng));
+  return { x: p.x, y: p.y };
+}
+function anglePx(angleDeg, lenPx, cx, cy){
+  var rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + Math.cos(rad) * lenPx, y: cy + Math.sin(rad) * lenPx };
+}
+
+function drawOverlay(){
+  if(!RX.active) return;
+  var svg = document.getElementById('map-overlay');
+  var mapEl = document.getElementById('radar-map');
+  if(!svg || !mapEl || !RADAR.map) return;
+
+  var W = mapEl.clientWidth, H = mapEl.clientHeight;
+  if(!W || !H) return;
+  svg.setAttribute('width',  W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', '0 0 ' + Math.round(W) + ' ' + Math.round(H));
+
+  var WIND_COLOR = 'rgba(150,210,250,0.95)';
+  var WIND_HALO  = 'rgba(0,0,0,0.55)';
+  var SR_COLOR   = 'rgba(233,167,107,0.96)';
+  var SS_COLOR   = 'rgba(218,132,110,0.96)';
+  var SUN_COLOR  = 'rgba(255,210,110,0.98)';
+  var TEXT_HALO  = 'rgba(0,0,0,0.85)';
+
+  function arrowHead(id, color){
+    return '<marker id="'+id+'" markerWidth="9" markerHeight="9" refX="6.5" refY="4.5" orient="auto-start-reverse">' +
+             '<path d="M0,1 L8,4.5 L0,8 L1.7,4.5 Z" fill="'+color+'"/>' +
+           '</marker>';
+  }
+  var parts = ['<defs>' + arrowHead('arr-wind', WIND_COLOR) + '</defs>'];
+
+  var origin = latlngToPixel(CONFIG.lat, CONFIG.lng);
+  var cx = origin.x, cy = origin.y;
+
+  // Anti-overlap: each text value is nudged radially outward from Madise
+  // until it clears every label already placed this frame — so the sun
+  // and moon values never sit on top of each other when their bearings
+  // (or rise/set azimuths) happen to coincide. Order of placement =
+  // priority: wind, then sun, then moon (moon yields).
+  var placedLabels = [];
+  function placeText(x, y, approxW){
+    var ax = x, ay = y, approxH = 14;
+    var dx = ax - cx, dy = ay - cy, d = Math.hypot(dx, dy) || 1;
+    var ux = dx / d, uy = dy / d;
+    for(var it = 0; it < 24; it++){
+      var clash = false;
+      for(var i = 0; i < placedLabels.length; i++){
+        var p = placedLabels[i];
+        if(Math.abs(ax - p.x) < (approxW + p.w) / 2 + 2 &&
+           Math.abs(ay - p.y) < (approxH + p.h) / 2 + 2){ clash = true; break; }
+      }
+      if(!clash) break;
+      ax += ux * 7; ay += uy * 7;
+    }
+    placedLabels.push({ x: ax, y: ay, w: approxW, h: approxH });
+    return { x: ax, y: ay };
+  }
+
+  // ── WIND arrow — head points AT Madise from where the wind comes
+  //    FROM; speed/gust label sits at the upwind tail. ──
+  if(RX.windDir !== null && RX.windSpeed !== null){
+    var arrowLen = Math.min(Math.max(W, H) * 0.25, 55 + RX.windSpeed * 7);
+    var tail = anglePx(RX.windDir, arrowLen, cx, cy);
+    var wx1 = tail.x.toFixed(1), wy1 = tail.y.toFixed(1),
+        wx2 = cx.toFixed(1),     wy2 = cy.toFixed(1);
+    parts.push('<line x1="'+wx1+'" y1="'+wy1+'" x2="'+wx2+'" y2="'+wy2+
+               '" stroke="'+WIND_HALO+'" stroke-width="3.2" stroke-linecap="round"/>');
+    parts.push('<line x1="'+wx1+'" y1="'+wy1+'" x2="'+wx2+'" y2="'+wy2+
+               '" stroke="'+WIND_COLOR+'" stroke-width="1.6" stroke-linecap="round" marker-end="url(#arr-wind)"/>');
+    var label = '<tspan font-weight="500">' + RX.windSpeed.toFixed(1) + '</tspan>';
+    var wTxt = RX.windSpeed.toFixed(1);
+    if(RX.windGust !== null && !isNaN(RX.windGust)){
+      label += '<tspan font-weight="700"> (' + RX.windGust.toFixed(1) + ')</tspan>';
+      wTxt += ' (' + RX.windGust.toFixed(1) + ')';
+    }
+    label += '<tspan font-weight="500"> m/s</tspan>';
+    wTxt += ' m/s';
+    var wlp = placeText(tail.x, tail.y, wTxt.length * 7);
+    parts.push('<text x="'+wlp.x.toFixed(1)+'" y="'+wlp.y.toFixed(1)+
+               '" font-family="ui-monospace, SF Mono, monospace" font-size="12"' +
+               ' fill="rgba(220,240,255,1)"' +
+               ' stroke="'+TEXT_HALO+'" stroke-width="3" paint-order="stroke"' +
+               ' text-anchor="middle" dominant-baseline="central">' + label + '</text>');
+  }
+
+  // ── SUN — full-day arc projected at constant horizon-distance ──
+  var sunRingR = Math.min(W, H) * 0.32;
+  if(typeof solarPosition === 'function' &&
+     TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null){
+    var samples = [];
+    var nowMs = Date.now();
+    for(var ts = TODAY_SUNRISE_MS; ts <= TODAY_SUNSET_MS; ts += 4 * 60 * 1000){
+      var sp = solarPosition(new Date(ts), CONFIG.lat, CONFIG.lng);
+      if(sp && typeof sp.azimuth === 'number' && sp.altitude > -1){
+        var pt = anglePx(sp.azimuth, sunRingR, cx, cy);
+        samples.push({ t: ts, x: pt.x, y: pt.y, az: sp.azimuth });
+      }
+    }
+    if(samples.length){
+      var srSp = solarPosition(new Date(TODAY_SUNRISE_MS), CONFIG.lat, CONFIG.lng);
+      var ssSp = solarPosition(new Date(TODAY_SUNSET_MS),  CONFIG.lat, CONFIG.lng);
+      var srPt = anglePx(srSp.azimuth, sunRingR, cx, cy);
+      var ssPt = anglePx(ssSp.azimuth, sunRingR, cx, cy);
+      samples.unshift({ t: TODAY_SUNRISE_MS, x: srPt.x, y: srPt.y, az: srSp.azimuth });
+      samples.push(   { t: TODAY_SUNSET_MS,  x: ssPt.x, y: ssPt.y, az: ssSp.azimuth });
+    }
+    var pastD = '', futD = '';
+    var curIdx = -1;
+    for(var i = 0; i < samples.length; i++){
+      if(samples[i].t <= nowMs) curIdx = i; else break;
+    }
+    var nowPt = null;
+    if(curIdx >= 0 && curIdx < samples.length - 1){
+      var a = samples[curIdx], b = samples[curIdx + 1];
+      var k = (nowMs - a.t) / (b.t - a.t);
+      nowPt = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
+    } else if(nowMs >= TODAY_SUNRISE_MS && nowMs <= TODAY_SUNSET_MS){
+      var sp2 = solarPosition(new Date(), CONFIG.lat, CONFIG.lng);
+      if(sp2 && sp2.altitude > 0){
+        var p2 = anglePx(sp2.azimuth, sunRingR, cx, cy);
+        nowPt = { x: p2.x, y: p2.y };
+      }
+    }
+    function ptStr(p, first){ return (first ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }
+    if(curIdx >= 0){
+      for(var i2 = 0; i2 <= curIdx; i2++) pastD += ptStr(samples[i2], i2 === 0) + ' ';
+      if(nowPt) pastD += ptStr(nowPt, false) + ' ';
+    }
+    var futStartIdx = curIdx + 1;
+    if(futStartIdx < samples.length){
+      var startedFut = false;
+      if(nowPt){ futD += ptStr(nowPt, true) + ' '; startedFut = true; }
+      for(var j = futStartIdx; j < samples.length; j++){
+        futD += ptStr(samples[j], !startedFut) + ' ';
+        startedFut = true;
+      }
+    }
+    if(pastD) parts.push('<path d="'+pastD+'" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>');
+    if(futD)  parts.push('<path d="'+futD+ '" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>');
+    if(pastD) parts.push('<path d="'+pastD+'" fill="none" stroke="'+SR_COLOR+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>');
+    if(futD)  parts.push('<path d="'+futD+ '" fill="none" stroke="rgba(233,167,107,0.45)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>');
+
+    function sunGlyph(kind, color){
+      var arrow = kind === 'rise'
+        ? '<path d="M11,9 L13,11 M11,9 L9,11 M11,9 L11,13" stroke="'+color+'" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+        : '<path d="M11,13 L13,11 M11,13 L9,11 M11,13 L11,9" stroke="'+color+'" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';
+      return '<svg x="-8" y="-8" width="16" height="16" viewBox="0 0 16 16" overflow="visible">' +
+        '<path d="M1,8 A5,5 0 0,1 11,8" fill="'+color+'" opacity="0.9"/>' +
+        '<line x1="6" y1="2" x2="6" y2="0.5" stroke="'+color+'" stroke-width="1.2" stroke-linecap="round"/>' +
+        '<line x1="2.4" y1="4.4" x2="1.3" y2="3.3" stroke="'+color+'" stroke-width="1.2" stroke-linecap="round"/>' +
+        '<line x1="9.6" y1="4.4" x2="10.7" y2="3.3" stroke="'+color+'" stroke-width="1.2" stroke-linecap="round"/>' +
+        '<line x1="0" y1="9" x2="14" y2="9" stroke="'+color+'" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>' +
+        arrow + '</svg>';
+    }
+    var srTime = (document.getElementById('sunrise-time') || {}).textContent || '';
+    var ssTime = (document.getElementById('sunset-time')  || {}).textContent || '';
+    if(srTime === '—') srTime = '';
+    if(ssTime === '—') ssTime = '';
+    function arcEndpoint(p, az, time, kind, color){
+      var outset = anglePx(az, sunRingR + 22, cx, cy);
+      parts.push('<g transform="translate('+(outset.x - 22).toFixed(1)+','+outset.y.toFixed(1)+')">' + sunGlyph(kind, color) + '</g>');
+      if(time){
+        var tp = placeText(outset.x, outset.y, time.length * 7);
+        parts.push('<text x="'+tp.x.toFixed(1)+'" y="'+tp.y.toFixed(1)+
+                   '" font-family="ui-monospace, SF Mono, monospace" font-size="12" font-weight="700"' +
+                   ' fill="rgba(255,235,210,1)"' +
+                   ' stroke="'+TEXT_HALO+'" stroke-width="3" paint-order="stroke"' +
+                   ' text-anchor="middle" dominant-baseline="central">'+time+'</text>');
+      }
+    }
+    if(samples.length){
+      arcEndpoint(samples[0], samples[0].az, srTime, 'rise', SR_COLOR);
+      arcEndpoint(samples[samples.length-1], samples[samples.length-1].az, ssTime, 'set', SS_COLOR);
+    }
+    if(nowPt){
+      parts.push('<circle cx="'+nowPt.x.toFixed(1)+'" cy="'+nowPt.y.toFixed(1)+'" r="14" fill="rgba(255,222,98,0.18)"/>');
+      parts.push('<circle cx="'+nowPt.x.toFixed(1)+'" cy="'+nowPt.y.toFixed(1)+'" r="7"  fill="rgba(0,0,0,0.55)"/>');
+      parts.push('<circle cx="'+nowPt.x.toFixed(1)+'" cy="'+nowPt.y.toFixed(1)+'" r="5.5" fill="'+SUN_COLOR+'"/>');
+      var spNow = solarPosition(new Date(), CONFIG.lat, CONFIG.lng);
+      if(spNow && typeof spNow.altitude === 'number'){
+        var altLbl = anglePx(spNow.azimuth, sunRingR + 22, cx, cy);
+        var sap = placeText(altLbl.x, altLbl.y, 28);
+        parts.push('<text x="'+sap.x.toFixed(1)+'" y="'+sap.y.toFixed(1)+
+                   '" font-family="ui-monospace, SF Mono, monospace" font-size="12" font-weight="700"' +
+                   ' fill="rgba(255,235,210,1)"' +
+                   ' stroke="'+TEXT_HALO+'" stroke-width="3" paint-order="stroke"' +
+                   ' text-anchor="middle" dominant-baseline="central">' +
+                   Math.round(spNow.altitude) + '°</text>');
+      }
+    }
+  }
+
+  // ── MOON arc — same arc radius as the sun, drawn in gray; only when
+  //    the moon is above the horizon at some point in the ±12 h window ──
+  var moonRingR = sunRingR;
+  if(typeof moonPosition === 'function'){
+    var MOON_COLOR     = 'rgba(205,210,220,0.95)';
+    var MOON_DIM_COLOR = 'rgba(205,210,220,0.45)';
+    var MOON_HALO      = 'rgba(0,0,0,0.55)';
+    var winStart = Date.now() - 12 * 3600 * 1000;
+    var winEnd   = Date.now() + 12 * 3600 * 1000;
+    var moonSamples = [];
+    for(var mt = winStart; mt <= winEnd; mt += 6 * 60 * 1000){
+      var mp = moonPosition(new Date(mt), CONFIG.lat, CONFIG.lng);
+      if(mp && typeof mp.azimuth === 'number' && mp.altitude > 0){
+        var mPt = anglePx(mp.azimuth, moonRingR, cx, cy);
+        moonSamples.push({ t: mt, x: mPt.x, y: mPt.y, az: mp.azimuth, alt: mp.altitude });
+      }
+    }
+    if(moonSamples.length >= 2){
+      var mPath = moonSamples.map(function(p, i){
+        return (i === 0 ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+      }).join(' ');
+      parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_HALO+'" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
+      parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_DIM_COLOR+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
+
+      // Gray half-moon-over-horizon glyph — the sun glyph without the rays.
+      function moonGlyph(kind, color){
+        var arrow = kind === 'rise'
+          ? '<path d="M11,9 L13,11 M11,9 L9,11 M11,9 L11,13" stroke="'+color+'" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+          : '<path d="M11,13 L13,11 M11,13 L9,11 M11,13 L11,9" stroke="'+color+'" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';
+        return '<svg x="-8" y="-8" width="16" height="16" viewBox="0 0 16 16" overflow="visible">' +
+          '<path d="M1,8 A5,5 0 0,1 11,8" fill="'+color+'" opacity="0.9"/>' +
+          '<line x1="0" y1="9" x2="14" y2="9" stroke="'+color+'" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>' +
+          arrow + '</svg>';
+      }
+      // Moonrise / moonset end-labels — same treatment as the sun's. Only
+      // shown at an endpoint that's a genuine horizon crossing (altitude
+      // near 0°); a high-altitude endpoint just means the ±12 h sampling
+      // window clipped the arc, not an actual rise/set. Times come from
+      // the sample timestamps so the label sits exactly at the arc end.
+      function moonEnd(s, kind){
+        if(s.alt > 6) return;
+        var outset = anglePx(s.az, moonRingR + 22, cx, cy);
+        parts.push('<g transform="translate('+(outset.x - 22).toFixed(1)+','+outset.y.toFixed(1)+')">' + moonGlyph(kind, MOON_COLOR) + '</g>');
+        var tm = (typeof formatTime === 'function') ? formatTime(new Date(s.t)) : '';
+        if(tm){
+          var tp = placeText(outset.x, outset.y, tm.length * 7);
+          parts.push('<text x="'+tp.x.toFixed(1)+'" y="'+tp.y.toFixed(1)+
+                     '" font-family="ui-monospace, SF Mono, monospace" font-size="12" font-weight="700"' +
+                     ' fill="rgba(225,230,242,1)"' +
+                     ' stroke="'+TEXT_HALO+'" stroke-width="3" paint-order="stroke"' +
+                     ' text-anchor="middle" dominant-baseline="central">'+tm+'</text>');
+        }
+      }
+      moonEnd(moonSamples[0], 'rise');
+      moonEnd(moonSamples[moonSamples.length - 1], 'set');
+
+      var mNow = moonPosition(new Date(), CONFIG.lat, CONFIG.lng);
+      if(mNow && mNow.altitude > 0){
+        var mNowPt = anglePx(mNow.azimuth, moonRingR, cx, cy);
+        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="11" fill="rgba(205,210,220,0.16)"/>');
+        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="5.5" fill="rgba(0,0,0,0.55)"/>');
+        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="4.2" fill="'+MOON_COLOR+'"/>');
+        var mLbl = anglePx(mNow.azimuth, moonRingR + 22, cx, cy);
+        var mlp = placeText(mLbl.x, mLbl.y, 28);
+        parts.push('<text x="'+mlp.x.toFixed(1)+'" y="'+mlp.y.toFixed(1)+
+                   '" font-family="ui-monospace, SF Mono, monospace" font-size="11" font-weight="700"' +
+                   ' fill="rgba(220,228,240,1)"' +
+                   ' stroke="'+TEXT_HALO+'" stroke-width="3" paint-order="stroke"' +
+                   ' text-anchor="middle" dominant-baseline="central">' +
+                   Math.round(mNow.altitude) + '°</text>');
+      }
+    }
+  }
+
+  svg.innerHTML = parts.join('');
+  updateWindParticles(cx, cy);
+}
+
+function updateWindParticles(cx, cy){
+  var psvg = document.getElementById('wind-particle-overlay');
+  var pg   = document.getElementById('wind-particle-group');
+  if(!psvg || !pg) return;
+  if(RX.windDir === null || RX.windSpeed === null || RX.windSpeed < 0.4){
+    psvg.style.display = 'none';
+    return;
+  }
+  psvg.style.display = '';
+  var blowDeg = (RX.windDir + 180) % 360;     // direction wind blows TO
+  pg.setAttribute('transform', 'translate(' + cx + ' ' + cy + ') rotate(' + blowDeg.toFixed(1) + ')');
+  var dur = Math.max(2.4, 14 / (1 + RX.windSpeed / 2.5));
+  pg.style.setProperty('--wind-dur', dur.toFixed(2) + 's');
+  for(var c = 0; c < pg.children.length; c++){
+    pg.children[c].style.animationDuration = dur.toFixed(2) + 's';
+  }
+}
+
+function updateWindOverlay(dir, speed, gust){
+  RX.windDir   = (dir   === null || isNaN(dir))   ? null : dir;
+  RX.windSpeed = (speed === null || isNaN(speed)) ? null : speed;
+  RX.windGust  = (gust  === undefined || gust === null || isNaN(gust)) ? null : gust;
+  drawOverlay();
+}
+function updateSunOverlays(){ drawOverlay(); }
 </script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 .DS_Store
 index_backup_pre_pwa.html
+# Local-only rollback snapshots of index.html (e.g. index_backup_pre_radar_*.html)
+index_backup_*.html
 .venv/
 shots/
 __pycache__/
