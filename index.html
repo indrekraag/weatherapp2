@@ -4782,7 +4782,7 @@ function drawOverlay(){
   }
 
   // ── SUN — full-day arc projected at constant horizon-distance ──
-  var sunRingR = Math.min(W, H) * 0.32;
+  var sunRingR = Math.min(W, H) * 0.256;
   if(typeof solarPosition === 'function' &&
      TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null){
     var samples = [];
