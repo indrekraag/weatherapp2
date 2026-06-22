@@ -1740,14 +1740,17 @@ body {
   pointer-events: none;
   overflow: visible;
 }
-#wind-particle-overlay { z-index: 399; }
-#map-overlay           { z-index: 400; }
+/* Leaflet's .leaflet-map-pane is itself z-index:400 (stacking context via
+ * its transform), so these overlays MUST sit above 400 or the tiles cover
+ * them. Particles below the sun/moon arcs; both above the map. */
+#wind-particle-overlay { z-index: 410; }
+#map-overlay           { z-index: 420; }
 
 @keyframes wind-drift {
-  0%   { transform: translateX(-480px); opacity: 0; }
-  12%  { opacity: 0.55; }
-  88%  { opacity: 0.55; }
-  100% { transform: translateX(480px);  opacity: 0; }
+  0%   { transform: translateX(calc(-1 * var(--wind-travel, 480px))); opacity: 0; }
+  12%  { opacity: 0.85; }
+  88%  { opacity: 0.85; }
+  100% { transform: translateX(var(--wind-travel, 480px));  opacity: 0; }
 }
 .wind-particle {
   animation-name: wind-drift;
@@ -4620,14 +4623,14 @@ function initRadarExtras(){
       psvg.id = 'wind-particle-overlay';
       var pg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       pg.id = 'wind-particle-group';
-      for(var i = 0; i < 14; i++){
+      for(var i = 0; i < 24; i++){
         var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         r.setAttribute('class', 'wind-particle');
-        r.setAttribute('width', '16');
-        r.setAttribute('height', '1.4');
-        r.setAttribute('rx', '0.7');
-        r.setAttribute('fill', 'rgba(150,210,250,0.75)');
-        r.setAttribute('x', '-8');
+        r.setAttribute('width', '22');
+        r.setAttribute('height', '1.8');
+        r.setAttribute('rx', '0.9');
+        r.setAttribute('fill', 'rgba(180,222,255,0.95)');
+        r.setAttribute('x', '-11');
         var y = (Math.random() - 0.5) * 520;
         r.setAttribute('y', y.toFixed(1));
         r.style.animationDelay = (-Math.random() * 8).toFixed(2) + 's';
@@ -4782,7 +4785,7 @@ function drawOverlay(){
   }
 
   // ── SUN — full-day arc projected at constant horizon-distance ──
-  var sunRingR = Math.min(W, H) * 0.256;
+  var sunRingR = Math.min(W, H) * 0.276;
   if(typeof solarPosition === 'function' &&
      TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null){
     var samples = [];
@@ -4893,7 +4896,8 @@ function drawOverlay(){
   //    from the REAL findMoonRiseSet() crossings, not the sampling-window
   //    edges (those land at the same clock time 24 h apart and produced a
   //    bogus duplicate "rise == set" label). ──
-  var moonRingR = sunRingR;
+  // Moon ring sits ~8% inside the sun ring so the two arcs don't overlap.
+  var moonRingR = Math.min(W, H) * 0.256;
   if(typeof moonPosition === 'function' && typeof findMoonRiseSet === 'function'){
     var MOON_COLOR     = 'rgba(205,210,220,0.95)';
     var MOON_DIM_COLOR = 'rgba(205,210,220,0.45)';
@@ -4998,12 +5002,33 @@ function updateWindParticles(cx, cy){
     return;
   }
   psvg.style.display = '';
-  var blowDeg = (RX.windDir + 180) % 360;     // direction wind blows TO
-  pg.setAttribute('transform', 'translate(' + cx + ' ' + cy + ') rotate(' + blowDeg.toFixed(1) + ')');
+  var blowDeg = (RX.windDir + 180) % 360;     // compass bearing wind blows TO
+  // SVG rotate(θ) aligns the drift axis (local +x) with screen angle θ
+  // measured from EAST; a compass azimuth θ points along rotate(θ−90).
+  // Without the −90 the stream flows 90° off the wind arrow.
+  pg.setAttribute('transform', 'translate(' + cx + ' ' + cy + ') rotate(' + (blowDeg - 90).toFixed(1) + ')');
   var dur = Math.max(2.4, 14 / (1 + RX.windSpeed / 2.5));
   pg.style.setProperty('--wind-dur', dur.toFixed(2) + 's');
-  for(var c = 0; c < pg.children.length; c++){
-    pg.children[c].style.animationDuration = dur.toFixed(2) + 's';
+
+  // Scale the particle field to the actual map so the stream fills the
+  // visible area at any rotation (the field was originally sized for the
+  // much larger iPad map). Travel ≈ map diagonal so dashes sweep right
+  // across; perpendicular spread covers the rotated band. Even spacing
+  // (stable per index) reads as parallel streamlines; randomised delays
+  // set at creation keep the flow continuous rather than synchronised.
+  var mapEl = document.getElementById('radar-map');
+  var W = mapEl ? mapEl.clientWidth  : 320;
+  var H = mapEl ? mapEl.clientHeight : 260;
+  var diag = Math.hypot(W, H);
+  var travel = Math.round(diag * 0.62);
+  var spread = diag * 1.06;
+  var kids = pg.children, n = kids.length;
+  for(var c = 0; c < n; c++){
+    var el = kids[c];
+    el.style.animationDuration = dur.toFixed(2) + 's';
+    el.style.setProperty('--wind-travel', travel + 'px');
+    var yy = ((c + 0.5) / n - 0.5) * spread;   // even perpendicular spread
+    el.setAttribute('y', yy.toFixed(1));
   }
 }
 
