@@ -249,9 +249,12 @@ App-layer session. Backup of the pre-radar `index.html` saved locally as
   - **SVG overlay** drawn inside the map div (`drawOverlay`): full-day **sun
     arc** (past solid amber / future dashed, glowing current-sun disc +
     altitude°, rise/set glyphs + times), **moon arc** (gray, same radius as
-    the sun, drawn only while the moon is above the horizon in the ±12 h
-    window; glowing disc + altitude° + moonrise/moonset glyphs & times when
-    up), **wind arrow** pointing AT Madise from upwind + a drifting
+    the sun): draws the current — or, when the moon is down, the next
+    upcoming — above-horizon pass, with rise/set glyphs + times from the
+    real `findMoonRiseSet()` crossings (NOT the sampling-window edges, which
+    sit at the same clock time 24 h apart and produced a bogus duplicate
+    "rise == set" label), plus a glowing disc + altitude° while the moon is
+    actually up. **wind arrow** pointing AT Madise from upwind + a drifting
     `wind-particle` stream + speed/gust label.
   - **Anti-overlap** (`placeText`): every value label is nudged radially
     outward until it clears already-placed labels (priority wind → sun →

@@ -4888,29 +4888,55 @@ function drawOverlay(){
     }
   }
 
-  // ── MOON arc — same arc radius as the sun, drawn in gray; only when
-  //    the moon is above the horizon at some point in the ±12 h window ──
+  // ── MOON arc — the current (or next upcoming) above-horizon pass,
+  //    drawn gray at the same radius as the sun. Rise/set markers come
+  //    from the REAL findMoonRiseSet() crossings, not the sampling-window
+  //    edges (those land at the same clock time 24 h apart and produced a
+  //    bogus duplicate "rise == set" label). ──
   var moonRingR = sunRingR;
-  if(typeof moonPosition === 'function'){
+  if(typeof moonPosition === 'function' && typeof findMoonRiseSet === 'function'){
     var MOON_COLOR     = 'rgba(205,210,220,0.95)';
     var MOON_DIM_COLOR = 'rgba(205,210,220,0.45)';
     var MOON_HALO      = 'rgba(0,0,0,0.55)';
-    var winStart = Date.now() - 12 * 3600 * 1000;
-    var winEnd   = Date.now() + 12 * 3600 * 1000;
-    var moonSamples = [];
-    for(var mt = winStart; mt <= winEnd; mt += 6 * 60 * 1000){
-      var mp = moonPosition(new Date(mt), CONFIG.lat, CONFIG.lng);
-      if(mp && typeof mp.azimuth === 'number' && mp.altitude > 0){
-        var mPt = anglePx(mp.azimuth, moonRingR, cx, cy);
-        moonSamples.push({ t: mt, x: mPt.x, y: mPt.y, az: mp.azimuth, alt: mp.altitude });
+
+    // Collect rise/set events across yesterday→tomorrow, sort + dedupe.
+    var mEvs = [];
+    for(var dd = -1; dd <= 1; dd++){
+      var mday = new Date(); mday.setDate(mday.getDate() + dd);
+      var mrs = findMoonRiseSet(mday, CONFIG.lat, CONFIG.lng);
+      if(mrs.rise) mEvs.push({ t: mrs.rise.getTime(), kind: 'rise' });
+      if(mrs.set)  mEvs.push({ t: mrs.set.getTime(),  kind: 'set'  });
+    }
+    mEvs.sort(function(a, b){ return a.t - b.t; });
+    var mDed = [];
+    mEvs.forEach(function(e){ if(!mDed.length || e.t - mDed[mDed.length-1].t > 120000) mDed.push(e); });
+
+    // Pick the pass we're in now, else the next one (rise → following set).
+    var nowM = Date.now(), segStart = null, segEnd = null;
+    for(var si = 0; si < mDed.length - 1; si++){
+      if(mDed[si].kind === 'rise' && mDed[si+1].kind === 'set' && mDed[si+1].t >= nowM){
+        segStart = mDed[si].t; segEnd = mDed[si+1].t; break;
       }
     }
-    if(moonSamples.length >= 2){
-      var mPath = moonSamples.map(function(p, i){
-        return (i === 0 ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
-      }).join(' ');
-      parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_HALO+'" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
-      parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_DIM_COLOR+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
+
+    if(segStart !== null && segEnd !== null && segEnd > segStart){
+      // Sample the pass for the arc (~120 points max)
+      var msamp = [];
+      var mstep = Math.max(4 * 60 * 1000, Math.round((segEnd - segStart) / 120));
+      for(var mt = segStart; mt <= segEnd; mt += mstep){
+        var mp = moonPosition(new Date(mt), CONFIG.lat, CONFIG.lng);
+        if(mp && mp.altitude > 0){
+          var mPt = anglePx(mp.azimuth, moonRingR, cx, cy);
+          msamp.push({ x: mPt.x, y: mPt.y });
+        }
+      }
+      if(msamp.length >= 2){
+        var mPath = msamp.map(function(p, i){
+          return (i === 0 ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+        }).join(' ');
+        parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_HALO+'" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
+        parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_DIM_COLOR+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
+      }
 
       // Gray half-moon-over-horizon glyph — the sun glyph without the rays.
       function moonGlyph(kind, color){
@@ -4922,16 +4948,12 @@ function drawOverlay(){
           '<line x1="0" y1="9" x2="14" y2="9" stroke="'+color+'" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>' +
           arrow + '</svg>';
       }
-      // Moonrise / moonset end-labels — same treatment as the sun's. Only
-      // shown at an endpoint that's a genuine horizon crossing (altitude
-      // near 0°); a high-altitude endpoint just means the ±12 h sampling
-      // window clipped the arc, not an actual rise/set. Times come from
-      // the sample timestamps so the label sits exactly at the arc end.
-      function moonEnd(s, kind){
-        if(s.alt > 6) return;
-        var outset = anglePx(s.az, moonRingR + 22, cx, cy);
+      // Real moonrise / moonset markers at their actual azimuths + times.
+      function moonMarker(t, kind){
+        var mp = moonPosition(new Date(t), CONFIG.lat, CONFIG.lng);
+        var outset = anglePx(mp.azimuth, moonRingR + 22, cx, cy);
         parts.push('<g transform="translate('+(outset.x - 22).toFixed(1)+','+outset.y.toFixed(1)+')">' + moonGlyph(kind, MOON_COLOR) + '</g>');
-        var tm = (typeof formatTime === 'function') ? formatTime(new Date(s.t)) : '';
+        var tm = (typeof formatTime === 'function') ? formatTime(new Date(t)) : '';
         if(tm){
           var tp = placeText(outset.x, outset.y, tm.length * 7);
           parts.push('<text x="'+tp.x.toFixed(1)+'" y="'+tp.y.toFixed(1)+
@@ -4941,11 +4963,12 @@ function drawOverlay(){
                      ' text-anchor="middle" dominant-baseline="central">'+tm+'</text>');
         }
       }
-      moonEnd(moonSamples[0], 'rise');
-      moonEnd(moonSamples[moonSamples.length - 1], 'set');
+      moonMarker(segStart, 'rise');
+      moonMarker(segEnd,   'set');
 
+      // Current moon position — only while it's actually up in this pass.
       var mNow = moonPosition(new Date(), CONFIG.lat, CONFIG.lng);
-      if(mNow && mNow.altitude > 0){
+      if(mNow && mNow.altitude > 0 && nowM >= segStart && nowM <= segEnd){
         var mNowPt = anglePx(mNow.azimuth, moonRingR, cx, cy);
         parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="11" fill="rgba(205,210,220,0.16)"/>');
         parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="5.5" fill="rgba(0,0,0,0.55)"/>');
