@@ -4899,9 +4899,9 @@ function drawOverlay(){
   // Moon ring sits ~8% inside the sun ring so the two arcs don't overlap.
   var moonRingR = Math.min(W, H) * 0.256;
   if(typeof moonPosition === 'function' && typeof findMoonRiseSet === 'function'){
-    var MOON_COLOR     = 'rgba(205,210,220,0.95)';
-    var MOON_DIM_COLOR = 'rgba(205,210,220,0.45)';
-    var MOON_HALO      = 'rgba(0,0,0,0.55)';
+    var MOON_COLOR     = 'rgba(220,226,238,0.98)';
+    var MOON_DIM_COLOR = 'rgba(216,223,236,0.88)';   // brighter so the arc reads clearly
+    var MOON_HALO      = 'rgba(0,0,0,0.6)';
 
     // Collect rise/set events across yesterday→tomorrow, sort + dedupe.
     var mEvs = [];
@@ -4938,8 +4938,8 @@ function drawOverlay(){
         var mPath = msamp.map(function(p, i){
           return (i === 0 ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
         }).join(' ');
-        parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_HALO+'" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
-        parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_DIM_COLOR+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/>');
+        parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_HALO+'" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4"/>');
+        parts.push('<path d="'+mPath+'" fill="none" stroke="'+MOON_DIM_COLOR+'" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4"/>');
       }
 
       // Gray half-moon-over-horizon glyph — the sun glyph without the rays.
@@ -4974,9 +4974,9 @@ function drawOverlay(){
       var mNow = moonPosition(new Date(), CONFIG.lat, CONFIG.lng);
       if(mNow && mNow.altitude > 0 && nowM >= segStart && nowM <= segEnd){
         var mNowPt = anglePx(mNow.azimuth, moonRingR, cx, cy);
-        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="11" fill="rgba(205,210,220,0.16)"/>');
-        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="5.5" fill="rgba(0,0,0,0.55)"/>');
-        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="4.2" fill="'+MOON_COLOR+'"/>');
+        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="13" fill="rgba(216,223,236,0.28)"/>');
+        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="6.5" fill="rgba(0,0,0,0.6)"/>');
+        parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="5" fill="'+MOON_COLOR+'"/>');
         var mLbl = anglePx(mNow.azimuth, moonRingR + 22, cx, cy);
         var mlp = placeText(mLbl.x, mLbl.y, 28);
         parts.push('<text x="'+mlp.x.toFixed(1)+'" y="'+mlp.y.toFixed(1)+

@@ -265,9 +265,21 @@ App-layer session. Backup of the pre-radar `index.html` saved locally as
   - **Not ported:** the OWM "PILV" cloud button (needs an API key; hidden on
     the iPad too) and `syncRadarToForecast` (iPad-landscape-only; the phone
     box stays a fixed 260 px).
+- **Wind-stripe fixes (post-port):** the drifting `wind-particle` stream was
+  (1) invisible — `#wind-particle-overlay` was z-index 399, BELOW Leaflet's
+  `.leaflet-map-pane` (z-index 400 via its transform), so tiles covered it
+  (raised to 410 / arcs 420); (2) flowing 90° off — SVG `rotate(θ)` measures
+  from EAST so a compass azimuth needs `rotate(θ−90)` (verified drift bearing
+  matches wind to 0.0°); (3) sized for the iPad — only 1 of 24 fit the phone
+  map, so the field is now scaled to the map diagonal (`--wind-travel` + even
+  spread), denser (24) + brighter. Sun arc bumped to 0.276 / moon 0.256 so the
+  rings don't overlap.
+- **Moon arc** brightened (alpha 0.88, width 2.6, `6 4` dashes) so it reads
+  clearly against satellite tiles — matched on the iPad build.
 - Verified: both inline scripts `node --check` OK; orphan-ID check clean;
   Playwright render at 393×932 shows the satellite map + sun/moon/wind overlay
-  with **0 console errors**; label min-spacing ≥ 39 px (no overlap).
+  with **0 console errors**; label min-spacing ≥ 39 px (no overlap); wind
+  drift bearing 0.0° error across 6 directions.
 
 ## Recent changes (2026-06-08 — EMHI cron hardening, no more failure emails)
 
