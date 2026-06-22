@@ -64,6 +64,7 @@ All endpoints listed below are confirmed CORS-open from `indrekraag.github.io` *
   - Other DATEX endpoints under `/api/v1/datex/…` require auth (cookie-based) and have **no CORS** — only the ArcGIS REST endpoints are open.
 - **EMHI (Estonian Weather Service)** `ilmateenistus.ee/ilma_andmed/xml/observations.php` — **CORS-closed, Cloudflare-bot-protected**. We bridge it via GitHub Actions (see Architecture below). Has 152 stations including Lääne-Nigula (WMO 26124), Haapsalu (26123), and many more.
 - **MeteoAlarm** `feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-estonia` — Pan-European warning aggregator, CAP/ATOM format. **CORS-closed** — same GH Actions bridge. (Tip: Accept header must be `*/*` — strict `application/atom+xml` returns 406.)
+- **Elering** `dashboard.elering.ee/api/nps/price?start=…&end=…` — Nord Pool day-ahead electricity spot price, EE bidding zone (`data.ee[]`, €/MWh **ex-VAT**, now 15-min resolution). Free, no key. **CORS-closed** → same GH Actions bridge (`scripts/fetch_nps.py` → `data/nps.json`). The PWA converts to snt/kWh incl VAT client-side. (elektrikell.ee resells the same data via its own private `gridio.energy` backend — not usable directly.)
 - **Local astronomy** — sun rise/set + altitude/azimuth via Meeus simplified algorithm; moon ecliptic position via leading-term Brown lunar theory; moonrise/set by iterating 10-min altitude crossings.
 
 If you ever want raw EMHI station readings without going through our bridge, you can run `python3 scripts/fetch_emhi.py` locally — it writes `data/emhi.json` (gitignored).
@@ -222,6 +223,34 @@ print('orphans:', sorted(refs - ids))"
 **Status:** `index.html` is now a fully-external redesign (`redesign_90`, `6a67369`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html` or `~/Downloads/madise-redesign_{N}.html` — both numbering styles in use). As of 2026-05-31 the JS render layer **has** been read/edited (icon + rain-threshold work, see below) — confirmed the file is a fully functional app (~4150 lines, single main `<script>` block). Key render fns: `currentSkyText`, `weatherCodeToSVG`, `skyIconSVG`, `renderPrecipTypes`, `renderDaily`. `renderHourly` is an **empty stub** ("hourly-strip removed — now bar charts in forecast-card"), so the hourly weather-symbol surface is the 3-hourly **precip-type row** (`renderPrecipTypes`). **2026-05-31/06-01:** added a tappable **7-day → day-detail bottom sheet** (`openDaySheet`/`_buildDayPanel`/`_hourSliceForDay`/`_wireSparkTap`, `WX_LAST` global) — see Recent changes — plus precip-aware icons (`skyIconSVG` + `RAIN_MIN_MM`) and the Erik Flowers glyph set. HEAD `fb0fc0e`. The old CSS-class conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`) are stale; the CSS layer is still un-audited. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
+
+## Recent changes (2026-06-22 — electricity price card)
+
+New **"Elektri hind"** card at the bottom of the dashboard (under the
+radar) showing Nord Pool day-ahead spot price for the EE zone.
+
+- **Bridge:** `scripts/fetch_nps.py` pulls Elering, averages the 15-min
+  points into hourly UTC buckets, writes `data/nps.json`
+  (`{vat_pct, prices:[{ts, eur_mwh}]}`, €/MWh ex-VAT). Folded into the
+  EMHI workflow (`emhi.yml`) — renamed step ids `fetch`/`nps`, push gated
+  on `fetch.wrote || nps.wrote`, and the push now **seeds from the
+  existing data branch** and overlays only the freshly-written files so a
+  soft-fail on one feed keeps the other's last-good (a plain force-push of
+  a fresh orphan branch would have dropped it).
+- **Card:** `fetchNps()` (local `data/nps.json` then the raw GitHub copy,
+  like EMHI) → `renderNps()`. Custom gridded chart (NOT renderSpark): a
+  left **Y-axis scale + horizontal gridlines** (`#price-grid`), flex
+  **bars** (`#price-spark`) color-tiered by `priceBarColor`/`PRICE_STOPS`
+  (green → orange@10 → red@18 → purple@50, snt/kWh incl VAT), an hour
+  label under each bar (`#price-axis`), `Odavaim`/`Kalleim` of the
+  upcoming hours, and a "Hetkel:" current price. Window is **rolling: 3 h
+  past (dimmed) → all available upcoming hours** (today, +tomorrow once
+  Nord Pool publishes ~15:00 EET); missing future hours stop the chart
+  (no fabricated bars). `priceSnt()` = €/MWh ÷ 10 × (1+vat/100); VAT from
+  the feed's `vat_pct` (24). Refetch 15 min; hydrated from `wx.nps` cache.
+- Unit shown as **`s/kWh`**. Verified: Playwright render, 0 console errors.
+- TODO/next: mirror the card to the iPad build; optional "cheapest
+  upcoming window" finder; optional today/tomorrow toggle.
 
 ## Recent changes (2026-06-22 — Kurevere fix + radar widget upgrade)
 

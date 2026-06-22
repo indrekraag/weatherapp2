@@ -1847,6 +1847,47 @@ body {
   background: rgba(255,255,255,0.14);
 }
 
+/* ─── Electricity price card ──────────────────────────────────────
+ * Reuses the forecast .metric-spark bar system (next-24h hourly bars,
+ * current hour highlighted, color-tiered by price). */
+#price-card .card-header { align-items: baseline; }
+.price-now-wrap { display: flex; align-items: baseline; gap: 3px; }
+.price-now-label { font-size: 11px; color: rgba(255,255,255,0.55); margin-right: 2px; }
+.price-now { font-size: 22px; font-weight: 700; line-height: 1; }
+.price-unit { font-size: 11px; color: rgba(255,255,255,0.55); }
+
+/* Gridded price chart: a Y-axis/gridline layer behind a flex row of
+ * bars, with an hour axis below. 30px left gutter holds the snt/kWh
+ * scale labels. */
+.price-chart { position: relative; height: 96px; margin-top: 12px; padding-left: 30px; }
+.price-grid  { position: absolute; left: 30px; right: 0; top: 0; bottom: 0; pointer-events: none; }
+.price-gridline { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(255,255,255,0.10); }
+.price-gridline.zero { border-top-color: rgba(255,255,255,0.22); }
+.price-gridline > span {
+  position: absolute; right: calc(100% + 5px); top: 0; transform: translateY(-50%);
+  font-size: 9px; color: rgba(255,255,255,0.45); white-space: nowrap;
+}
+.price-bars { position: absolute; left: 30px; right: 0; top: 0; bottom: 0; display: flex; align-items: flex-end; gap: 3px; }
+.price-bars > span { flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0; }
+.price-bars > span.past { opacity: 0.45; }                 /* hours already elapsed */
+.price-bars > span.now { outline: 1.5px solid rgba(255,255,255,0.9); outline-offset: -1px; }
+/* Hour labels: one per bar, flex row aligned under the bars. */
+.price-axis { display: flex; gap: 3px; margin-left: 30px; margin-top: 4px; }
+.price-axis > span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 9px; color: rgba(255,255,255,0.45); }
+.price-axis > span.now { color: rgba(255,255,255,0.92); font-weight: 700; }
+
+.price-foot {
+  display: flex; justify-content: space-between;
+  margin-top: 12px;
+  font-size: 11px; color: rgba(255,255,255,0.6);
+}
+.price-foot b { color: rgba(255,255,255,0.9); font-weight: 600; }
+.price-status {
+  margin-top: 6px;
+  font-size: 10px; color: rgba(255,255,255,0.4);
+  letter-spacing: 0.2px;
+}
+
 
 /* ─── 7-day detail bottom sheet ───────────────────────────────────
  * Tap a day in the 7-day strip → glass bottom sheet, swipe between
@@ -2287,6 +2328,32 @@ body {
             </div>
           </div>
           <div class="radar-status" id="radar-status">Laen radaripilte…</div>
+        </div>
+
+        <!-- ELEKTRI HIND — Nord Pool day-ahead spot price (EE zone) via the
+             Elering bridge on the 'data' branch. Next-24h hourly bars reuse
+             the forecast sparkline system; current hour is highlighted. -->
+        <div class="glass card" id="price-card">
+          <div class="card-header">
+            <h2>Elektri hind</h2>
+            <div class="price-now-wrap">
+              <span class="price-now-label">Hetkel:</span>
+              <span class="price-now mono" id="price-now">—</span>
+              <span class="price-unit">s/kWh</span>
+            </div>
+          </div>
+          <!-- Chart: Y-axis gridlines layer behind, bars in front, hour
+               axis below. Built by renderNps() (today 00–24, snt/kWh). -->
+          <div class="price-chart">
+            <div class="price-grid" id="price-grid"></div>
+            <div class="price-bars" id="price-spark" aria-hidden="true"></div>
+          </div>
+          <div class="price-axis" id="price-axis"></div>
+          <div class="price-foot">
+            <span>Odavaim <b id="price-min">—</b></span>
+            <span>Kalleim <b id="price-max">—</b></span>
+          </div>
+          <div class="price-status" id="price-status">käibemaksuga · Nord Pool / Elering</div>
         </div>
 
         <div class="footer">
@@ -3624,6 +3691,123 @@ function fetchLaaneNigulaFrom(url, onFail){
 function fetchLaaneNigula(){
   fetchLaaneNigulaFrom(EMHI_LOCAL_URL, function(){ fetchLaaneNigulaFrom(EMHI_REMOTE_URL); });
 }
+
+/* ─── Electricity price feed (Elering bridge on the data branch) ───
+ * Same local-then-remote pattern as EMHI: data/nps.json for local dev,
+ * else the raw.githubusercontent.com copy the GH Actions cron writes. */
+var NPS_LOCAL_URL  = 'data/nps.json';
+var NPS_REMOTE_URL = 'https://raw.githubusercontent.com/indrekraag/weatherapp2/data/nps.json';
+function fetchNpsFrom(url, onFail){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.timeout = 10000;
+  xhr.onload = function(){
+    if(xhr.status !== 200){ if(onFail) onFail(); return; }
+    try{
+      var data = JSON.parse(xhr.responseText);
+      saveCache('wx.nps', data);
+      renderNps(data);
+    }catch(e){ if(onFail) onFail(); }
+  };
+  xhr.onerror   = function(){ if(onFail) onFail(); };
+  xhr.ontimeout = function(){ if(onFail) onFail(); };
+  xhr.send();
+}
+function fetchNps(){
+  fetchNpsFrom(NPS_LOCAL_URL, function(){ fetchNpsFrom(NPS_REMOTE_URL); });
+}
+function renderNps(data){
+  try{
+    var barsEl = byId('price-spark'), gridEl = byId('price-grid'), axisEl = byId('price-axis');
+    if(!barsEl) return;
+    var prices = (data && data.prices) || [];
+    if(!prices.length) return;
+    if(typeof data.vat_pct === 'number') NPS_VAT_PCT = data.vat_pct;
+    var byTs = {};
+    prices.forEach(function(p){ byTs[p.ts] = p.eur_mwh; });
+
+    // Rolling window: 3 h of context behind, then everything available
+    // ahead (today, plus tomorrow once Nord Pool publishes it ~15:00).
+    // Missing FUTURE hours stop the chart (no fabricated bars); missing
+    // past hours are just skipped.
+    var now = new Date();
+    var nowHourMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0).getTime();
+    var startMs = nowHourMs - 3 * 3600000;
+    var items = [];   // {date, snt, isNow, isPast}
+    for(var i = 0; i < 48; i++){
+      var d = new Date(startMs + i * 3600000);
+      var eur = byTs[Math.floor(d.getTime() / 1000)];
+      if(eur === undefined){
+        if(d.getTime() < nowHourMs) continue;   // missing past hour — skip
+        break;                                  // first missing future hour — stop
+      }
+      items.push({
+        date: d, snt: priceSnt(eur),
+        isNow:  d.getTime() === nowHourMs,
+        isPast: d.getTime() <  nowHourMs
+      });
+    }
+    if(items.length < 2) return;
+    var vals = items.map(function(x){ return x.snt; });
+    var maxV = Math.max.apply(null, vals);
+
+    // Nice Y scale + step for the gridlines/labels.
+    var step = maxV <= 10 ? 2 : maxV <= 20 ? 5 : maxV <= 60 ? 10 : 20;
+    var top = Math.max(step * 2, Math.ceil(maxV / step) * step);
+
+    // Gridlines + left-axis labels (s/kWh)
+    if(gridEl){
+      gridEl.innerHTML = '';
+      for(var y = 0; y <= top; y += step){
+        var line = document.createElement('div');
+        line.className = 'price-gridline' + (y === 0 ? ' zero' : '');
+        line.style.bottom = (y / top * 100) + '%';
+        var lab = document.createElement('span'); lab.textContent = y;
+        line.appendChild(lab);
+        gridEl.appendChild(line);
+      }
+    }
+
+    // Bars (color-tiered; past dimmed, current hour outlined) + one hour
+    // label under each bar. Thin labels to every 2nd when the window is
+    // long (tomorrow published) so they don't collide.
+    var labelEvery = items.length > 22 ? 2 : 1;
+    barsEl.innerHTML = '';
+    if(axisEl) axisEl.innerHTML = '';
+    items.forEach(function(x, idx){
+      var bar = document.createElement('span');
+      bar.style.height = Math.max(2, (x.snt / top) * 100) + '%';
+      var top2 = priceBarColor(x.snt);
+      var base = top2.replace(/[\d.]+\)$/, function(m){ return (parseFloat(m) * 0.30).toFixed(2) + ')'; });
+      bar.style.background = 'linear-gradient(180deg, ' + top2 + ' 0%, ' + base + ' 100%)';
+      bar.setAttribute('title', pad(x.date.getHours()) + ':00 · ' + x.snt.toFixed(1) + ' s/kWh');
+      bar.className = x.isNow ? 'now' : (x.isPast ? 'past' : '');
+      barsEl.appendChild(bar);
+      if(axisEl){
+        var s = document.createElement('span');
+        s.textContent = (x.isNow || idx % labelEvery === 0) ? pad(x.date.getHours()) : '';
+        if(x.isNow) s.className = 'now';
+        axisEl.appendChild(s);
+      }
+    });
+
+    // Current price (big) + cheapest/priciest among UPCOMING hours
+    var nowItem = items.filter(function(x){ return x.isNow; })[0];
+    var nowEl = byId('price-now');
+    if(nowEl && nowItem){
+      nowEl.textContent = nowItem.snt.toFixed(1);
+      nowEl.style.color = priceBarColor(nowItem.snt).replace(/[\d.]+\)$/, '1)');
+    }
+    var future = items.filter(function(x){ return !x.isPast; });
+    if(future.length){
+      var minH = future.reduce(function(a, b){ return b.snt < a.snt ? b : a; });
+      var maxH = future.reduce(function(a, b){ return b.snt > a.snt ? b : a; });
+      if(byId('price-min')) byId('price-min').textContent = pad(minH.date.getHours()) + ':00 · ' + minH.snt.toFixed(1);
+      if(byId('price-max')) byId('price-max').textContent = pad(maxH.date.getHours()) + ':00 · ' + maxH.snt.toFixed(1);
+    }
+    if(byId('price-status')) byId('price-status').textContent = 's/kWh · käibemaksuga (' + NPS_VAT_PCT + '%) · Nord Pool / Elering';
+  }catch(e){ console.warn('renderNps error', e); }
+}
 function fetchKurevere(){
   // Request all fields (*) so we can see what the API actually returns
   // if the named fields have changed. Log the first feature attributes.
@@ -4027,6 +4211,34 @@ function niceMax(max, unit){
   return Math.ceil(max);
 }
 
+/* ─── Electricity price (Nord Pool / Elering) ─────────────────────
+ * Color stops in snt/kWh INCLUDING VAT, calibrated for Estonian spot
+ * prices: near-free green → expensive red. */
+var NPS_VAT_PCT = 24;   // replaced by the feed's vat_pct when present
+var PRICE_STOPS = [
+  { v:  0, c: [ 70, 200, 120, 0.90] }, /* free / near-zero — green   */
+  { v:  5, c: [140, 205,  80, 0.90] }, /* cheap — yellow-green       */
+  { v: 10, c: [240, 160,  45, 0.95] }, /* moderate — orange (from 10)*/
+  { v: 18, c: [228,  70,  50, 1.00] }, /* pricey — red (from 18)     */
+  { v: 35, c: [200,  40,  60, 1.00] }, /* expensive — deep red       */
+  { v: 50, c: [150,  60, 205, 1.00] }, /* very expensive — purple    */
+  { v: 90, c: [120,  45, 175, 1.00] }, /* extreme — deep purple      */
+];
+function priceBarColor(snt){
+  var s = PRICE_STOPS;
+  if(snt <= s[0].v) return rgbaStr(s[0].c);
+  if(snt >= s[s.length-1].v) return rgbaStr(s[s.length-1].c);
+  for(var i = 1; i < s.length; i++){
+    if(snt <= s[i].v){
+      var t = (snt - s[i-1].v) / (s[i].v - s[i-1].v);
+      return rgbaStr(lerpColor(s[i-1].c, s[i].c, t));
+    }
+  }
+  return rgbaStr(s[s.length-1].c);
+}
+/* €/MWh (ex-VAT, as the feed stores it) → snt/kWh incl VAT */
+function priceSnt(eur_mwh){ return eur_mwh / 10 * (1 + NPS_VAT_PCT / 100); }
+
 function renderSpark(elId, data, opts){
   var el = byId(elId);
   if(!el || !data || !data.length) return;
@@ -4291,6 +4503,8 @@ function hydrateFromCache(){
   if(k) renderKurevere(k.data);
   var l = loadCache('wx.laanenigula');
   if(l){ renderLaaneNigula(l.data); renderHaapsalu(l.data); }
+  var np = loadCache('wx.nps');
+  if(np) renderNps(np.data);
 }
 hydrateFromCache();
 
@@ -4328,6 +4542,10 @@ fetchKurevere();
 setInterval(fetchKurevere, 5 * 60 * 1000);
 fetchLaaneNigula();
 setInterval(fetchLaaneNigula, 5 * 60 * 1000);
+fetchNps();
+// Day-ahead prices only change once a day; the 15-min refetch is mainly
+// to roll the highlighted "now" bar onto the current hour.
+setInterval(fetchNps, 15 * 60 * 1000);
 
 /* ─── Hourly hard reload ──────────────────────────────────────────
  * Reloads the page once per hour so any code deployments are picked
