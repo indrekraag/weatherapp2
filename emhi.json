@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-07-03T07:55:31+00:00",
-  "fetched_at": "2026-07-03T07:55:31.440314+00:00",
+  "observation_time": "2026-07-03T10:27:42+00:00",
+  "fetched_at": "2026-07-03T10:27:42.365976+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,17 +12,17 @@
       "phenomenon": "Cloudy with clear spells",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1003.5,
-      "relativehumidity": 87.6,
-      "airtemperature": 18.2,
-      "winddirection": 164.0,
-      "windspeed": 4.6,
-      "windspeedmax": 7.1,
+      "airpressure": 1003.2,
+      "relativehumidity": 63.5,
+      "airtemperature": 21.5,
+      "winddirection": 191.0,
+      "windspeed": 5.1,
+      "windspeedmax": 6.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 31.0,
+      "sunshineduration": 95.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,21 +33,30 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1003.3,
-      "relativehumidity": 84.5,
-      "airtemperature": 19.2,
-      "winddirection": 173.0,
-      "windspeed": 2.1,
-      "windspeedmax": 3.9,
+      "airpressure": 1003.2,
+      "relativehumidity": 82.2,
+      "airtemperature": 19.1,
+      "winddirection": 168.0,
+      "windspeed": 2.6,
+      "windspeedmax": 4.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 2.2,
+      "uvindex": 1.8,
       "sunshineduration": null,
-      "globalradiation": 265.554
+      "globalradiation": 410.24
     }
   },
   "warnings": [
+    {
+      "event": "Thunderstorms Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-07-04T09:00:00+00:00",
+      "expires": "2026-07-04T19:00:00+00:00",
+      "urgency": "Expected",
+      "certainty": "Likely"
+    },
     {
       "event": "Thunderstorms Level 1",
       "severity": "Moderate",
