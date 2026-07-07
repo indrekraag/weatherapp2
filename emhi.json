@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-07-07T18:17:27+00:00",
-  "fetched_at": "2026-07-07T18:17:27.469092+00:00",
+  "observation_time": "2026-07-07T20:21:24+00:00",
+  "fetched_at": "2026-07-07T20:21:24.533975+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,12 +12,12 @@
       "phenomenon": "Cloudy with clear spells",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 996.0,
-      "relativehumidity": 83.5,
-      "airtemperature": 14.0,
-      "winddirection": 48.0,
-      "windspeed": 1.1,
-      "windspeedmax": 1.3,
+      "airpressure": 995.5,
+      "relativehumidity": 80.8,
+      "airtemperature": 13.1,
+      "winddirection": 70.0,
+      "windspeed": 2.9,
+      "windspeedmax": 3.7,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,21 +33,31 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 995.8,
-      "relativehumidity": 75.5,
-      "airtemperature": 14.6,
-      "winddirection": 79.0,
-      "windspeed": 1.8,
-      "windspeedmax": 2.4,
+      "airpressure": 995.5,
+      "relativehumidity": 84.0,
+      "airtemperature": 13.1,
+      "winddirection": 75.0,
+      "windspeed": 2.3,
+      "windspeedmax": 3.1,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": 0.0,
       "sunshineduration": null,
-      "globalradiation": 29.791
+      "globalradiation": -2.82
     }
   },
-  "warnings": [],
+  "warnings": [
+    {
+      "event": "Rain Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-07-08T19:00:00+00:00",
+      "expires": "2026-07-09T08:00:00+00:00",
+      "urgency": "Future",
+      "certainty": "Likely"
+    }
+  ],
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
     "Lääne county",
