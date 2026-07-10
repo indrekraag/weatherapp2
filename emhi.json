@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-07-10T11:31:40+00:00",
-  "fetched_at": "2026-07-10T11:31:41.267470+00:00",
+  "observation_time": "2026-07-10T13:33:23+00:00",
+  "fetched_at": "2026-07-10T13:33:23.745745+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,17 +12,17 @@
       "phenomenon": "Cloudy with clear spells",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1016.3,
-      "relativehumidity": 62.5,
-      "airtemperature": 20.5,
-      "winddirection": 66.0,
-      "windspeed": 2.8,
-      "windspeedmax": 4.0,
+      "airpressure": 1016.7,
+      "relativehumidity": 60.5,
+      "airtemperature": 20.9,
+      "winddirection": 51.0,
+      "windspeed": 2.2,
+      "windspeedmax": 3.7,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 406.0,
+      "sunshineduration": 444.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,28 +33,28 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1016.3,
-      "relativehumidity": 61.6,
-      "airtemperature": 20.6,
-      "winddirection": 75.0,
-      "windspeed": 2.4,
-      "windspeedmax": 3.3,
+      "airpressure": 1016.7,
+      "relativehumidity": 56.3,
+      "airtemperature": 22.2,
+      "winddirection": 35.0,
+      "windspeed": 2.1,
+      "windspeedmax": 3.9,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 1.8,
+      "uvindex": 2.2,
       "sunshineduration": null,
-      "globalradiation": 348.591
+      "globalradiation": 502.383
     }
   },
   "warnings": [
     {
-      "event": "Thunderstorms Level 1",
-      "severity": "Moderate",
+      "event": "Thunderstorms Level 2",
+      "severity": "Severe",
       "areaDesc": "Lääne county",
-      "onset": "2026-07-11T11:00:00+00:00",
-      "expires": "2026-07-11T19:00:00+00:00",
-      "urgency": "Future",
+      "onset": "2026-07-11T12:00:00+00:00",
+      "expires": "2026-07-11T20:00:00+00:00",
+      "urgency": "Expected",
       "certainty": "Likely"
     }
   ],
