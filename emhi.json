@@ -1,28 +1,28 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-07-11T14:43:57+00:00",
-  "fetched_at": "2026-07-11T14:43:57.404538+00:00",
+  "observation_time": "2026-07-11T15:37:11+00:00",
+  "fetched_at": "2026-07-11T15:37:12.191756+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
       "wmocode": "26124",
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
-      "phenomenon": "Clear",
+      "phenomenon": "Cloudy with clear spells",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1013.7,
-      "relativehumidity": 66.2,
-      "airtemperature": 24.6,
-      "winddirection": 21.0,
-      "windspeed": 5.6,
-      "windspeedmax": 7.9,
+      "airpressure": 1014.0,
+      "relativehumidity": 72.1,
+      "airtemperature": 23.3,
+      "winddirection": 28.0,
+      "windspeed": 3.8,
+      "windspeedmax": 5.0,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 413.0,
+      "sunshineduration": 430.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,21 +33,30 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1013.9,
-      "relativehumidity": 71.3,
-      "airtemperature": 24.1,
-      "winddirection": 38.0,
-      "windspeed": 4.8,
-      "windspeedmax": 7.6,
+      "airpressure": 1014.1,
+      "relativehumidity": 73.7,
+      "airtemperature": 23.5,
+      "winddirection": 34.0,
+      "windspeed": 3.0,
+      "windspeedmax": 4.8,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 2.2,
+      "uvindex": 0.6,
       "sunshineduration": null,
-      "globalradiation": 528.373
+      "globalradiation": 471.331
     }
   },
   "warnings": [
+    {
+      "event": "Thunderstorms Level 2",
+      "severity": "Severe",
+      "areaDesc": "Lääne county",
+      "onset": "2026-07-11T12:00:00+00:00",
+      "expires": "2026-07-11T21:00:00+00:00",
+      "urgency": "Immediate",
+      "certainty": "Observed"
+    },
     {
       "event": "Thunderstorms Level 1",
       "severity": "Moderate",
@@ -56,15 +65,6 @@
       "expires": "2026-07-12T20:00:00+00:00",
       "urgency": "Expected",
       "certainty": "Possible"
-    },
-    {
-      "event": "Thunderstorms Level 2",
-      "severity": "Severe",
-      "areaDesc": "Lääne county",
-      "onset": "2026-07-11T12:00:00+00:00",
-      "expires": "2026-07-11T20:00:00+00:00",
-      "urgency": "Expected",
-      "certainty": "Likely"
     }
   ],
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
