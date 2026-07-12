@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-07-12T01:03:26+00:00",
-  "fetched_at": "2026-07-12T01:03:26.689523+00:00",
+  "observation_time": "2026-07-12T04:35:51+00:00",
+  "fetched_at": "2026-07-12T04:35:51.446246+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,19 +10,19 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Clear",
-      "visibility": 32.0,
+      "visibility": 35.0,
       "precipitations": 0.0,
-      "airpressure": 1016.4,
-      "relativehumidity": 95.1,
-      "airtemperature": 16.4,
-      "winddirection": 42.0,
-      "windspeed": 2.6,
-      "windspeedmax": 3.4,
+      "airpressure": 1016.5,
+      "relativehumidity": 88.8,
+      "airtemperature": 18.2,
+      "winddirection": 44.0,
+      "windspeed": 1.1,
+      "windspeedmax": 1.8,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 0.0,
+      "sunshineduration": 137.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1016.4,
-      "relativehumidity": 95.3,
-      "airtemperature": 17.4,
-      "winddirection": 34.0,
-      "windspeed": 1.4,
-      "windspeedmax": 2.4,
+      "airpressure": 1016.7,
+      "relativehumidity": 88.6,
+      "airtemperature": 18.2,
+      "winddirection": 62.0,
+      "windspeed": 2.3,
+      "windspeedmax": 3.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": null,
+      "uvindex": 0.6,
       "sunshineduration": null,
-      "globalradiation": -2.014
+      "globalradiation": 133.603
     }
   },
   "warnings": [
@@ -53,9 +53,9 @@
       "severity": "Moderate",
       "areaDesc": "Lääne county",
       "onset": "2026-07-12T09:00:00+00:00",
-      "expires": "2026-07-12T20:00:00+00:00",
+      "expires": "2026-07-12T18:00:00+00:00",
       "urgency": "Expected",
-      "certainty": "Possible"
+      "certainty": "Likely"
     }
   ],
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
