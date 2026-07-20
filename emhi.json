@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-07-20T16:12:30+00:00",
-  "fetched_at": "2026-07-20T16:12:30.613134+00:00",
+  "observation_time": "2026-07-20T18:18:29+00:00",
+  "fetched_at": "2026-07-20T18:18:29.659584+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,12 +12,12 @@
       "phenomenon": "Cloudy with clear spells",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1012.6,
-      "relativehumidity": 70.6,
-      "airtemperature": 16.5,
-      "winddirection": 45.0,
-      "windspeed": 3.9,
-      "windspeedmax": 5.6,
+      "airpressure": 1012.4,
+      "relativehumidity": 70.9,
+      "airtemperature": 16.0,
+      "winddirection": 42.0,
+      "windspeed": 5.8,
+      "windspeedmax": 8.0,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1012.7,
-      "relativehumidity": 66.8,
-      "airtemperature": 16.9,
-      "winddirection": 59.0,
-      "windspeed": 6.4,
-      "windspeedmax": 9.1,
+      "airpressure": 1012.5,
+      "relativehumidity": 69.0,
+      "airtemperature": 16.4,
+      "winddirection": 60.0,
+      "windspeed": 6.5,
+      "windspeedmax": 8.3,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.3,
+      "uvindex": 0.0,
       "sunshineduration": null,
-      "globalradiation": 96.775
+      "globalradiation": 36.279
     }
   },
   "warnings": [
@@ -53,8 +53,8 @@
       "severity": "Moderate",
       "areaDesc": "Lääne county",
       "onset": "2026-07-20T18:00:00+00:00",
-      "expires": "2026-07-21T18:00:00+00:00",
-      "urgency": "Expected",
+      "expires": "2026-07-21T14:00:00+00:00",
+      "urgency": "Immediate",
       "certainty": "Likely"
     }
   ],
