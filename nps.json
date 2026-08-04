@@ -1,22 +1,10 @@
 {
   "source": "Elering / Nord Pool day-ahead (EE)",
   "source_url": "https://dashboard.elering.ee/api/nps/price",
-  "fetched_at": "2026-08-04T12:23:22+00:00",
+  "fetched_at": "2026-08-04T14:57:14+00:00",
   "vat_pct": 24,
   "currency_note": "eur_mwh excludes VAT; snt/kWh = eur_mwh/10, then * (1+vat/100)",
   "prices": [
-    {
-      "ts": 1785754800,
-      "eur_mwh": 14.07
-    },
-    {
-      "ts": 1785758400,
-      "eur_mwh": 15.62
-    },
-    {
-      "ts": 1785762000,
-      "eur_mwh": 20.25
-    },
     {
       "ts": 1785765600,
       "eur_mwh": 22.14
