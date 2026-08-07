@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-08-07T12:26:33+00:00",
-  "fetched_at": "2026-08-07T12:26:34.215824+00:00",
+  "observation_time": "2026-08-07T13:47:18+00:00",
+  "fetched_at": "2026-08-07T13:47:18.834865+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,17 +12,17 @@
       "phenomenon": "Light shower",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1010.2,
-      "relativehumidity": 75.6,
-      "airtemperature": 19.9,
-      "winddirection": 275.0,
-      "windspeed": 5.2,
-      "windspeedmax": 7.2,
+      "airpressure": 1010.8,
+      "relativehumidity": 62.6,
+      "airtemperature": 19.8,
+      "winddirection": 260.0,
+      "windspeed": 8.0,
+      "windspeedmax": 10.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 298.0,
+      "sunshineduration": 371.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1010.5,
-      "relativehumidity": 64.6,
-      "airtemperature": 20.3,
-      "winddirection": 273.0,
-      "windspeed": 6.2,
-      "windspeedmax": 8.5,
+      "airpressure": 1011.1,
+      "relativehumidity": 62.1,
+      "airtemperature": 20.6,
+      "winddirection": 275.0,
+      "windspeed": 5.6,
+      "windspeedmax": 7.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 4.6,
+      "uvindex": 3.0,
       "sunshineduration": null,
-      "globalradiation": 491.353
+      "globalradiation": 558.378
     }
   },
   "warnings": [
