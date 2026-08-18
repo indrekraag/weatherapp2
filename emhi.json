@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-08-18T11:47:32+00:00",
-  "fetched_at": "2026-08-18T11:47:32.620939+00:00",
+  "observation_time": "2026-08-18T12:25:48+00:00",
+  "fetched_at": "2026-08-18T12:25:48.835200+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -13,16 +13,16 @@
       "visibility": 50.0,
       "precipitations": 0.0,
       "airpressure": 1002.4,
-      "relativehumidity": 52.0,
-      "airtemperature": 19.1,
-      "winddirection": 297.0,
-      "windspeed": 4.0,
-      "windspeedmax": 5.1,
+      "relativehumidity": 49.6,
+      "airtemperature": 19.4,
+      "winddirection": 301.0,
+      "windspeed": 2.4,
+      "windspeedmax": 4.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 374.0,
+      "sunshineduration": 414.0,
       "globalradiation": null
     },
     "26123": {
@@ -34,17 +34,17 @@
       "visibility": null,
       "precipitations": 0.0,
       "airpressure": 1002.6,
-      "relativehumidity": 46.1,
-      "airtemperature": 19.1,
-      "winddirection": 326.0,
-      "windspeed": 2.6,
-      "windspeedmax": 4.3,
+      "relativehumidity": 46.7,
+      "airtemperature": 19.5,
+      "winddirection": 323.0,
+      "windspeed": 2.7,
+      "windspeedmax": 4.5,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 4.2,
+      "uvindex": 3.7,
       "sunshineduration": null,
-      "globalradiation": 717.902
+      "globalradiation": 694.255
     }
   },
   "warnings": [],
