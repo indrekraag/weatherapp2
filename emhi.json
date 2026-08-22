@@ -1,22 +1,22 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-08-22T06:22:55+00:00",
-  "fetched_at": "2026-08-22T06:22:55.810634+00:00",
+  "observation_time": "2026-08-22T07:07:44+00:00",
+  "fetched_at": "2026-08-22T07:07:44.879118+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
       "wmocode": "26124",
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
-      "phenomenon": "Fog",
-      "visibility": 10.0,
+      "phenomenon": "Cloudy with clear spells",
+      "visibility": 9.0,
       "precipitations": 0.0,
       "airpressure": 1006.7,
       "relativehumidity": 100.0,
-      "airtemperature": 15.4,
-      "winddirection": 81.0,
-      "windspeed": 1.7,
+      "airtemperature": 15.6,
+      "winddirection": 82.0,
+      "windspeed": 2.0,
       "windspeedmax": 2.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1006.8,
-      "relativehumidity": 99.8,
-      "airtemperature": 15.5,
-      "winddirection": 84.0,
-      "windspeed": 2.2,
-      "windspeedmax": 2.7,
+      "airpressure": 1006.7,
+      "relativehumidity": 97.7,
+      "airtemperature": 16.3,
+      "winddirection": 62.0,
+      "windspeed": 1.6,
+      "windspeedmax": 2.3,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.6,
+      "uvindex": 1.1,
       "sunshineduration": null,
-      "globalradiation": 131.633
+      "globalradiation": 180.328
     }
   },
   "warnings": [
@@ -91,15 +91,6 @@
       "onset": "2026-08-22T18:00:00+00:00",
       "expires": "2026-08-23T05:00:00+00:00",
       "urgency": "Future",
-      "certainty": "Likely"
-    },
-    {
-      "event": "Fog Level 1",
-      "severity": "Moderate",
-      "areaDesc": "Lääne county",
-      "onset": "2026-08-22T00:00:00+00:00",
-      "expires": "2026-08-22T07:00:00+00:00",
-      "urgency": "Expected",
       "certainty": "Likely"
     }
   ],
