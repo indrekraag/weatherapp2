@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-08-22T03:53:38+00:00",
-  "fetched_at": "2026-08-22T03:53:38.301632+00:00",
+  "observation_time": "2026-08-22T04:23:12+00:00",
+  "fetched_at": "2026-08-22T04:23:12.622791+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,14 +10,14 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Fog",
-      "visibility": 0.2,
+      "visibility": 0.3,
       "precipitations": 0.0,
-      "airpressure": 1008.0,
+      "airpressure": 1008.1,
       "relativehumidity": 100.0,
-      "airtemperature": 12.9,
-      "winddirection": 128.0,
-      "windspeed": 1.8,
-      "windspeedmax": 2.9,
+      "airtemperature": 13.1,
+      "winddirection": 131.0,
+      "windspeed": 1.6,
+      "windspeedmax": 2.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1007.8,
+      "airpressure": 1008.0,
       "relativehumidity": 100.0,
-      "airtemperature": 12.5,
-      "winddirection": 97.0,
-      "windspeed": 1.7,
-      "windspeedmax": 2.3,
+      "airtemperature": 12.8,
+      "winddirection": 133.0,
+      "windspeed": 0.9,
+      "windspeedmax": 2.0,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.1,
+      "uvindex": 0.2,
       "sunshineduration": null,
-      "globalradiation": -2.175
+      "globalradiation": 17.25
     }
   },
   "warnings": [
@@ -54,6 +54,15 @@
       "areaDesc": "Lääne county",
       "onset": "2026-08-22T16:00:00+00:00",
       "expires": "2026-08-23T09:00:00+00:00",
+      "urgency": "Future",
+      "certainty": "Likely"
+    },
+    {
+      "event": "Wind Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-08-23T04:00:00+00:00",
+      "expires": "2026-08-23T14:00:00+00:00",
       "urgency": "Future",
       "certainty": "Likely"
     },
