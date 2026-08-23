@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-08-23T01:02:05+00:00",
-  "fetched_at": "2026-08-23T01:02:05.965754+00:00",
+  "observation_time": "2026-08-23T02:35:55+00:00",
+  "fetched_at": "2026-08-23T02:35:55.900628+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,14 +10,14 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Moderate rain",
-      "visibility": 8.0,
-      "precipitations": 1.0,
-      "airpressure": 991.0,
-      "relativehumidity": 96.6,
-      "airtemperature": 14.3,
-      "winddirection": 338.0,
-      "windspeed": 6.1,
-      "windspeedmax": 9.3,
+      "visibility": 12.0,
+      "precipitations": 3.1,
+      "airpressure": 992.2,
+      "relativehumidity": 96.5,
+      "airtemperature": 14.5,
+      "winddirection": 334.0,
+      "windspeed": 4.9,
+      "windspeedmax": 7.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -32,19 +32,19 @@
       "longitude": 23.55527777777778,
       "phenomenon": null,
       "visibility": null,
-      "precipitations": 2.1,
-      "airpressure": 991.8,
-      "relativehumidity": 96.5,
-      "airtemperature": 14.7,
-      "winddirection": 342.0,
-      "windspeed": 9.4,
-      "windspeedmax": 14.3,
+      "precipitations": 4.2,
+      "airpressure": 993.0,
+      "relativehumidity": 96.8,
+      "airtemperature": 14.9,
+      "winddirection": 335.0,
+      "windspeed": 8.0,
+      "windspeedmax": 13.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": 0.0,
       "sunshineduration": null,
-      "globalradiation": -3.529
+      "globalradiation": -3.41
     }
   },
   "warnings": [
@@ -81,15 +81,6 @@
       "areaDesc": "Lääne county",
       "onset": "2026-08-22T16:00:00+00:00",
       "expires": "2026-08-23T09:00:00+00:00",
-      "urgency": "Future",
-      "certainty": "Likely"
-    },
-    {
-      "event": "Thunderstorms Level 1",
-      "severity": "Moderate",
-      "areaDesc": "Lääne county",
-      "onset": "2026-08-22T18:00:00+00:00",
-      "expires": "2026-08-23T05:00:00+00:00",
       "urgency": "Future",
       "certainty": "Likely"
     }
