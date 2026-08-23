@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-08-23T13:50:49+00:00",
-  "fetched_at": "2026-08-23T13:50:49.648605+00:00",
+  "observation_time": "2026-08-23T14:13:52+00:00",
+  "fetched_at": "2026-08-23T14:13:52.475675+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,14 +10,14 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Moderate shower",
-      "visibility": 47.0,
-      "precipitations": 1.7,
-      "airpressure": 1003.9,
-      "relativehumidity": 86.0,
-      "airtemperature": 15.9,
-      "winddirection": 307.0,
-      "windspeed": 4.6,
-      "windspeedmax": 6.3,
+      "visibility": 50.0,
+      "precipitations": 0.0,
+      "airpressure": 1004.5,
+      "relativehumidity": 82.6,
+      "airtemperature": 16.1,
+      "winddirection": 335.0,
+      "windspeed": 4.2,
+      "windspeedmax": 8.0,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1004.3,
-      "relativehumidity": 78.0,
-      "airtemperature": 17.0,
-      "winddirection": 320.0,
-      "windspeed": 4.6,
-      "windspeedmax": 10.2,
+      "airpressure": 1004.7,
+      "relativehumidity": 77.5,
+      "airtemperature": 17.2,
+      "winddirection": 312.0,
+      "windspeed": 5.5,
+      "windspeedmax": 7.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.8,
+      "uvindex": 0.4,
       "sunshineduration": null,
-      "globalradiation": 74.766
+      "globalradiation": 61.02
     }
   },
   "warnings": [
@@ -55,7 +55,7 @@
       "onset": "2026-08-23T13:00:00+00:00",
       "expires": "2026-08-23T21:00:00+00:00",
       "urgency": "Immediate",
-      "certainty": "Likely"
+      "certainty": "Observed"
     },
     {
       "event": "Rain Level 1",
