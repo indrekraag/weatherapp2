@@ -748,6 +748,18 @@ body {
   color: var(--fg-2);
   letter-spacing: 0.3px;
 }
+/* A station whose last reading is hours old. Nothing else here would give
+   it away — a frozen upstream returns 200 with a perfectly plausible
+   temperature, and this build reads tarktee directly, so this is the only
+   thing standing between a fossil and the screen. */
+.station.stale { opacity: 0.5; }
+.station.stale .station-temp { color: var(--fg-2); }
+.station-age {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--warn);
+  letter-spacing: 0.3px;
+}
 
 /* ─── CARD HEADER (used by hourly, 7-day, etc.) ──────────── */
 .card-header {
@@ -3437,11 +3449,44 @@ function renderStation(prefix, vals){
     if(we) we.textContent = w.toFixed(1);
   }
 }
+/* How old a station reading may get before the chip stops presenting it as
+   current. Also catches a stale localStorage rehydrate after the phone has
+   been offline or asleep for a while. */
+var STATION_STALE_AFTER_MIN = 6 * 60;
+
+/* Dim a station chip and label how old its reading is. ageMin === null
+   means fresh — the chip is restored to normal. Appends its own element
+   rather than rewriting .station-sub, which would destroy the value spans
+   renderStation() writes into. */
+function markStationStale(prefix, ageMin){
+  var block = byId(prefix + '-block');
+  if(!block) return;
+  var tag = block.querySelector('.station-age');
+  if(ageMin === null){
+    block.classList.remove('stale');
+    if(tag && tag.parentNode) tag.parentNode.removeChild(tag);
+    return;
+  }
+  block.classList.add('stale');
+  if(!tag){
+    tag = document.createElement('div');
+    tag.className = 'station-age mono';
+    block.appendChild(tag);
+  }
+  tag.textContent = ageMin < 60    ? Math.round(ageMin) + ' min vana'
+                  : ageMin < 1440  ? Math.round(ageMin / 60) + ' t vana'
+                                   : Math.round(ageMin / 1440) + ' p vana';
+}
+
 function renderKurevere(data){
   try{
     var feat = data && data.features && data.features[0];
     if(!feat || !feat.attributes) return;
     var a = feat.attributes;
+    /* measurement_time is epoch ms UTC straight from the ArcGIS layer. */
+    var ageMin = typeof a.measurement_time === 'number'
+      ? (Date.now() - a.measurement_time) / 60000 : null;
+    markStationStale('kv', (ageMin !== null && ageMin > STATION_STALE_AFTER_MIN) ? ageMin : null);
     // Confirmed fields from API: air_temp, precipitation_type (not intensity),
     // wind_speed and wind_dir may be named differently — try both variants
     var windVal = a.wind_speed !== undefined ? a.wind_speed
@@ -3810,11 +3855,23 @@ function renderNps(data){
 }
 function fetchKurevere(){
   // Request all fields (*) so we can see what the API actually returns
-  // if the named fields have changed. Log the first feature attributes.
-  // tarktee migrated mnt.ee → transpordiamet.ee (~2026-06-04). The old host
-  // 301-redirects, but its redirect response carries no CORS headers, so an
-  // in-browser cross-origin fetch breaks. Hit the new canonical host directly.
-  var url = 'https://tarktee.transpordiamet.ee/tarktee/rest/services/road_weather_stations/MapServer/0/query'
+  // if the named fields have changed.
+  //
+  // Two migrations have broken this URL now:
+  //   1. The host moved (mnt.ee → transpordiamet.ee, ~2026-06-04). The old
+  //      host 301-redirects, but its redirect carries no CORS headers, so
+  //      an in-browser cross-origin fetch breaks. Hit the new host directly.
+  //   2. The same day, every ROOT-level ArcGIS service stopped updating.
+  //      /rest/services/road_weather_stations still answers HTTP 200 — with
+  //      a reading frozen at 2026-06-04T18:00Z, as do all 116 stations, the
+  //      road cameras and the traffic detectors. The live data moved into
+  //      the `tram/` folder, which is what tarktee.ee's own map calls.
+  //      (Found 2026-09-18, after the chip had shown a 105-day-old
+  //      temperature for months. CORS is fine on the tram path too.)
+  //
+  // Hence the staleness check in renderKurevere(): a 200 is not evidence of
+  // live data. Only the reading's own measurement_time is.
+  var url = 'https://tarktee.transpordiamet.ee/tarktee/rest/services/tram/road_weather_stations/MapServer/0/query'
     + '?where=' + encodeURIComponent("site_name='Kurevere'")
     + '&outFields=*'
     + '&f=json';

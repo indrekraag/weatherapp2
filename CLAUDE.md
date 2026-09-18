@@ -59,8 +59,10 @@ All endpoints listed below are confirmed CORS-open from `indrekraag.github.io` *
   - `services.swpc.noaa.gov/products/solar-wind/mag-1-day.json` — solar wind interplanetary magnetic field (Bz is what we read)
   - NOTE: NOAA changed the planetary-k-index JSON shape from array-of-arrays to array-of-objects (see `renderAurora` / `renderKpForecast`).
 - **Estonian Transport Administration (tarktee.transpordiamet.ee) — ArcGIS REST**:
-  - `tarktee.transpordiamet.ee/tarktee/rest/services/road_weather_stations/MapServer/0/query?where=site_name='Kurevere'&outFields=*&f=json` — Kurevere road weather station (air_temp, road_temp, road_status, precipitation_type/intensity, wind_speed/dir, air_humidity, visibility, measurement_time)
-  - **NB:** tarktee migrated `mnt.ee → transpordiamet.ee` (~2026-06-04). The old host 301-redirects, but its redirect response carries **no CORS headers**, so an in-browser cross-origin fetch to the old URL breaks. Always use the new canonical host directly. (The new host *does* send `Access-Control-Allow-Origin`.)
+  - `tarktee.transpordiamet.ee/tarktee/rest/services/`**`tram/`**`road_weather_stations/MapServer/0/query?where=site_name='Kurevere'&outFields=*&f=json` — Kurevere road weather station (air_temp, road_temp, road_status, road_status_aggregate, grip_factor, precipitation_type/intensity, wind_speed/dir, air_humidity, visibility, measurement_time)
+  - **NB 1 — the `tram/` folder is mandatory.** The identically-named service at the *root* (`/rest/services/road_weather_stations/…`) is a **frozen 2026-06-04 snapshot that still answers HTTP 200**. On the day tarktee moved host it also stopped updating every root-level ArcGIS service — all 116 weather stations, the road cameras, the traffic detectors, all stuck at `2026-06-04T18:00Z`. The live layers live under `tram/`, which is what tarktee.ee's own map calls. Found 2026-09-18 after the chip had shown a 105-day-old temperature for months. CORS is open on the tram path too (verified in-browser, not just curl).
+  - **NB 2 — always check `measurement_time`.** A 200 is not evidence of live data here, and neither is the fact that *we* just fetched. `renderKurevere()` dims the chip and appends an age tag past 6 h (`STATION_STALE_AFTER_MIN`). This is the **only** guard in this build — unlike wa1 there is no bridge to catch it server-side.
+  - **NB 3:** tarktee migrated `mnt.ee → transpordiamet.ee` (~2026-06-04). The old host 301-redirects, but its redirect response carries **no CORS headers**, so an in-browser cross-origin fetch to the old URL breaks. Always use the new canonical host directly.
   - Other DATEX endpoints under `/api/v1/datex/…` require auth (cookie-based) and have **no CORS** — only the ArcGIS REST endpoints are open.
 - **EMHI (Estonian Weather Service)** `ilmateenistus.ee/ilma_andmed/xml/observations.php` — **CORS-closed, Cloudflare-bot-protected**. We bridge it via GitHub Actions (see Architecture below). Has 152 stations including Lääne-Nigula (WMO 26124), Haapsalu (26123), and many more.
 - **MeteoAlarm** `feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-estonia` — Pan-European warning aggregator, CAP/ATOM format. **CORS-closed** — same GH Actions bridge. (Tip: Accept header must be `*/*` — strict `application/atom+xml` returns 406.)
@@ -223,6 +225,38 @@ print('orphans:', sorted(refs - ids))"
 **Status:** `index.html` is now a fully-external redesign (`redesign_90`, `6a67369`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html` or `~/Downloads/madise-redesign_{N}.html` — both numbering styles in use). As of 2026-05-31 the JS render layer **has** been read/edited (icon + rain-threshold work, see below) — confirmed the file is a fully functional app (~4150 lines, single main `<script>` block). Key render fns: `currentSkyText`, `weatherCodeToSVG`, `skyIconSVG`, `renderPrecipTypes`, `renderDaily`. `renderHourly` is an **empty stub** ("hourly-strip removed — now bar charts in forecast-card"), so the hourly weather-symbol surface is the 3-hourly **precip-type row** (`renderPrecipTypes`). **2026-05-31/06-01:** added a tappable **7-day → day-detail bottom sheet** (`openDaySheet`/`_buildDayPanel`/`_hourSliceForDay`/`_wireSparkTap`, `WX_LAST` global) — see Recent changes — plus precip-aware icons (`skyIconSVG` + `RAIN_MIN_MM`) and the Erik Flowers glyph set. HEAD `fb0fc0e`. The old CSS-class conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`) are stale; the CSS layer is still un-audited. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
+
+## Recent changes (2026-09-18 — Kurevere was showing a 105-day-old reading)
+
+**The chip had been displaying `2026-06-04T18:00Z` since June.** Not an
+outage: tarktee's root-level ArcGIS services stopped updating that day and
+kept answering HTTP 200 with that one frozen reading. June's fix followed
+the host move onto the same dead layer, so it fixed the hop and not the
+data. Nothing in the app could tell the difference — a plausible
+temperature that simply never changed.
+
+- **Fix:** `fetchKurevere()` URL → the **`tram/`** folder
+  (`/rest/services/tram/road_weather_stations/MapServer/0/query`), which is
+  what tarktee.ee's own map calls. Verified in-browser from this build:
+  live reading, 14 min old, CORS fine. See the Data sources note.
+- **Guard:** `renderKurevere()` now reads `measurement_time` and calls the
+  new `markStationStale('kv', ageMin)` past `STATION_STALE_AFTER_MIN` (6 h)
+  — the chip dims, the temperature greys out and an amber age tag
+  (`106 p vana`) is appended. This also catches a stale `wx.kurevere`
+  localStorage rehydrate after the phone has been asleep or offline.
+  `markStationStale` **appends its own `.station-age` element** rather than
+  rewriting `.station-sub`, which would destroy the `#kv-wind` /
+  `#kv-precip` spans `renderStation()` writes into.
+- **New fields** available on the tram layer and worth showing on a phone
+  in winter: `road_status` (DRY / MOIST / WET / ICE / SNOW),
+  `road_status_aggregate`, `grip_factor`. Not rendered yet.
+- **Sibling:** `wa1` (the iPad kiosk) got the same endpoint fix plus a
+  server-side staleness gate in its GH Actions bridge — a frozen feed is
+  published with `stale: true` and fails the run on purpose. wa2 has no
+  bridge for Kurevere, so the client-side check above is the whole defence.
+- **Lesson:** a 200 proves nothing, and a fresh fetch timestamp only proves
+  that *we* ran. Only the upstream's own measurement timestamp is evidence
+  of live data. Worth applying to any feed this app republishes or caches.
 
 ## Recent changes (2026-06-22 — electricity price card)
 
@@ -535,6 +569,8 @@ The Hetkeilm card has three vertical contexts that all line up at x=105:
 
 ## TODO / open questions
 
+- [ ] Render `road_status` / `grip_factor` on the Kurevere chip — the tram layer supplies road state (DRY/MOIST/WET/ICE/SNOW) and grip; in winter "tee: jäide" beats a road temperature. Fields already arrive, only `renderKurevere()` + markup needed
+- [ ] Apply the `measurement_time` staleness idea to the EMHI chips too — they have the same failure mode (bridge publishes, page believes it) and currently no age check at all
 - [ ] Verify the new home-screen icon on the actual iPhone after re-installing as a web app
 - [ ] Smoke-test on a real Android device (Indrek has Android users)
 - [ ] Decide whether to add the iOS Badging API (`navigator.setAppBadge(temp)`) for a small numeric badge on the home-screen icon — discussed and parked
