@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-09-18T06:09:38+00:00",
-  "fetched_at": "2026-09-18T06:09:39.231670+00:00",
+  "observation_time": "2026-09-18T11:08:41+00:00",
+  "fetched_at": "2026-09-18T11:08:41.683978+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,19 +10,19 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Light shower",
-      "visibility": 44.0,
+      "visibility": 11.0,
       "precipitations": 0.0,
-      "airpressure": 1004.7,
-      "relativehumidity": 93.4,
-      "airtemperature": 13.1,
-      "winddirection": 170.0,
-      "windspeed": 3.8,
-      "windspeedmax": 4.7,
+      "airpressure": 1004.6,
+      "relativehumidity": 90.9,
+      "airtemperature": 15.4,
+      "winddirection": 193.0,
+      "windspeed": 7.0,
+      "windspeedmax": 9.0,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 0.0,
+      "sunshineduration": 1.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,21 +33,31 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1004.6,
-      "relativehumidity": 89.9,
-      "airtemperature": 14.3,
-      "winddirection": 181.0,
-      "windspeed": 2.9,
-      "windspeedmax": 4.8,
+      "airpressure": 1004.4,
+      "relativehumidity": 89.2,
+      "airtemperature": 15.9,
+      "winddirection": 184.0,
+      "windspeed": 3.6,
+      "windspeedmax": 6.7,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.1,
+      "uvindex": 1.1,
       "sunshineduration": null,
-      "globalradiation": 29.606
+      "globalradiation": 154.702
     }
   },
-  "warnings": [],
+  "warnings": [
+    {
+      "event": "Wind Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-09-19T08:00:00+00:00",
+      "expires": "2026-09-19T14:00:00+00:00",
+      "urgency": "Future",
+      "certainty": "Possible"
+    }
+  ],
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
     "Lääne county",
