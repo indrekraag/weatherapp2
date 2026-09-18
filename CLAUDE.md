@@ -226,6 +226,62 @@ print('orphans:', sorted(refs - ids))"
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
 
+## Recent changes (2026-09-18b — forecast-icon audit, ported from wa1)
+
+An audit of the iPad build's card logic against 194 days of actuals
+(ERA5, Madise, Mar–Sep 2026) found three problems; all three existed here
+too, and are now ported.
+
+- **7-day icon now decides from the AMOUNT.** Open-Meteo's daily
+  weathercode is the *maximum* hourly code, so one drizzle hour painted
+  all 24. This build already softened that with
+  `skyIconSVG(code, sum) + RAIN_MIN_MM` — which did most of the work:
+  measured, the raw code gives 38 false alarms in 194 days and the
+  `RAIN_MIN_MM` rule gives 13. So the new `dailyPrecipIcon()` is **not**
+  the 38→12 headline it was on wa1 (here it is 13→12). What it actually
+  buys:
+  - **a real fallback.** `skyIconSVG` always dropped to `WX_SVG.cloudy`,
+    drawing overcast on **11 days that were genuinely clear**.
+    `dominantSkyCode()` uses the mode of the day's daylight cloud codes.
+  - **winter safety.** Thunder and **freezing rain are never suppressed**
+    at any amount, and snow gets a lower bar (0.3 mm water ≈ 3 mm snow).
+    The Mar–Sep sample has no freezing-rain days, so this gap was
+    invisible in the numbers — it is a winter problem, and it also
+    applied to the hourly row.
+  - `skyIconSVG()` is **unchanged in meaning** and still used by the
+    hourly row, the hero and the day sheet, where the amount is per-hour
+    and the daily rule would be wrong. Its one fix: it no longer hides
+    freezing rain below `RAIN_MIN_MM`.
+  - `&daily=` now also requests `precipitation_hours` (feeds the rule) and
+    `precipitation_probability_max` (not rendered — see TODO).
+- **Probability colour ramp rebuilt — this one matters more here than on
+  the iPad.** `rainBarColor` borrowed the mm stops via
+  `[0,1,3,12,30,55,100]`: a **10%** chance was painted the same violet as
+  **2 mm/h of real rain**, **30%** came out heavy-5mm purple, **50%** read
+  as very-heavy-10mm. wa1 forces mm/h and hides the legend, but **this
+  build defaults to `tõenäosus` and shows the legend**, so that was the
+  default rain view. Replaced with `RAIN_STOPS_PROB` (0/20/40/60/80/100),
+  topping out at purple-red rather than the 20 mm/h extreme red.
+  `RAIN_LEGEND_PROB` is now **generated from that array**, so it cannot
+  drift again — the hand-written one had, by two to three tiers.
+- **Öökülm reads the night ahead.** Was `daily.temperature_2m_min[0]` —
+  today's min, already past after ~09:00. Read at 14:00 across 193 days:
+  off by ≥2 °C on **33%** of days, frost colour band **wrong on 11%**, and
+  erring optimistic — 17 April showed **+4.8 °C green "safe" for a night
+  that reached +0.1 °C**. New `tonightMinTemp(hourly)` takes the minimum
+  over **now → 09:00 tomorrow**, returning null (→ daily fallback) rather
+  than inventing a number.
+
+**Still open from that audit** (found, measured, not fixed — they apply to
+both builds): the UV tile can render a fabricated `0` because
+`models=ecmwf_ifs` returns null UV and `round1(null)` is `0`; the
+`Nähtavus` sub-label is hardcoded `selge`; the hero icon always uses the
+daytime variant because `is_day` is not in the `current=` request; the
+heavy-rain alert needs `code ∈ {65,67,82}` **and** `> 3 mm/h`, which
+essentially never co-occur; the pressure-trend default reads `↗ stabiilne`
+(rising arrow, "stable" text). See wa1's `HANDOFF.md` for the full list
+with evidence.
+
 ## Recent changes (2026-09-18 — Kurevere was showing a 105-day-old reading)
 
 **The chip had been displaying `2026-06-04T18:00Z` since June.** Not an

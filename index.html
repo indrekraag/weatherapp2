@@ -2600,7 +2600,13 @@ function weatherCodeToSVG(code, isDay){
  * Threshold 0.5 mm chosen with Indrek 2026-05-31. */
 var RAIN_MIN_MM = 0.5;
 function skyIconSVG(code, precipAmt, isDay){
-  if(code != null && code >= 51 && code <= 86 && (precipAmt || 0) < RAIN_MIN_MM){
+  // Thunder (>=95) already falls outside the 51..86 window, but freezing
+  // rain and freezing drizzle (56/57/66/67) sit inside it and were being
+  // hidden below RAIN_MIN_MM. A fifth of a millimetre of ice is exactly
+  // the thing you want the icon to tell you about, so exempt it here as
+  // dailyPrecipIcon() does for the 7-day strip.
+  if(code != null && code >= 51 && code <= 86 && !isFreezingCode(code)
+     && (precipAmt || 0) < RAIN_MIN_MM){
     return WX_SVG.cloudy;
   }
   return weatherCodeToSVG(code, isDay);
@@ -2665,6 +2671,40 @@ function parseLocalIsoFlexible(iso){
   var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if(!m) return null;
   return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10), parseInt(m[4],10), parseInt(m[5],10));
+}
+
+/* ─── Öökülm: the minimum of the night AHEAD of you ───────────────────
+ *
+ * Was daily.temperature_2m_min[0] — today's minimum, which after about
+ * 09:00 has already happened. Checked against 193 days at Madise
+ * (Mar–Sep 2026) as if read at 14:00: off by 2 degC or more on 33% of
+ * days, and the frost colour band (safe / caution / frost) was wrong on
+ * 11% of them. The errors run optimistic, the harmful direction for a
+ * pill a gardener trusts — 17 April showed +4.8 degC green "safe" while
+ * the night ahead went to +0.1 degC, and 5 March showed amber "caution"
+ * for a night that reached -2.2 degC.
+ *
+ * Window: now → 09:00 tomorrow. Returns null if the hourly series can't
+ * answer, so the caller falls back rather than inventing a number. */
+function tonightMinTemp(hourly){
+  if(!hourly || !hourly.time || !hourly.temperature_2m) return null;
+  var now = Date.now();
+  var end = new Date();
+  end.setDate(end.getDate() + 1);
+  end.setHours(9, 0, 0, 0);
+  var endMs = end.getTime();
+  var lo = null;
+  for(var i = 0; i < hourly.time.length; i++){
+    var t = parseLocalIsoFlexible(hourly.time[i]);
+    if(!t) continue;
+    var ms = t.getTime();
+    if(ms < now) continue;
+    if(ms > endMs) break;
+    var v = hourly.temperature_2m[i];
+    if(v === null || v === undefined || isNaN(v)) continue;
+    if(lo === null || v < lo) lo = v;
+  }
+  return lo;
 }
 
 function findCurrentHourIdx(times){
@@ -2838,7 +2878,13 @@ function renderWeather(data, savedAt){
     // severity is conveyed through the pill-value's text colour
     // (ok = default white, warn = amber, bad = soft coral) so the
     // pill stays compact without an extra warning line.
-    var minTonight = data.daily && data.daily.temperature_2m_min ? data.daily.temperature_2m_min[0] : null;
+    // The night ahead, not today's already-past minimum. Falls back to the
+    // daily figure only if the hourly series can't answer.
+    var minTonight = tonightMinTemp(data.hourly);
+    if(minTonight === null){
+      minTonight = data.daily && data.daily.temperature_2m_min
+        ? data.daily.temperature_2m_min[0] : null;
+    }
     var frostMinEl = byId('frost-min');
     if(minTonight !== null && !isNaN(minTonight) && frostMinEl){
       var minR = round1(minTonight);
@@ -2854,7 +2900,7 @@ function renderWeather(data, savedAt){
     }
 
     renderHourly(data.hourly);
-    renderDaily(data.daily);
+    renderDaily(data.daily, data.hourly);
     updateRainStart(data.hourly);
     checkAlerts(data.hourly);
 
@@ -3085,7 +3131,79 @@ if(document.readyState !== 'loading') _wireDaySheet();
 else document.addEventListener('DOMContentLoaded', _wireDaySheet);
 
 
-function renderDaily(daily){
+/* ─── 7-day precipitation icon: decide from AMOUNT, not just the code ──
+ *
+ * Ported from the iPad build (wa1) 2026-09-18. Open-Meteo's daily
+ * weathercode is the MAXIMUM hourly code of the day, so one hour of light
+ * drizzle paints all 24. This build already softened that via
+ * skyIconSVG(code, sum) + RAIN_MIN_MM, which got most of the way there —
+ * measured over 194 days at Madise (ERA5, Mar–Sep 2026) the raw code gave
+ * 38 false alarms and the RAIN_MIN_MM rule 13. So the numbers below are
+ * NOT the headline win they were on wa1 (13 → 12 false alarms). What this
+ * actually buys here is the other two things:
+ *
+ *   • the fallback. skyIconSVG drops to WX_SVG.cloudy always, which drew
+ *     an overcast icon on 11 days that were genuinely clear or mainly
+ *     clear. dominantSkyCode() shows what the day will really look like.
+ *   • winter safety. The old rule suppressed freezing rain and used the
+ *     same 0.5 mm bar for snow as for rain. Thunder and ice are now never
+ *     suppressed, and snow gets a lower bar (0.3 mm water ≈ 3 mm snow).
+ *     The Mar–Sep sample contains no freezing-rain days, so that gap was
+ *     invisible in the measurement — it is a winter problem.
+ *
+ * NOTE: skyIconSVG() stays as-is for the hourly row, the hero and the day
+ * sheet, where the amount is per-hour and this daily rule would be wrong. */
+var DAILY_RAIN_MIN_MM      = 1.0;  /* show rain from here regardless of duration */
+var DAILY_RAIN_DRIZZLE_MM  = 0.3;  /* …or from here if it drags on (see HOURS)  */
+var DAILY_RAIN_DRIZZLE_HRS = 3;
+var DAILY_SNOW_MIN_MM      = 0.3;  /* water-equivalent; snow shows up far sooner */
+
+function isFreezingCode(c){ return c === 56 || c === 57 || c === 66 || c === 67; }
+function isSnowCode(c){ return (c >= 71 && c <= 77) || c === 85 || c === 86; }
+
+/* Dominant sky for a day, from the daylight hours' cloud codes (0–3).
+ * Mode rather than max: a day with one overcast hour is not an overcast
+ * day. Defaults to 3 when there is nothing to describe it with. */
+function dominantSkyCode(hourly, dayStr){
+  if(!hourly || !hourly.time) return 3;
+  var counts = {}, best = null, bestN = 0, sawAny = false;
+  for(var i = 0; i < hourly.time.length; i++){
+    if(hourly.time[i].indexOf(dayStr) !== 0) continue;
+    if(hourly.is_day && hourly.is_day[i] === 0) continue;   // daylight only
+    var c = hourly.weathercode[i];
+    if(c === null || c === undefined) continue;
+    sawAny = true;
+    if(c > 3) c = 3;            // any precipitation hour reads as overcast sky
+    counts[c] = (counts[c] || 0) + 1;
+    if(counts[c] > bestN){ bestN = counts[c]; best = c; }
+  }
+  return sawAny && best !== null ? best : 3;
+}
+
+/* Returns the WMO code the 7-day strip should actually draw for day i. */
+function dailyPrecipIcon(daily, i, hourly){
+  var code = daily.weathercode[i];
+  if(code === null || code === undefined) return 3;
+
+  var isPrecip = (code >= 51 && code <= 67) || (code >= 71 && code <= 86) || code >= 95;
+  if(!isPrecip) return code;
+
+  // Severity that amount does not capture — always honour these.
+  if(code >= 95 || isFreezingCode(code)) return code;
+
+  var mm    = daily.precipitation_sum ? (daily.precipitation_sum[i] || 0) : 0;
+  var hours = daily.precipitation_hours ? (daily.precipitation_hours[i] || 0) : 0;
+
+  var enough = isSnowCode(code)
+    ? mm >= DAILY_SNOW_MIN_MM
+    : (mm >= DAILY_RAIN_MIN_MM ||
+       (mm >= DAILY_RAIN_DRIZZLE_MM && hours >= DAILY_RAIN_DRIZZLE_HRS));
+
+  if(enough) return code;
+  return dominantSkyCode(hourly, daily.time[i]);
+}
+
+function renderDaily(daily, hourly){
   var strip = byId('daily-strip');
   if(!strip) return;
   strip.innerHTML = '';
@@ -3096,7 +3214,7 @@ function renderDaily(daily){
     var tmin = Math.round(daily.temperature_2m_min[i]);
     var rain = daily.precipitation_sum ? round1(daily.precipitation_sum[i] || 0) : null;
     var wind = daily.wind_speed_10m_max ? Math.round(daily.wind_speed_10m_max[i] || 0) : null;
-    var icon = skyIconSVG(daily.weathercode[i], (rain || 0), true);
+    var icon = weatherCodeToSVG(dailyPrecipIcon(daily, i, hourly), true);
     var isToday = (i === 0);
     var dd = ('0' + d.getDate()).slice(-2);
     var mm = ('0' + (d.getMonth() + 1)).slice(-2);
@@ -3154,7 +3272,9 @@ function fetchWeatherAndForecast(){
     + '&longitude=' + CONFIG.lng
     + '&current=temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,uv_index'
     + '&hourly=temperature_2m,apparent_temperature,precipitation,precipitation_probability,weathercode,is_day,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,visibility,snow_depth'
-    + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode,wind_speed_10m_max'
+    // precipitation_hours feeds dailyPrecipIcon(); probability_max is not
+    // rendered yet (the strip shows mm only — see CLAUDE.md TODO).
+    + '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,precipitation_hours,precipitation_probability_max,weathercode,wind_speed_10m_max'
     + '&timezone=auto'
     + '&wind_speed_unit=ms'
     + '&forecast_days=8'
@@ -4111,20 +4231,35 @@ var RAIN_STOPS_MM = [
   { v: 20,   c: [200,  35,  50, 1.00] }, /* extreme — red                */
 ];
 
+/* Probability is a LIKELIHOOD scale, not an intensity one, and it needs
+ * its own stops. The previous version borrowed the mm ramp through the
+ * mapping [0,1,3,12,30,55,100], which spent half the colour range below
+ * 12%: a 10% chance was painted the same violet as 2 mm/h of real rain,
+ * 30% ("probably not") came out the heavy-5mm purple, and 50% read as
+ * very-heavy-10mm.
+ *
+ * This matters more on the phone than on the iPad kiosk: this build
+ * DEFAULTS to "tõenäosus" and shows the legend, where wa1 forces mm/h in
+ * initIpadEnhancements() and hides the legend in its landscape media
+ * query. So this was the default rain view here, alarmist by two to three
+ * tiers across the whole middle of the range.
+ *
+ * Evenly spaced stops, topping out at purple-red rather than the 20mm/h
+ * extreme red — a certain drizzle is certain, not catastrophic.
+ * RAIN_LEGEND_PROB is generated from this same array below, so the strip
+ * under the chart can never again disagree with the bars above it. */
+var RAIN_STOPS_PROB = [
+  { v:   0, c: [ 80, 140, 220, 0.18] }, /* no chance — near-transparent   */
+  { v:  20, c: [ 70, 130, 215, 0.45] }, /* unlikely                       */
+  { v:  40, c: [ 55, 105, 210, 0.70] }, /* possible                       */
+  { v:  60, c: [ 90,  65, 195, 0.85] }, /* likely                         */
+  { v:  80, c: [140,  45, 175, 0.93] }, /* very likely                    */
+  { v: 100, c: [185,  35, 100, 1.00] }, /* certain                        */
+];
+
 function rainBarColor(v, unit){
-  var stops;
-  var val;
-  if(unit === '%'){
-    /* Probability: same hue ramp mapped onto 0–100 */
-    stops = RAIN_STOPS_MM.map(function(s, i){
-      var pct = [0, 1, 3, 12, 30, 55, 100][i];
-      return { v: pct, c: s.c };
-    });
-    val = v;
-  } else {
-    stops = RAIN_STOPS_MM;
-    val = v;
-  }
+  var stops = unit === '%' ? RAIN_STOPS_PROB : RAIN_STOPS_MM;
+  var val = v;
   if(val <= stops[0].v) return rgbaStr(stops[0].c);
   if(val >= stops[stops.length-1].v) return rgbaStr(stops[stops.length-1].c);
   for(var i = 1; i < stops.length; i++){
@@ -4205,21 +4340,23 @@ var WIND_LEGEND = {
     {pct:100, label:'25+ m/s'}
   ]
 };
-var RAIN_LEGEND_PROB = {
-  gradient: 'linear-gradient(90deg,' +
-    'rgba(80,140,220,0.25)  0%,' +
-    'rgba(55,105,210,0.75) 30%,' +
-    'rgba(90,65,195,0.9)   55%,' +
-    'rgba(140,45,175,0.97) 75%,' +
-    'rgba(200,35,50,1)    100%)',
-  ticks: [
-    {pct:  0, label:'0%'},
-    {pct: 30, label:'30%'},
-    {pct: 55, label:'55%'},
-    {pct: 75, label:'75%'},
-    {pct:100, label:'100%'}
-  ]
-};
+/* Built from RAIN_STOPS_PROB rather than hand-written, so the gradient
+ * under the chart is by construction the same ramp the bars use. The old
+ * hand-written version had drifted two to three tiers away from
+ * rainBarColor(): it labelled 30% light blue while the bar painted it
+ * heavy purple. This legend IS visible on the phone. */
+var RAIN_LEGEND_PROB = (function(){
+  var stops = RAIN_STOPS_PROB;
+  var maxV = stops[stops.length - 1].v;
+  return {
+    gradient: 'linear-gradient(90deg,' + stops.map(function(s){
+      return rgbaStr(s.c) + ' ' + (s.v / maxV * 100) + '%';
+    }).join(',') + ')',
+    ticks: [0, 25, 50, 75, 100].map(function(pct){
+      return { pct: pct, label: pct + '%' };
+    })
+  };
+})();
 var RAIN_LEGEND_MM = {
   gradient: 'linear-gradient(90deg,' +
     'rgba(80,140,220,0.25)  0%,' +
