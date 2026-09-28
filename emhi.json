@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-09-27T23:57:11+00:00",
-  "fetched_at": "2026-09-27T23:57:11.905951+00:00",
+  "observation_time": "2026-09-28T03:30:11+00:00",
+  "fetched_at": "2026-09-28T03:30:11.902307+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,19 +10,19 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Fog",
-      "visibility": 0.3,
+      "visibility": 0.4,
       "precipitations": 0.0,
-      "airpressure": 1031.5,
+      "airpressure": 1031.6,
       "relativehumidity": 100.0,
-      "airtemperature": 4.9,
-      "winddirection": 142.0,
-      "windspeed": 1.7,
-      "windspeedmax": 1.8,
+      "airtemperature": 5.8,
+      "winddirection": 130.0,
+      "windspeed": 1.8,
+      "windspeedmax": 2.7,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 629.0,
+      "sunshineduration": 0.0,
       "globalradiation": null
     },
     "26123": {
@@ -35,16 +35,16 @@
       "precipitations": 0.0,
       "airpressure": 1031.3,
       "relativehumidity": 100.0,
-      "airtemperature": 7.5,
-      "winddirection": 184.0,
-      "windspeed": 1.5,
-      "windspeedmax": 2.2,
+      "airtemperature": 7.0,
+      "winddirection": 148.0,
+      "windspeed": 1.7,
+      "windspeedmax": 2.5,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": 0.0,
       "sunshineduration": null,
-      "globalradiation": -3.347
+      "globalradiation": -3.44
     }
   },
   "warnings": [
@@ -52,10 +52,10 @@
       "event": "Fog Level 1",
       "severity": "Moderate",
       "areaDesc": "Lääne county",
-      "onset": "2026-09-27T20:00:00+00:00",
+      "onset": "2026-09-28T02:00:00+00:00",
       "expires": "2026-09-28T08:00:00+00:00",
-      "urgency": "Expected",
-      "certainty": "Likely"
+      "urgency": "Immediate",
+      "certainty": "Observed"
     }
   ],
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
