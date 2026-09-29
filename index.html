@@ -1338,9 +1338,12 @@ body {
   color: var(--fg-3);
   text-transform: uppercase;
   margin-top: 8px;
-  display: flex;
-  justify-content: space-between;
+  /* labels placed at their slot's position by renderKpForecast() */
+  position: relative;
+  height: 11px;
+  line-height: 11px;
 }
+.kp-label > span { position: absolute; top: 0; white-space: nowrap; }
 
 /* ─── FOOTER ──────────────────────────────────────────── */
 .footer {
@@ -2483,7 +2486,9 @@ body {
             <div class="kp-chart" id="kp-chart">
               <!-- bars added by script -->
             </div>
-            <div class="kp-label"><span>−72h</span><span>nüüd</span><span>+0h</span></div>
+            <!-- 'nüüd · +24h · +48h' at their real places on the bars —
+                 renderKpForecast() writes them from the slot times. -->
+            <div class="kp-label" id="kp-axis"></div>
           </div>
         </div>
 
@@ -2943,7 +2948,7 @@ function currentSkyText(cloud, precip, code, isDaytime){
   if(typeof isDaytime !== 'boolean') isDaytime = heroIsDay(null);
   if(code >= 95) return 'Äike';
   if(isFreezingCode(code)) return 'Jäätuv vihm';
-  if(precip >= RAIN_MIN_MM && isSnowCode(code)) return precip >= 2 ? 'Lumesadu' : 'Nõrk lumesadu';
+  if(snowShows(code, precip)) return precip >= 2 ? 'Lumesadu' : 'Nõrk lumesadu';   // same bar as the icon
   if(precip >= 2) return 'Sajab';
   if(precip >= RAIN_MIN_MM) return 'Nõrk sadu';
   if(isDaytime){
@@ -3045,14 +3050,25 @@ function weatherCodeToSVG(code, isDay){
  * and the 7-day strip so all agree. Thunderstorms (>=95) always show.
  * Threshold 0.5 mm chosen with Indrek 2026-05-31. */
 var RAIN_MIN_MM = 0.5;
+/* Snow gets a lower bar, as in the 7-day strip (DAILY_SNOW_MIN_MM): the
+ * amount is water, and 0.3 mm of water is ~3 mm of snow in an hour —
+ * plainly snowing. Below RAIN_MIN_MM it used to draw a plain cloud: an hour
+ * of code 73 at 0.4 mm/h showed cloud in the hourly row while the day tile
+ * above it showed snow. When the model itself says moderate or heavy snow
+ * (73 / 75 / 86), any measurable amount shows it. */
+var SNOW_MIN_MM = 0.3;
+function snowShows(code, amt){
+  if(!isSnowCode(code) || !(amt > 0)) return false;
+  return amt >= SNOW_MIN_MM || ((code === 73 || code === 75 || code === 86) && amt >= 0.1);
+}
 function skyIconSVG(code, precipAmt, isDay){
   // Thunder (>=95) already falls outside the 51..86 window, but freezing
   // rain and freezing drizzle (56/57/66/67) sit inside it and were being
   // hidden below RAIN_MIN_MM. A fifth of a millimetre of ice is exactly
   // the thing you want the icon to tell you about, so exempt it here as
-  // dailyPrecipIcon() does for the 7-day strip.
+  // dailyPrecipIcon() does for the 7-day strip. Snow: see snowShows().
   if(code != null && code >= 51 && code <= 86 && !isFreezingCode(code)
-     && (precipAmt || 0) < RAIN_MIN_MM){
+     && (precipAmt || 0) < RAIN_MIN_MM && !snowShows(code, precipAmt || 0)){
     return WX_SVG.cloudy;
   }
   return weatherCodeToSVG(code, isDay);
@@ -3073,6 +3089,7 @@ function skyIconSVG(code, precipAmt, isDay){
  *     a moon, 'Pilves' a cloud. */
 function heroSkyCode(code, rate, cloud, isDay){
   if(code != null && (code >= 95 || isFreezingCode(code))) return code;
+  if(snowShows(code, rate)) return code;        // snow's lower bar, as skyIconSVG
   var isPrecipCode = code != null && code >= 51 && code <= 86;
   if(rate >= RAIN_MIN_MM) return isPrecipCode ? code : (rate >= 2 ? 61 : 51);
   if(code === 45 || code === 48) return code;
@@ -5305,41 +5322,86 @@ function kpSeverityClass(kp){
   if(kp < 6) return 'mid';
   return 'hi';
 }
+/* The Kp card: 'Kp 24h' and the bar chart. NOAA's feed is past days
+ * (observed), the current day's slots (estimated) and ~2 days ahead
+ * (predicted), in 3-h slots stamped with their UTC start. Only 'predicted'
+ * rows used to be drawn, so bar 0 — outlined as now — was the first slot
+ * of the NEXT UTC day, and the axis read '−72h · nüüd · +0h' under a
+ * forecast. Now: every slot from the one we are in, whatever NOAA calls
+ * it, labelled 'nüüd · +24h · +48h' at the real positions. */
 function renderKpForecast(data){
   try{
     if(!Array.isArray(data) || data.length === 0) return;
-    var rows = data.filter(function(r){ return r && typeof r.kp === 'number'; });
-    var future = rows.filter(function(r){ return r.observed === 'predicted'; });
+    var SLOT = 3 * 3600000, now = Date.now();
+    var slots = [];
+    data.forEach(function(r){
+      if(!r || !isNum(r.kp) || typeof r.time_tag !== 'string') return;
+      var tag = r.time_tag.replace(' ', 'T');
+      var t = Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(tag) ? tag : tag + 'Z');
+      if(!isNaN(t) && t + SLOT > now) slots.push({ t: t, kp: r.kp });
+    });
+    slots.sort(function(a, b){ return a.t - b.t; });
 
-    // Max Kp in next 24h
-    var next24 = future.slice(0, 8);
+    // Max Kp over the next 24 h — from now, not from the first forecast slot
+    var kpEl = byId('kp-24h-max');
     var maxRow = null;
-    next24.forEach(function(r){ if(!maxRow || r.kp > maxRow.kp) maxRow = r; });
-    if(maxRow && byId('kp-24h-max')){
-      var el = byId('kp-24h-max');
-      el.textContent = maxRow.kp.toFixed(1);
-      el.className = 'gauge-text num ' + kpSeverityClass(maxRow.kp);
+    slots.forEach(function(r){
+      if(r.t < now + 24 * 3600000 && (!maxRow || r.kp > maxRow.kp)) maxRow = r;
+    });
+    if(kpEl){
+      if(maxRow){
+        kpEl.textContent = maxRow.kp.toFixed(1);
+        kpEl.className = 'gauge-text num ' + kpSeverityClass(maxRow.kp);
+      } else {
+        // An old cache whose slots have all passed: no forecast, not an old one.
+        kpEl.textContent = '—';
+        kpEl.className = 'gauge-text num lo';
+      }
     }
 
-    // 72h bar chart — 24 cells, fed into the existing #kp-chart
-    var bars = future.slice(0, 24);
+    // Bar chart — up to 24 slots (72 h), fed into the existing #kp-chart
+    var bars = slots.slice(0, 24);
     var chart = byId('kp-chart');
     if(chart){
       chart.innerHTML = '';
       var max = 5;
       bars.forEach(function(r, idx){
         var b = document.createElement('div');
-        b.className = 'kp-bar' + (idx === 0 ? ' now' : '');
-        var h = Math.max(8, (r.kp / max) * 100);
+        b.className = 'kp-bar' + (idx === 0 && r.t <= now ? ' now' : '');
+        var h = Math.min(100, Math.max(8, (r.kp / max) * 100));
         b.style.height = h + '%';
         if(r.kp >= 6) b.style.background = 'var(--bad)';
         else if(r.kp >= 4) b.style.background = '#e9a76b';
         else b.style.background = 'rgba(255,255,255,0.45)';
-        b.title = r.time_tag + ' UTC — Kp ' + r.kp.toFixed(1);
+        var d = new Date(r.t);
+        b.title = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + ' ' + formatTime(d) + ' — Kp ' + r.kp.toFixed(1);
         chart.appendChild(b);
       });
     }
-  }catch(e){}
+    // Axis: 'nüüd' where now falls in the first bar, '+24h' / '+48h' where
+    // those instants fall — on the bars' own timeline (the chart's content
+    // box starts 11 px in: 1 px border + 10 px padding). Empty with no bars.
+    var axis = byId('kp-axis');
+    if(axis){
+      axis.innerHTML = '';
+      if(bars.length){
+        var t0 = bars[0].t, span = bars.length * SLOT;
+        var marks = [{ at: Math.max(now, t0), text: 'nüüd' }];
+        for(var k = 1; k <= 3; k++) marks.push({ at: now + k * 24 * 3600000, text: '+' + (24 * k) + 'h' });
+        marks.forEach(function(m){
+          var f = (m.at - t0) / span;
+          if(f < 0 || f > 1) return;
+          var s = document.createElement('span');
+          s.textContent = m.text;
+          s.style.left = 'calc(11px + (100% - 22px) * ' + f.toFixed(4) + ')';
+          // 'nüüd' starts at its mark; the others are centred on theirs, or
+          // end at it near the right edge.
+          if(m.text !== 'nüüd') s.style.transform = f > 0.9 ? 'translateX(-100%)' : 'translateX(-50%)';
+          axis.appendChild(s);
+        });
+      }
+    }
+  }catch(e){ console.warn('Kp render', e); }
 }
 function fetchKpForecast(){
   var xhr = new XMLHttpRequest();
