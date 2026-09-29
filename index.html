@@ -2062,13 +2062,40 @@ body {
   font-size: 9px; color: rgba(255,255,255,0.45); white-space: nowrap;
 }
 .price-bars { position: absolute; left: 30px; right: 0; top: 0; bottom: 0; display: flex; align-items: flex-end; gap: 3px; }
-.price-bars > span { flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0; }
+.price-bars > span { position: relative; flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0; }
 .price-bars > span.past { opacity: 0.45; }                 /* hours already elapsed */
 .price-bars > span.now { outline: 1.5px solid rgba(255,255,255,0.9); outline-offset: -1px; }
+/* Below zero the bars hang from the zero line, in a colour of their own
+   (PRICE_NEG_C) — drawn like zero, a free hour looked like a cheap one. */
+.price-bars > span.neg { border-radius: 0 0 2px 2px; }
+/* 'odavaim' over the cheapest hour ahead (renderNps places it). */
+.price-bars > span .bar-val {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  margin-bottom: 1px;
+  font-size: 9px; font-weight: 700; line-height: 1;
+  color: rgba(255,255,255,0.95); white-space: nowrap; pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+  z-index: 2;   /* over the later bars it spans */
+}
+.price-bars > span .bar-val.over {
+  padding: 1px 3px; border-radius: 3px;
+  background: rgba(10,12,16,0.85); text-shadow: none;
+}
+/* Midnight: a rule between 23 and 00 across the bars, and 'homme' where
+   tomorrow's labels start (renderNps). It stops at the bars: run on through
+   the hour labels, it cut a bold current-hour '23' in two. */
+.price-daysplit {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: rgba(255,255,255,0.42); pointer-events: none;
+}
 /* Hour labels: one per bar, flex row aligned under the bars. */
 .price-axis { display: flex; gap: 3px; margin-left: 30px; margin-top: 4px; }
 .price-axis > span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 9px; color: rgba(255,255,255,0.45); }
 .price-axis > span.now { color: rgba(255,255,255,0.92); font-weight: 700; }
+.price-axis > span.daystart {
+  overflow: visible; white-space: nowrap; text-align: left; padding-left: 3px;
+  color: rgba(255,255,255,0.92); font-weight: 700;
+}
 
 .price-foot {
   display: flex; justify-content: space-between;
@@ -4975,6 +5002,23 @@ function showNpsEmpty(fetchedMs){
     'Hinnad puuduvad' + (fetchedMs !== null ? ' · andmed ' + stampText(fetchedMs) : '');
   NPS_RENDERED = false;
 }
+/* Below zero: a colour of its own. priceBarColor() clamps at its first
+   stop, so a −3 s/kWh hour came out the same green as a free one. */
+var PRICE_NEG_C = [80, 200, 230, 1];
+function priceColor(snt){ return snt < 0 ? rgbaStr(PRICE_NEG_C) : priceBarColor(snt); }
+/* '12.8', '−3.1' — a true minus (toFixed gives a hyphen). */
+function priceText(snt){
+  var r = Math.round(snt * 10) / 10;
+  return (r < 0 ? '−' : '') + Math.abs(r).toFixed(1);
+}
+/* '19:00' today, 'homme 19:00' tomorrow: with today's and tomorrow's hours
+   on one chart, 'Odavaim 00:00' was 25 h away and read as tonight. */
+function priceWhen(d){
+  var w = dayWord(d.getTime());
+  return (w === 'täna' ? '' : w + ' ') + pad(d.getHours()) + ':00';
+}
+var NPS_NEG_MIN_FRAC = 0.12;   // the band below zero is at least this share of the chart
+var PRICE_TAG_LIFT_MAX = 12;   // px the 'odavaim' tag may rise above its bar (renderNps)
 function renderNps(data){
   try{
     var barsEl = byId('price-spark'), gridEl = byId('price-grid'), axisEl = byId('price-axis');
@@ -4984,15 +5028,20 @@ function renderNps(data){
     if(!prices.length){ showNpsEmpty(fetchedMs); return; }
     if(typeof data.vat_pct === 'number') NPS_VAT_PCT = data.vat_pct;
     var byTs = {};
-    // Only real numbers: a null price used to become 'Hetkel 0.0' in green.
-    prices.forEach(function(p){ if(p && isNum(p.eur_mwh)) byTs[p.ts] = p.eur_mwh; });
+    // Only real numbers are prices: a null used to become 'Hetkel 0.0' in
+    // free-green, and a NaN a NaN. A bad hour is a missing hour.
+    prices.forEach(function(p){ if(p && isNum(p.ts) && isNum(p.eur_mwh)) byTs[p.ts] = p.eur_mwh; });
 
     // Rolling window: 3 h of context behind, then everything available
     // ahead (today, plus tomorrow once Nord Pool publishes it ~15:00).
     // Missing FUTURE hours stop the chart (no fabricated bars); missing
     // past hours are just skipped.
+    // The current hour from epoch time, not rebuilt from the wall clock: in
+    // the repeated 03:00 of the autumn DST change, new Date(y,m,d,3) is the
+    // FIRST 03:00, so 'Hetkel' showed the hour that had just ended.
+    // (Estonian offsets are whole hours, so the UTC hour is the local hour.)
     var now = new Date();
-    var nowHourMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0).getTime();
+    var nowHourMs = Math.floor(now.getTime() / 3600000) * 3600000;
     var startMs = nowHourMs - 3 * 3600000;
     var items = [];   // {date, snt, isNow, isPast}
     for(var i = 0; i < 48; i++){
@@ -5009,62 +5058,196 @@ function renderNps(data){
       });
     }
     if(items.length < 2){ showNpsEmpty(fetchedMs); return; }
-    var vals = items.map(function(x){ return x.snt; });
-    var maxV = Math.max.apply(null, vals);
+    var n = items.length;
+    var nowIdx = -1, maxIdx = 0, minIdx = 0, cheapIdx = -1, peakIdx = -1;
+    items.forEach(function(x, k){
+      if(x.isNow) nowIdx = k;
+      if(x.snt > items[maxIdx].snt) maxIdx = k;
+      if(x.snt < items[minIdx].snt) minIdx = k;
+      if(!x.isPast){
+        if(cheapIdx < 0 || x.snt < items[cheapIdx].snt) cheapIdx = k;
+        if(peakIdx  < 0 || x.snt > items[peakIdx].snt)  peakIdx  = k;
+      }
+    });
+    var maxV = items[maxIdx].snt, minV = items[minIdx].snt;
 
     // Nice Y scale + step for the gridlines/labels.
     var step = maxV <= 10 ? 2 : maxV <= 20 ? 5 : maxV <= 60 ? 10 : 20;
-    var top = Math.max(step * 2, Math.ceil(maxV / step) * step);
+    var top = Math.max(step * 2, Math.ceil(Math.max(0, maxV) / step) * step);
+    // Negative prices: the axis goes below zero, to a round figure under
+    // the lowest (1, 2, 5, 10 … s/kWh), and never so shallow that a small
+    // negative hour is a hairline. They used to be drawn as the same 2%
+    // stub as a 0.0 hour, on a scale that started at 0.
+    var bottom = 0;
+    if(minV < 0){
+      var mag = Math.pow(10, Math.floor(Math.log(-minV) / Math.LN10));
+      var nice = [1, 2, 5, 10];
+      for(var q = 0; q < nice.length; q++){ if(nice[q] * mag >= -minV){ bottom = -nice[q] * mag; break; } }
+      if(-bottom < NPS_NEG_MIN_FRAC * top / (1 - NPS_NEG_MIN_FRAC)){
+        bottom = -NPS_NEG_MIN_FRAC * top / (1 - NPS_NEG_MIN_FRAC);
+      }
+    }
+    var range = top - bottom;
+    var zeroPct = -bottom / range * 100;
+    var chartPx = barsEl.clientHeight || 96;
 
-    // Gridlines + left-axis labels (s/kWh)
+    // Gridlines + left-axis labels (s/kWh), from the lowest multiple at or
+    // above the floor, so the zero line is always among them.
     if(gridEl){
       gridEl.innerHTML = '';
-      for(var y = 0; y <= top; y += step){
+      var every = Math.max(1, Math.ceil(12 / (chartPx * step / range)));
+      var yStep = step * every;
+      for(var y = Math.ceil(bottom / yStep) * yStep; y <= top + 1e-9; y += yStep){
         var line = document.createElement('div');
         line.className = 'price-gridline' + (y === 0 ? ' zero' : '');
-        line.style.bottom = (y / top * 100) + '%';
-        var lab = document.createElement('span'); lab.textContent = y;
+        line.style.bottom = ((y - bottom) / range * 100) + '%';
+        var lab = document.createElement('span'); lab.textContent = y < 0 ? '−' + (-y) : y;
         line.appendChild(lab);
         gridEl.appendChild(line);
       }
     }
 
-    // Bars (color-tiered; past dimmed, current hour outlined) + one hour
-    // label under each bar. Thin labels to every 2nd when the window is
-    // long (tomorrow published) so they don't collide.
-    var labelEvery = items.length > 22 ? 2 : 1;
+    // Bars grow from the zero line: up, or — below zero — down, in
+    // PRICE_NEG_C, brightest at the tip, and at least 3px so a small
+    // negative price is still a visible bar. Past hours dimmed, the current
+    // hour outlined.
+    var negMinPct = 3 / chartPx * 100;
+    var bars = [];
     barsEl.innerHTML = '';
-    if(axisEl) axisEl.innerHTML = '';
-    items.forEach(function(x, idx){
+    items.forEach(function(x){
       var bar = document.createElement('span');
-      bar.style.height = Math.max(2, (x.snt / top) * 100) + '%';
-      var top2 = priceBarColor(x.snt);
-      var base = top2.replace(/[\d.]+\)$/, function(m){ return (parseFloat(m) * 0.30).toFixed(2) + ')'; });
-      bar.style.background = 'linear-gradient(180deg, ' + top2 + ' 0%, ' + base + ' 100%)';
-      bar.setAttribute('title', pad(x.date.getHours()) + ':00 · ' + x.snt.toFixed(1) + ' s/kWh');
-      bar.className = x.isNow ? 'now' : (x.isPast ? 'past' : '');
-      barsEl.appendChild(bar);
-      if(axisEl){
-        var s = document.createElement('span');
-        s.textContent = (x.isNow || idx % labelEvery === 0) ? pad(x.date.getHours()) : '';
-        if(x.isNow) s.className = 'now';
-        axisEl.appendChild(s);
+      var col = priceColor(x.snt);
+      var base = col.replace(/[\d.]+\)$/, function(m){ return (parseFloat(m) * 0.30).toFixed(2) + ')'; });
+      var h;
+      if(x.snt < 0){
+        h = Math.max(negMinPct, -x.snt / range * 100);
+        bar.style.bottom = (zeroPct - h) + '%';
+        bar.style.background = 'linear-gradient(0deg, ' + col + ' 0%, ' + base + ' 100%)';
+      } else {
+        h = Math.max(2, x.snt / range * 100);
+        if(zeroPct) bar.style.bottom = zeroPct + '%';
+        bar.style.background = 'linear-gradient(180deg, ' + col + ' 0%, ' + base + ' 100%)';
       }
+      bar.style.height = h + '%';
+      bar.setAttribute('title', priceWhen(x.date) + ' · ' + priceText(x.snt) + ' s/kWh');
+      bar.className = (x.isNow ? 'now' : (x.isPast ? 'past' : '')) + (x.snt < 0 ? ' neg' : '');
+      barsEl.appendChild(bar);
+      bars.push(bar);
     });
 
-    // Current price (big) + cheapest/priciest among UPCOMING hours
-    var nowItem = items.filter(function(x){ return x.isNow; })[0];
-    var nowEl = byId('price-now');
-    if(nowEl && nowItem){
-      nowEl.textContent = nowItem.snt.toFixed(1);
-      nowEl.style.color = priceBarColor(nowItem.snt).replace(/[\d.]+\)$/, '1)');
+    // Midnight inside the window: a rule between 23 and 00, and — where
+    // tomorrow starts ahead of now, not the midnight just past — its hour
+    // label reads 'homme'. With both days on one axis '19' came twice and
+    // nothing said which was which.
+    // Every midnight in the window gets its rule (the one just past in the
+    // small hours, tomorrow's once it is published); 'homme' goes on the
+    // first one ahead of now, unless tomorrow is only its last bar.
+    var midIdx = -1;
+    for(var mi = 1; mi < n; mi++){
+      if(items[mi].date.getHours() !== 0) continue;
+      var split = document.createElement('div');
+      split.className = 'price-daysplit';
+      // Bar i starts at i·(W + gap)/n; the rule sits in the 3px gap before it.
+      split.style.left = 'calc((100% + 3px) * ' + (mi / n).toFixed(5) + ' - 2px)';
+      barsEl.insertBefore(split, barsEl.firstChild);   // under the value tag
+      if(midIdx < 0 && nowIdx >= 0 && mi > nowIdx) midIdx = mi;
     }
-    var future = items.filter(function(x){ return !x.isPast; });
-    if(future.length){
-      var minH = future.reduce(function(a, b){ return b.snt < a.snt ? b : a; });
-      var maxH = future.reduce(function(a, b){ return b.snt > a.snt ? b : a; });
-      if(byId('price-min')) byId('price-min').textContent = pad(minH.date.getHours()) + ':00 · ' + minH.snt.toFixed(1);
-      if(byId('price-max')) byId('price-max').textContent = pad(maxH.date.getHours()) + ':00 · ' + maxH.snt.toFixed(1);
+    var homme = midIdx > 0 && midIdx <= n - 2;
+
+    // Hour labels: every other one past 22 bars, counted from the current
+    // hour, so 'now' is always a labelled slot. It used to be forced in
+    // between two labelled neighbours and crowd them ('2122 23').
+    var labelEvery = n > 22 ? 2 : 1;
+    var anchor = nowIdx >= 0 ? nowIdx : 0;
+    if(axisEl){
+      axisEl.innerHTML = '';
+      var axisSpans = [];
+      items.forEach(function(x, idx){
+        var s = document.createElement('span');
+        s.textContent = (idx - anchor) % labelEvery === 0 ? pad(x.date.getHours()) : '';
+        if(x.isNow) s.className = 'now';
+        axisEl.appendChild(s);
+        axisSpans.push(s);
+      });
+      if(homme){
+        var ds = axisSpans[midIdx];
+        ds.textContent = 'homme';
+        ds.className = 'daystart';
+        // 'homme' runs right from the rule, over the next slot or two:
+        // blank the hour labels it would sit on.
+        var rg = document.createRange();
+        rg.selectNodeContents(ds);
+        var dayRight = rg.getBoundingClientRect().right;
+        for(var j = midIdx + 1; j < n && dayRight; j++){
+          var sr = axisSpans[j].getBoundingClientRect();
+          if(sr.left + sr.width / 2 - 8 > dayRight + 3) break;
+          axisSpans[j].textContent = '';
+        }
+      }
+    }
+
+    // The cheapest hour from now on — the one worth waiting for — is tagged
+    // on its bar. Kept inside the chart, centred on its bar or reaching
+    // right or left from it, whichever has to rise least over taller bars
+    // it spans — but never more than PRICE_TAG_LIFT_MAX: the tag is five
+    // phone bars wide, and a cheapest hour at the right edge beside the
+    // evening peak was lifted to the top of the chart, where it read as the
+    // peak's label. Then it sits on its own bar, on a dark pill over the
+    // neighbours instead.
+    if(cheapIdx >= 0 && bars[cheapIdx]){
+      var bar = bars[cheapIdx];
+      var t = document.createElement('span');
+      t.className = 'bar-val';
+      t.textContent = 'odavaim';
+      bar.appendChild(t);
+      var r0 = t.getBoundingClientRect();
+      if(r0.width){
+        var chartBox = barsEl.getBoundingClientRect();
+        var barBoxes = bars.map(function(b){ return b.getBoundingClientRect(); });
+        var half = (r0.width - barBoxes[cheapIdx].width) / 2, best = null;
+        [0, half, -half].forEach(function(dx){
+          var l = r0.left + dx, rr = r0.right + dx;
+          if(rr > chartBox.right){ l -= rr - chartBox.right; rr = chartBox.right; }
+          if(l < chartBox.left){ rr += chartBox.left - l; l = chartBox.left; }
+          var clear = r0.bottom;
+          barBoxes.forEach(function(b){
+            if(b.right > l && b.left < rr && b.top - 1 < clear) clear = b.top - 1;
+          });
+          var lift = Math.max(0, Math.min(r0.bottom - clear, r0.top - chartBox.top));
+          if(!best || lift < best.lift - 0.5) best = { dx: l - r0.left, lift: lift };
+        });
+        if(best.lift > PRICE_TAG_LIFT_MAX){
+          t.className = 'bar-val over';
+          var r1 = t.getBoundingClientRect(), dx1 = 0;
+          if(r1.right > chartBox.right) dx1 = chartBox.right - r1.right;
+          if(r1.left + dx1 < chartBox.left) dx1 = chartBox.left - r1.left;
+          best = { dx: dx1, lift: 0 };
+        }
+        if(best.dx) t.style.marginLeft = best.dx + 'px';
+        if(best.lift) t.style.marginBottom = (1 + best.lift) + 'px';
+      }
+    }
+
+    // Current price (big) + cheapest/priciest among UPCOMING hours, with
+    // the day when it is not today.
+    var nowEl = byId('price-now');
+    if(nowEl){
+      if(nowIdx >= 0){
+        nowEl.textContent = priceText(items[nowIdx].snt);
+        nowEl.style.color = priceColor(items[nowIdx].snt).replace(/[\d.]+\)$/, '1)');
+      } else {
+        // The data ran out before this hour: no price is better than an
+        // hour long gone.
+        nowEl.textContent = '—';
+        nowEl.style.color = '';
+      }
+    }
+    if(cheapIdx >= 0){
+      if(byId('price-min')) byId('price-min').textContent = priceWhen(items[cheapIdx].date) + ' · ' + priceText(items[cheapIdx].snt);
+      if(byId('price-max')) byId('price-max').textContent = priceWhen(items[peakIdx].date) + ' · ' + priceText(items[peakIdx].snt);
+    } else {
+      if(byId('price-min')) byId('price-min').textContent = '—';
+      if(byId('price-max')) byId('price-max').textContent = '—';
     }
     if(byId('price-status')) byId('price-status').textContent = 's/kWh · käibemaksuga (' + NPS_VAT_PCT + '%) · Nord Pool / Elering';
     NPS_RENDERED = true;
