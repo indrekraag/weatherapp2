@@ -1,15 +1,18 @@
 {
   "name": "Madise Ilmaradar",
   "short_name": "Madise",
-  "description": "Ilm Madises – tunniti, päeviti, päike, kuu, õietolm ja virmalised.",
+  "description": "Madise ilm – hetkeilm, 24 h ja 7 päeva prognoos, hoiatused, vihmaradar, päike ja kuu.",
   "lang": "et",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#060d14",
-  "theme_color": "#060d14",
-  "categories": ["weather", "utilities"],
+  "background_color": "#02050a",
+  "theme_color": "#02050a",
+  "categories": [
+    "weather",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",
