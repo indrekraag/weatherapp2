@@ -56,7 +56,7 @@ All endpoints listed below are confirmed CORS-open from `indrekraag.github.io` *
 - **NOAA SWPC** (aurora / space weather):
   - `services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json` — 3-day Kp forecast (`{time_tag, kp, observed, noaa_scale}` array; `observed` is `"observed"` or `"predicted"`)
   - `services.swpc.noaa.gov/json/ovation_aurora_latest.json` — Ovation aurora visibility model (lat/lng grid of probabilities)
-  - `services.swpc.noaa.gov/products/solar-wind/mag-1-day.json` — solar wind interplanetary magnetic field (Bz is what we read)
+  - `services.swpc.noaa.gov/products/summary/solar-wind-mag-field.json` — solar wind IMF summary (`[{bt, bz_gsm, time_tag}]`; Bz is what we read). The old `products/solar-wind/mag-1-day.json` returns 404 (found 2026-09-29; the card had shown a placeholder '−1.2' as live).
   - NOTE: NOAA changed the planetary-k-index JSON shape from array-of-arrays to array-of-objects (see `renderAurora` / `renderKpForecast`).
 - **Estonian Transport Administration (tarktee.transpordiamet.ee) — ArcGIS REST**:
   - `tarktee.transpordiamet.ee/tarktee/rest/services/`**`tram/`**`road_weather_stations/MapServer/0/query?where=site_name='Kurevere'&outFields=*&f=json` — Kurevere road weather station (air_temp, road_temp, road_status, road_status_aggregate, grip_factor, precipitation_type/intensity, wind_speed/dir, air_humidity, visibility, measurement_time)
@@ -77,7 +77,7 @@ If you ever want raw EMHI station readings without going through our bridge, you
 ~/wa2/
 ├── index.html                          # single-file PWA (CSS + JS inline)
 ├── manifest.json                       # PWA install metadata
-├── sw.js                               # service worker (stale-while-revalidate app shell)
+├── sw.js                               # service worker: network-first, page only (since 2026-09-30)
 ├── icons/
 │   ├── generate_icons.py               # PIL script — regenerates all icon sizes
 │   └── *.png                           # 180 / 192 / 512 + 512-maskable + 16/32 favicons
@@ -94,7 +94,7 @@ If you ever want raw EMHI station readings without going through our bridge, you
 
 **Data flow:**
 
-1. Service worker pre-caches the app shell. Stale-while-revalidate on same-origin assets; pass-through on weather APIs (those are cached in localStorage instead).
+1. Service worker (registered on https only): **network-first for the page itself**, cached copy only when offline; never touches API/data/tiles (those are cached in localStorage instead). Until 2026-09-30 no worker was registered at all — the May redesign had dropped the registration.
 2. On page load, `hydrateFromCache()` reads each `wx.*` key from localStorage and renders immediately — app shows last-known data even offline.
 3. Then `fetch*` functions run in parallel:
    - `fetchWeatherAndForecast()` → Open-Meteo
@@ -123,8 +123,9 @@ If you ever want raw EMHI station readings without going through our bridge, you
   - Sun times: 30 min (recompute)
   - Moon phase + rise/set: 1 h
   - Sun countdown DOM tick: 1 s
-  - Full page reload: 2 h (safety belt for long-running tabs)
-- **Stale indicator:** the "uuendatud" timestamp turns amber if data is >10 min old
+  - Full page reload: 60 min, only after a successful HEAD check (never offline — an offline reload used to land on the browser's error page)
+- **Data age:** the hero bar's second line reads `ilm HH:MM` (amber with `X t vana` past 45 min; hero dimmed past 2 h); EMHI chips carry an age tag past 90 min and dim past 6 h; Kurevere likewise; an undated reading counts as old
+- **Storage keys** are prefixed `wa2.` (STORE_PREFIX, one-time migration from `wx.*`): wa1 and wa2 share the indrekraag.github.io origin and used to overwrite each other's caches; ⟲ now clears only wa2's own keys, caches and worker
 - **Pair-card alignment:** Päike and Kuu share `.card-hero` class so their first data row (Tõus) lines up across both cards
 - **Pair-card alignment:** Õietolm and Virmalised share the icon-as-left-rail row layout for consistency
 - **Forecast tiles:** `flex: 0 0 calc((100% - 24px) / 4)` — exactly 4 tiles always visible regardless of viewport, scroll for more, slim 4 px scrollbar, scroll-snap
@@ -198,7 +199,11 @@ The GitHub Actions workflow (`.github/workflows/emhi.yml`) has these triggers:
 
 It force-pushes to the `data` branch. The data branch is **never merged** back to main — it lives independently as a single rolling commit.
 
-To refresh on iPhone after deploy: remove from home screen + re-add (otherwise the cached service worker may stick around). The "⟲ hard refresh" button in the topbar also clears localStorage + SW caches in-place if you don't want to reinstall.
+**Build stamp:** `APP_VERSION` + `APP_BUILT` at the top of the main script, shown small in the hero bar. **Bump both on every deploy of `index.html`** — patch for a fix, minor for a feature, major for a redesign; `APP_BUILT` = `DD.MM HH:MM` Tallinn time of the deploy. It is the only way to see on the phone which build it is running. Bump `SHELL_CACHE` in `sw.js` only when `sw.js` itself changes.
+
+Since 2026-09-30 the worker is network-first, so a push shows up on the next open — no more remove-and-re-add. The "⟲" button (two taps: the first shows "Kinnita?") still clears wa2's localStorage, caches and worker in place.
+
+**Undo points (git tags):** `pre-audit-fixes` = wa2 before the 2026-09-29/30 audit work. Roll back with `git checkout pre-audit-fixes -- index.html sw.js manifest.json && git commit -m "Undo audit fixes" && git push` (the network-first worker then serves the old page on the next open).
 
 ## What NOT to do
 
@@ -225,9 +230,57 @@ print('orphans:', sorted(refs - ids))"
 
 ## Current state
 
+**2026-09-30:** v2.0.0 — the audit fixes are live (see Recent changes); the horizontal-paging redesign is next (TODO). Older status follows.
+
 **Status:** `index.html` is now a fully-external redesign (`redesign_90`, `6a67369`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html` or `~/Downloads/madise-redesign_{N}.html` — both numbering styles in use). As of 2026-05-31 the JS render layer **has** been read/edited (icon + rain-threshold work, see below) — confirmed the file is a fully functional app (~4150 lines, single main `<script>` block). Key render fns: `currentSkyText`, `weatherCodeToSVG`, `skyIconSVG`, `renderPrecipTypes`, `renderDaily`. `renderHourly` is an **empty stub** ("hourly-strip removed — now bar charts in forecast-card"), so the hourly weather-symbol surface is the 3-hourly **precip-type row** (`renderPrecipTypes`). **2026-05-31/06-01:** added a tappable **7-day → day-detail bottom sheet** (`openDaySheet`/`_buildDayPanel`/`_hourSliceForDay`/`_wireSparkTap`, `WX_LAST` global) — see Recent changes — plus precip-aware icons (`skyIconSVG` + `RAIN_MIN_MM`) and the Erik Flowers glyph set. HEAD `fb0fc0e`. The old CSS-class conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`) are stale; the CSS layer is still un-audited. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
+
+## Recent changes (2026-09-30 — design review + audit fixes, v2.0.0)
+
+An Impeccable critique + audit of this app (19/40, 8/20), with rendered
+measurements at 360/390/430 px and forced states, every finding verified by
+a second agent (111 findings, 0 refuted). Snapshot:
+`.impeccable/critique/` (gitignored). The owner then chose the fixes below
+(shipped now) and a **horizontal-paging redesign** (built next, see TODO).
+Undo tag: `pre-audit-fixes`.
+
+- **P0 — warnings were not fetched at app open**: for the first 5 min of
+  every session the bar said "✓ Hoiatused puuduvad", even during a live
+  warning. Now fetched at launch and cached. The bar sorts in-effect before
+  upcoming, then by level; shows the time window and "+N"; uses official
+  yellow/orange/red; says "Hoiatused teadmata · andmed HH:MM" when the bundle
+  is old, missing or `warnings_ok: false`. The always-CORS-blocked direct
+  hoiatus.php path is gone. The app's own storm banner is styled and its
+  logic fixed (thunder / ≥4 mm/h / gusts ≥15 m/s each register; an hour
+  underway is "praegu").
+- **Wrong data fixed** (ports of the wa1 kiosk fixes): sun times were dated
+  a day early 23 Sep–21 Mar (Päike countdown stuck at "−0t 00m", no sun on
+  the map, night wording by day); current rain was a 15-min sum shown as
+  mm/h (4× low); the rain countdown and hourly rain bars were an hour late
+  (hourly values describe the PRECEDING hour); pressure always said
+  "↗ stabiilne" (now a real 3 h tendency, "—" before 03:00); a sun icon at
+  night; Öökülm after midnight showed the next night; "Nähtavus" always said
+  "selge" (now from EMHI's observed visibility/fog when fresh, else the
+  model); UV null showed "0"; "Täiskuu: Täna" for four days; the Kuu card
+  and the map disagreed on moonset; Bz a permanent "−1.2" (dead NOAA URL);
+  the day sheet's charts labelled the wrong hours.
+- **No invented values:** every mock number in the markup is now "—";
+  Open-Meteo payloads are validated before they replace the cache; a null
+  station value shows "—" instead of keeping the old one under a fresh age.
+- **Honest ages:** see Conventions → Data age. Kurevere shows road state
+  (tarktee's words: kuiv / niiske / märg / jäine …).
+- **Radar:** one layer per frame (no 429 storms), honest status, a legend
+  generated from the real colour scheme, a keyless MAP base (CARTO served an
+  "API KEY REQUIRED" watermark), Leaflet with SRI.
+- **Price card:** negatives below zero, DST-safe current hour, non-numeric
+  prices treated as missing, midnight divider, cheapest tag.
+- **PWA:** network-first worker registered again, the real manifest.json
+  (Android could not install from the data: manifest), `<title>` "Madise
+  Ilmaradar", build stamp, two-tap ⟲, `wa2.` storage prefix.
+
+Deliberately kept: `RAIN_MIN_MM = 0.5` for icons and the 7-day (owner,
+2026-05-31).
 
 ## Recent changes (2026-09-29 — the bridge now runs on a real 15-min clock)
 
@@ -267,8 +320,8 @@ To stop it: `ssh root@77.42.127.225 'crontab -l | grep -v wa-dispatch | crontab 
 turn any MeteoAlarm fetch/parse failure into `warnings: []` under a fresh
 `fetched_at`, which is indistinguishable from "no warnings". It now returns
 `None` on failure and the bundle carries `"warnings_ok": false` (with
-`warnings: []`), `true` otherwise. This app ignores the field (it reads
-`data.warnings` only); the wa1 iPad kiosk shows "Hoiatused teadmata" for it.
+`warnings: []`), `true` otherwise. Both apps honour it (this one since
+2026-09-30): "Hoiatused teadmata" instead of a green all-clear.
 Found by the Codex audit of wa1 (wa1 HANDOFF, 2026-09-29).
 
 ## Recent changes (2026-09-18b — forecast-icon audit, ported from wa1)
@@ -670,8 +723,9 @@ The Hetkeilm card has three vertical contexts that all line up at x=105:
 
 ## TODO / open questions
 
-- [ ] Render `road_status` / `grip_factor` on the Kurevere chip — the tram layer supplies road state (DRY/MOIST/WET/ICE/SNOW) and grip; in winter "tee: jäide" beats a road temperature. Fields already arrive, only `renderKurevere()` + markup needed
-- [ ] Apply the `measurement_time` staleness idea to the EMHI chips too — they have the same failure mode (bridge publishes, page believes it) and currently no age check at all
+- [ ] **Horizontal-paging redesign (chosen 2026-09-30):** five full-screen pages swiped sideways with a bottom tab bar — Nüüd · Radar · 24 h · Nädal · Hind. Nüüd/Nädal/Hind from prototype C, Radar and 24 h from prototype A (review page: claude.ai artifact "Madise Swipe Layouts"). Plus the chosen upgrades: verdict line, freshness chip, 3-tile hero, road chip, warnings with time window, cleaner 24 h card, better 7-day list, price upgrades, quiet seasonal cards, semantic colours + one icon family, honest empty states. **No bigger fonts.** Rain for "Kuiv kuni …" = only real rain (≥ 0.3 mm/h or ≥ 50 %), one shared function with the countdown.
+- [x] Render road state on the Kurevere chip (2026-09-30; `grip_factor` doesn't exist on the tram layer)
+- [x] Age check on the EMHI chips (2026-09-30)
 - [ ] Verify the new home-screen icon on the actual iPhone after re-installing as a web app
 - [ ] Smoke-test on a real Android device (Indrek has Android users)
 - [ ] Decide whether to add the iOS Badging API (`navigator.setAppBadge(temp)`) for a small numeric badge on the home-screen icon — discussed and parked

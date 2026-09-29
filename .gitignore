@@ -11,3 +11,6 @@ __pycache__/
 data/
 # Transient Claude Code scheduler lock — machine-local, never commit
 .claude/scheduled_tasks.lock
+
+# Impeccable design-review notes (local)
+.impeccable/
