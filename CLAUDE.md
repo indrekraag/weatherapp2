@@ -189,8 +189,11 @@ git push
 ```
 
 The GitHub Actions workflow (`.github/workflows/emhi.yml`) has these triggers:
-- `schedule: */15 * * * *` — auto-runs every 15 min
-- `workflow_dispatch` — manually trigger from the Actions tab
+- `schedule: */15 * * * *` — *nominally* every 15 min, but GitHub throttles
+  it to roughly every 3–5 h in practice (measured 2026-09-26). Don't rely on it.
+- `workflow_dispatch` — manually trigger from the Actions tab, **and what
+  actually keeps the data fresh:** the Hetzner VPS calls it every 15 min
+  (see Recent changes 2026-09-29)
 - `push: paths: [scripts/fetch_emhi.py, .github/workflows/emhi.yml]` — auto-runs when script or workflow itself changes
 
 It force-pushes to the `data` branch. The data branch is **never merged** back to main — it lives independently as a single rolling commit.
@@ -225,6 +228,40 @@ print('orphans:', sorted(refs - ids))"
 **Status:** `index.html` is now a fully-external redesign (`redesign_90`, `6a67369`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html` or `~/Downloads/madise-redesign_{N}.html` — both numbering styles in use). As of 2026-05-31 the JS render layer **has** been read/edited (icon + rain-threshold work, see below) — confirmed the file is a fully functional app (~4150 lines, single main `<script>` block). Key render fns: `currentSkyText`, `weatherCodeToSVG`, `skyIconSVG`, `renderPrecipTypes`, `renderDaily`. `renderHourly` is an **empty stub** ("hourly-strip removed — now bar charts in forecast-card"), so the hourly weather-symbol surface is the 3-hourly **precip-type row** (`renderPrecipTypes`). **2026-05-31/06-01:** added a tappable **7-day → day-detail bottom sheet** (`openDaySheet`/`_buildDayPanel`/`_hourSliceForDay`/`_wireSparkTap`, `WX_LAST` global) — see Recent changes — plus precip-aware icons (`skyIconSVG` + `RAIN_MIN_MM`) and the Erik Flowers glyph set. HEAD `fb0fc0e`. The old CSS-class conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`) are stale; the CSS layer is still un-audited. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
+
+## Recent changes (2026-09-29 — the bridge now runs on a real 15-min clock)
+
+**The `*/15` cron was a fiction.** GitHub throttles scheduled workflows on
+free accounts: the EMHI + electricity-price bridge actually ran every
+~3–5 h (e.g. 25.09 05:37 → 10:32 → 15:32 → 19:32 UTC). Station readings
+were routinely 3 h old, and tomorrow's electricity prices appeared in
+`nps.json` at 14:53 / 18:18 / 18:32 on three days running although Elering
+publishes ~14:00. Nothing on screen said so. Found by the wa1 design audit
+(2026-09-26); applies equally here because both builds read this repo's
+`data` branch.
+
+**Fix — an external timer on the Hetzner VPS** (`root@77.42.127.225`, the
+same box as Modcranebuilder):
+
+- `/opt/wa-dispatch/dispatch.sh`, run by root's crontab `*/15 * * * *`,
+  POSTs `workflow_dispatch` for **this repo's `emhi.yml`** and for
+  wa1's `kurevere.yml` (indrekraag/weatherapp). GitHub runs dispatched
+  workflows promptly. Verified 2026-09-29 08:28 UTC: both 204, both runs
+  green within seconds.
+- Auth: a **fine-grained GitHub token** (Actions: read and write, only
+  `weatherapp` + `weatherapp2`) in `/opt/wa-dispatch/token` (chmod 600).
+  The owner created it and wrote it to the VPS directly; it has never been
+  in a repo or a chat. **When the token expires the timer silently
+  stops** and the data falls back to GitHub's slow schedule — regenerate
+  it and overwrite the file. Without the file the script is a no-op.
+- Log: `/var/log/wa-dispatch.log`, one line per run
+  (`kurevere=204 emhi+nps=204`), trimmed to 500 lines. A 401 there means
+  the token expired or was revoked.
+- The `schedule:` trigger stays as a fallback. Overlapping runs are safe:
+  the workflow's `concurrency: group: emhi-fetch` queues them, and each run
+  force-pushes one rolling commit to `data`.
+
+To stop it: `ssh root@77.42.127.225 'crontab -l | grep -v wa-dispatch | crontab -'`.
 
 ## Recent changes (2026-09-18b — forecast-icon audit, ported from wa1)
 
