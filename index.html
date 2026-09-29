@@ -16,7 +16,15 @@
      install the app, and put 128 KB of base64 into every page load. -->
 <link rel="manifest" href="manifest.json">
 <title>Madise Ilmaradar</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<!-- Leaflet's stylesheet: SRI-pinned like the script (same hashes as wa1),
+     and not render-blocking — media="print" until it has loaded, so the
+     cached weather paints without waiting for cdnjs (a slow CDN held first
+     paint for as long as it took). Only the map needs it; the map box has
+     its own size, so a late stylesheet costs nothing but the map's look. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+      integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
+      crossorigin="anonymous" referrerpolicy="no-referrer"
+      media="print" onload="this.media='all'">
 <style>
 /* ─── DESIGN TOKENS ─────────────────────────────────────────
  * Liquid-glass system rebuilt around 3 principles:
@@ -1847,6 +1855,13 @@ body {
   letter-spacing: 0.3px;
   text-align: center;
 }
+/* "nüüd 12:40" / "−40 min 12:00": the frame's age relative to the newest
+ * frame (radarLabelFrame), then its clock time; dimmed while the loop is
+ * on an older frame, amber once the feed has stalled. */
+.radar-time-label .rt-rel { font-weight: 700; color: rgba(255,255,255,0.85); }
+#radar-card.radar-past .radar-time-label { opacity: 0.7; }
+.radar-time-label.stale .rt-rel { color: var(--warn); }
+.radar-ctrl-btn:disabled { opacity: 0.35; cursor: default; }
 .radar-status {
   font-size: 10px;
   color: rgba(255,255,255,0.40);
@@ -1854,6 +1869,41 @@ body {
   margin-top: 6px;
   letter-spacing: 0.2px;
 }
+.radar-status.warn { color: var(--warn); font-weight: 600; }
+
+/* The same trouble said ON the map: without it a rate-limited or failed
+ * radar looked exactly like a dry day (radarSetStatus). Top-centre, kept
+ * clear of the +/− block and the Sadu key; it may wrap on a narrow map. */
+.radar-badge { display: none; }
+.radar-badge.on {
+  display: block;
+  position: absolute;
+  left: 50%; top: 10px;
+  transform: translateX(-50%);
+  z-index: 500;
+  width: max-content;
+  max-width: calc(100% - 170px);
+  min-width: min-content;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(10,10,14,0.86);
+  border: 1px solid rgba(233,167,107,0.45);
+  color: var(--warn);
+  font-family: -apple-system, "SF Pro Text", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.6);
+}
+.radar-badge .seg { white-space: nowrap; }
+/* No map library: nothing but the badge in the box. */
+#radar-map.radar-nolib .radar-badge.on { top: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 24px); }
+#radar-map.radar-nolib .zoom-presets { display: none; }
+/* No radar frame on screen: a colour key over a map without radar would
+ * suggest a dry sky. */
+#radar-map.radar-none .precip-legend { display: none; }
 
 /* Override Leaflet attribution to match dark theme */
 .leaflet-control-attribution {
@@ -2431,14 +2481,16 @@ body {
                overlays live INSIDE this div so they anchor to the map
                area (Leaflet makes the container position:relative). -->
           <div id="radar-map" style="height:260px;border-radius:12px;overflow:hidden;background:#0a0a0c;">
-            <!-- Precipitation colour legend — top-right corner -->
+            <!-- Precipitation colour legend — top-right corner. Rows are
+                 generated from the tiles' colour scheme by
+                 renderRadarLegend(); hidden while no radar frame is on
+                 the map (#radar-map.radar-none). -->
             <div class="precip-legend" id="precip-legend">
               <div class="precip-legend-title">Sadu</div>
-              <div class="precip-legend-row"><span class="precip-sw" style="background:#3da9f5"></span>Kerge</div>
-              <div class="precip-legend-row"><span class="precip-sw" style="background:#3edd5f"></span>Mõõdukas</div>
-              <div class="precip-legend-row"><span class="precip-sw" style="background:#f5d83a"></span>Tugev</div>
-              <div class="precip-legend-row"><span class="precip-sw" style="background:#e8533b"></span>Väga tugev</div>
             </div>
+            <!-- Radar trouble, on the map where the eye already is:
+                 rate-limited, stalled, unavailable (radarSetStatus). -->
+            <div class="radar-badge" id="radar-badge" role="status" aria-live="polite"></div>
             <!-- Zoom-preset + base-map row — bottom-center -->
             <div class="zoom-presets" id="zoom-presets">
               <button class="zoom-btn" onclick="rxZoom(14)">2km</button>
@@ -2453,7 +2505,7 @@ body {
           </div>
           <!-- Timeline bar -->
           <div class="radar-timeline">
-            <button class="radar-ctrl-btn" id="radar-play" title="Mängi / Peata">▶</button>
+            <button class="radar-ctrl-btn" id="radar-play" title="Mängi / Peata" disabled>▶</button>
             <div class="radar-scrub-wrap">
               <input type="range" class="radar-scrub" id="radar-scrub" min="0" value="0" step="1">
               <div class="radar-time-label" id="radar-time-label">—</div>
@@ -5892,50 +5944,150 @@ if('serviceWorker' in navigator && location.protocol === 'https:'){
 </script>
 
 <!-- Leaflet — loaded after the main script so it doesn't block the
-     weather data fetches. The radar card initialises once Leaflet
-     is ready via the onload handler below. -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+     weather data fetches, and async: a CDN that stalls no longer holds up
+     DOMContentLoaded (initRadar() waits for L itself). Pinned to cdnjs's
+     1.9.4 by its SRI hash (a tampered or changed file is refused, as on
+     wa1); a failed load sets LEAFLET_FAILED so the radar card can say so at
+     once instead of polling for a library that is not coming. -->
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+        integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"
+        onerror="window.LEAFLET_FAILED = true"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
  * RADAR / SATELLIIT CARD — RainViewer public API + Leaflet
+ * (the frame handling is ported from the iPad kiosk, wa1 v1.3.1)
  *
  * Data flow:
  *   1. Fetch https://api.rainviewer.com/public/weather-maps.json
- *      → returns host + arrays of past radar frames (timestamps + paths)
- *        and satellite frames.
- *   2. Build a Leaflet map centred on Madise, OSM base tiles.
- *   3. Add a tile layer for each frame (lazy — only the current frame
- *      is active at any time; others are preloaded on demand).
- *   4. Timeline scrubber + play/pause button drives frame switching.
- *   5. Mode toggle swaps between radar and satellite frame arrays.
+ *      → returns host + arrays of past radar frames (timestamps + paths).
+ *   2. Build a Leaflet map centred on Madise, Esri satellite base tiles
+ *      (Esri's keyless light-grey map as the MAP alternative).
+ *   3. One tile layer per frame, built once per data refresh at opacity 0
+ *      so it loads in the background; showing a frame is an opacity
+ *      switch (radarShowFrame), not a new layer. The newest frame is
+ *      built first; the older ones once it has loaded and the card has
+ *      been on screen.
+ *   4. Timeline scrubber + play/pause button drives frame switching. The
+ *      loop holds the newest frame ~3 s each cycle, and rests on it while
+ *      the card is off-screen, while the page is hidden and under reduced
+ *      motion (radarAutoplay).
+ *   5. A failing tile (in practice RainViewer's rate limit) stops the
+ *      loop and backs off before asking again (radarTilesFailed).
  *   6. Auto-refresh every 5 min pulls new frames.
  * ═══════════════════════════════════════════════════════════════ */
 
 var RADAR = {
   map: null,
-  currentLayer: null,
   frames: [],             // active frame array ({time, path} objects)
-  frameIdx: 0,            // index into frames[]
+  layers: [],             // one L.tileLayer per frame, index-aligned with frames[]
+  shownLayer: null,       // the one layer at full opacity (null = no radar on screen)
+  frameIdx: 0,            // index into frames[] of the frame on screen
   host: '',
   playing: false,
-  playTimer: null,
+  playTimer: null,        // the loop's next step — a setTimeout, as steps differ in length
+  userPaused: false,      // ⏸ tapped: stays paused across data refreshes
+  userPlayUntil: 0,       // ▶ tapped: plays until then even where autoplay rests
+  followLatest: true,     // false after a scrub, until the idle timer runs out
+  okPath: null,           // newest frame whose tiles have ALL loaded — the only proof the radar works
   mode: 'radar',          // 'radar' | 'satellite'
   apiData: null,          // last weather-maps.json response
+  lastFetchMs: 0,
   refreshTimer: null,
+  apiRetryTimer: null,
+  retryTimer: null,       // back-off after tile failures (radarTilesFailed)
+  retryAt: 0,
+  failCount: 0,           // consecutive failed attempts, doubles the back-off
+  scrubMs: 0,             // last scrub: the loop keeps its hands off for IDLE_MS
+  idleTimer: null,
+  inView: true,           // the card is on screen (IntersectionObserver, when there is one)
+  everInView: true,       // …has been at least once — the older frames wait for it
+  baseLayers: null,       // { satellite, light } — see initRadar
+  libWaitSince: 0,        // first initRadar() without Leaflet
+  libMissing: false,      // …and it failed, or 10 s later still none: said so on the map
   TILE_SIZE: 256,
-  COLOR: 2,               // RainViewer color scheme (2 = original)
+  COLOR: 2,               // RainViewer colour scheme 2 = Universal Blue (1 is "Original") — see RADAR_SCHEME_STOPS
   SMOOTH: 1,              // 1 = smooth
-  SNOW: 0                 // 0 = no snow color
+  SNOW: 0,                // 0 = no snow color
+  STEP_MS: 500,           // per frame while the loop runs
+  HOLD_MS: 3000,          // on the newest frame, once per cycle
+  STALE_MIN: 30,          // newest frame older than this: the feed has stalled (it updates every 10 min, we poll every 5)
+  USER_PLAY_MS: 5 * 60 * 1000,
+  IDLE_MS: 60 * 1000
 };
 
+/* Sadu legend, generated from the colour table of the scheme the tiles are
+ * drawn in, so the two cannot drift apart (the RAIN_LEGEND_PROB idea).
+ * The hand-written legend promised green for "Mõõdukas", but scheme 2 is
+ * Universal Blue, which has no green below 75 dBZ: moderate rain is navy on
+ * the map and read as "Kerge" off the old key.
+ * Stops: the rain rows of RainViewer's rainviewer_api_colors_table.csv,
+ * column "Universal Blue" (5–14 dBZ is a translucent beige in the tiles).
+ * Rates in the comments are Marshall–Palmer, Z = 200·R^1.6. Same table as
+ * wa1. */
+var RADAR_SCHEME_STOPS = [
+  { dbz: 10, color: '#cec087' },   //  ~0.15 mm/h
+  { dbz: 15, color: '#88ddee' },   //  ~0.3
+  { dbz: 20, color: '#00a3e0' },   //  ~0.6
+  { dbz: 25, color: '#0077aa' },   //  ~1.3
+  { dbz: 30, color: '#005588' },   //  ~2.7
+  { dbz: 35, color: '#ffee00' },   //  ~5.6
+  { dbz: 40, color: '#ffaa00' },   //  ~11
+  { dbz: 45, color: '#ff4400' },   //  ~24
+  { dbz: 50, color: '#c10000' },   //  ~49
+  { dbz: 55, color: '#ffaaff' }    // ~100 (hail cores)
+];
+var RADAR_LEGEND = [
+  { label: 'Nõrk',       from: 5,  to: 15 },
+  { label: 'Kerge',      from: 15, to: 25 },
+  { label: 'Mõõdukas',   from: 25, to: 35 },
+  { label: 'Tugev',      from: 35, to: 45 },
+  { label: 'Väga tugev', from: 45, to: 60 }
+];
+function renderRadarLegend(){
+  var box = document.getElementById('precip-legend');
+  if(!box) return;
+  var html = '<div class="precip-legend-title">Sadu</div>';
+  RADAR_LEGEND.forEach(function(band){
+    var cols = RADAR_SCHEME_STOPS.filter(function(s){ return s.dbz >= band.from && s.dbz < band.to; })
+                                 .map(function(s){ return s.color; });
+    if(!cols.length) return;
+    var bg = cols.length > 1 ? 'linear-gradient(90deg,' + cols.join(',') + ')' : cols[0];
+    html += '<div class="precip-legend-row"><span class="precip-sw" style="background:' + bg + '"></span>' + band.label + '</div>';
+  });
+  box.innerHTML = html;
+}
+
+var RADAR_RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+
 function initRadar(){
-  // Defer if Leaflet or the DOM or CONFIG aren't ready yet
+  // Defer if Leaflet or the DOM or CONFIG aren't ready yet. Leaflet comes
+  // from a CDN. When its <script> has failed (offline, blocked, a hash
+  // mismatch) it will not arrive this page load — the hourly reload tries
+  // again — so say so on the map and stop asking; if it is merely slow,
+  // say so after 10 s and keep looking, less often. It used to re-arm every
+  // 300 ms for good under a 'Laen radaripilte…' that never changed.
   if(typeof L === 'undefined' || typeof CONFIG === 'undefined' || !document.getElementById('radar-map')){
-    setTimeout(initRadar, 300);
+    if(!RADAR.libWaitSince) RADAR.libWaitSince = Date.now();
+    var failed = window.LEAFLET_FAILED === true;
+    if(typeof L === 'undefined' && !RADAR.libMissing && (failed || Date.now() - RADAR.libWaitSince > 10000)){
+      RADAR.libMissing = true;
+      var mapEl0 = document.getElementById('radar-map');
+      if(mapEl0) mapEl0.classList.add('radar-nolib');
+      radarShowNone();        // no Sadu key over an empty box
+      radarSetStatus('warn', 'Radar pole saadaval · kaart ei laadinud');
+    }
+    if(failed) return;
+    setTimeout(initRadar, RADAR.libMissing ? 2000 : 300);
     return;
   }
   // Guard against double-init
   if(RADAR.map) return;
+  if(RADAR.libMissing){
+    RADAR.libMissing = false;
+    document.getElementById('radar-map').classList.remove('radar-nolib');
+    radarSetStatus('', 'Laen radaripilte…');
+  }
 
   RADAR.map = L.map('radar-map', {
     center: [CONFIG.lat, CONFIG.lng],
@@ -5945,14 +6097,22 @@ function initRadar(){
     tap: true
   });
 
-  // CartoDB Positron — muted greyscale tiles, no key required. Much
-  // better contrast for the radar colour overlay than OSM's colourful
-  // default tiles. Coastlines and landmass read clearly in grey.
-  L.tileLayer(
-    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    { maxZoom: 19, subdomains: 'abcd',
-      attribution: '© <a href="https://openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>' }
-  ).addTo(RADAR.map);
+  // Base maps. Satellite is the default and the only one fetched at load.
+  // The MAP alternative is Esri's keyless Canvas "Light Gray Base" from the
+  // same host as the imagery: CARTO's light_all (the old MAP layer, and
+  // fetched at every load before SAT replaced it) now answers every tile
+  // with an "API KEY REQUIRED" watermark — HTTP 200, so nothing errored.
+  // Its data ends at z16 (z17 is a "Map data not yet available" tile).
+  RADAR.baseLayers = {
+    satellite: L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 18, updateWhenIdle: true, keepBuffer: 1, attribution: 'Tiles © Esri' }),
+    light: L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, maxNativeZoom: 16, updateWhenIdle: true, keepBuffer: 1,
+        attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap' })
+  };
+  RADAR.baseLayers.satellite.addTo(RADAR.map);
 
   // Madise location marker — subtle amber dot
   var icon = L.divIcon({
@@ -5964,29 +6124,65 @@ function initRadar(){
   L.marker([CONFIG.lat, CONFIG.lng], {icon: icon, interactive: false})
    .addTo(RADAR.map);
 
+  renderRadarLegend();
+
   // Wire up controls
   document.getElementById('radar-play').addEventListener('click', radarTogglePlay);
   document.getElementById('radar-scrub').addEventListener('input', function(){
     radarStop();
-    RADAR.frameIdx = parseInt(this.value);
-    radarShowFrame(RADAR.frameIdx);
+    RADAR.followLatest = false;
+    radarNoteScrub();
+    radarShowFrame(parseInt(this.value, 10));
   });
-  document.querySelectorAll('.radar-mode-btn').forEach(function(btn){
+  // Only the in-card mode buttons: the two external links share the class,
+  // and a tap on one used to switch the mode to null and re-apply the data.
+  document.querySelectorAll('button.radar-mode-btn[data-layer]').forEach(function(btn){
     btn.addEventListener('click', function(){
-      document.querySelectorAll('.radar-mode-btn').forEach(function(b){ b.classList.remove('active'); });
+      document.querySelectorAll('button.radar-mode-btn[data-layer]').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
       RADAR.mode = btn.getAttribute('data-layer');
       radarStop();
       if(RADAR.apiData) radarApplyData(RADAR.apiData);
     });
   });
+  RADAR.map.on('zoomstart', radarZoomStart);
+  RADAR.map.on('zoomend', radarZoomEnd);
+
+  // The loop runs by itself only while someone can see it: the card on
+  // screen (it sits far below the fold on a phone, where it used to play
+  // — and fetch — all the time), the page visible, and no reduced-motion
+  // request. The older frames' tiles wait for the card's first appearance.
+  var card = document.getElementById('radar-card');
+  if(card && typeof IntersectionObserver === 'function'){
+    RADAR.inView = false;
+    RADAR.everInView = false;
+    new IntersectionObserver(function(entries){
+      RADAR.inView = entries[entries.length - 1].isIntersecting;
+      if(RADAR.inView && !RADAR.everInView){
+        RADAR.everInView = true;
+        radarBuildMissing();
+      }
+      radarAutoplay();
+    }).observe(card);
+  }
+  document.addEventListener('visibilitychange', radarOnVisibility);
+  if(RADAR_RM){
+    if(RADAR_RM.addEventListener) RADAR_RM.addEventListener('change', radarAutoplay);
+    else if(RADAR_RM.addListener) RADAR_RM.addListener(radarAutoplay);
+  }
+  setInterval(radarTick, 60 * 1000);
 
   // Fetch data and set up auto-refresh
   radarFetchData();
   RADAR.refreshTimer = setInterval(radarFetchData, 5 * 60 * 1000);
+
+  // Sun/moon/wind overlay, zoom presets, MAP/SAT — once the map exists
+  // (it used to poll for the map every 400 ms, for good if Leaflet failed).
+  initRadarExtras();
 }
 
 function radarFetchData(){
+  if(RADAR.apiRetryTimer){ clearTimeout(RADAR.apiRetryTimer); RADAR.apiRetryTimer = null; }
   fetch('https://api.rainviewer.com/public/weather-maps.json')
     .then(function(r){
       if(!r.ok) throw new Error('HTTP ' + r.status);
@@ -5994,128 +6190,453 @@ function radarFetchData(){
     })
     .then(function(data){
       RADAR.apiData = data;
+      RADAR.lastFetchMs = Date.now();
       radarApplyData(data);
-      var d = new Date();
-      document.getElementById('radar-status').textContent =
-        'RainViewer · ' + d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
-    })
-    .catch(function(err){
-      // Suppress console noise for routine network blips — just log quietly
-      var st = document.getElementById('radar-status');
-      if(st) st.textContent = 'Radaripildid pole hetkel saadaval';
-      // Retry in 60s rather than waiting the full 5-min interval
-      setTimeout(radarFetchData, 60 * 1000);
+    }, function(){
+      // Routine network blip: no console noise, and retry in 60 s rather
+      // than waiting the full 5-min interval. Frames already on screen
+      // stay; radarUpdateStatus() flags them once they are too old. With
+      // nothing to show, say so — an offline start used to read
+      // 'Laen radaripilte…' for good.
+      RADAR.apiRetryTimer = setTimeout(radarFetchData, 60 * 1000);
+      if(RADAR.frames.length){ radarUpdateStatus(); return; }
+      var btn = document.getElementById('radar-play');
+      if(btn) btn.disabled = true;      // nothing to play (radarApplyData re-enables)
+      radarShowNone();
+      radarSetStatus('warn', 'Radar pole saadaval · uus katse ' + formatTime(new Date(Date.now() + 60 * 1000)));
     });
 }
 
 function radarApplyData(data){
-  RADAR.host = data.host || 'https://tilecache.rainviewer.com';
+  RADAR.host = (data && data.host) || 'https://tilecache.rainviewer.com';
 
   // Pick the right frame array — radar only (satellite opens externally)
-  var past = (data.radar && data.radar.past) || [];
-  var nowcast = (data.radar && data.radar.nowcast) || [];
+  var past = (data && data.radar && data.radar.past) || [];
+  var nowcast = (data && data.radar && data.radar.nowcast) || [];
+  var shown = RADAR.shownLayer;
   RADAR.frames = past.concat(nowcast);
+  radarSyncLayers();
 
+  var btn = document.getElementById('radar-play');
+  if(btn) btn.disabled = !RADAR.frames.length;
   if(!RADAR.frames.length){
-    document.getElementById('radar-status').textContent = 'Andmed pole saadaval';
+    radarStop();
+    radarShowNone();
+    radarSetStatus('warn', 'Radariandmed pole saadaval');
     return;
   }
 
-  // Show the latest frame by default
-  RADAR.frameIdx = RADAR.frames.length - 1;
-
-  // Update scrubber range
+  var n = RADAR.frames.length;
   var scrub = document.getElementById('radar-scrub');
-  scrub.max = RADAR.frames.length - 1;
-  scrub.value = RADAR.frameIdx;
+  scrub.max = n - 1;
 
-  radarShowFrame(RADAR.frameIdx);
+  // What goes on screen: while the loop plays, the frame already there
+  // (the loop carries on from it); after a scrub, the scrubbed frame;
+  // otherwise the newest — once its tiles are in, so a refresh never
+  // blanks the map: until then the old picture stays up and
+  // radarLayerLoaded() moves on to the new one.
+  var keep = shown ? RADAR.layers.indexOf(shown) : -1;
+  var latest = RADAR.layers[n - 1];
+  var idx = n - 1;
+  if(keep >= 0 && (RADAR.playing || !RADAR.followLatest || !(latest && latest._rvReady))) idx = keep;
+  radarShowFrame(idx);
+  radarUpdateStatus();
 
-  // Auto-play once frames are loaded (matches the iPad kiosk — the radar
-  // is meant to be ambient/animated). userPaused guard stops the 5-min
-  // refresh from restarting a loop the user manually paused.
-  if(!RADAR.userPaused && !RADAR.playing){
-    setTimeout(radarPlay, 300);
-  }
+  // Auto-play once frames are loaded — the radar is meant to be ambient.
+  // radarAutoplay() knows when not to (user pause, off-screen, hidden, …).
+  radarAutoplay();
 }
 
 function radarTileUrl(frame){
   var opts = RADAR.SMOOTH + '_' + RADAR.SNOW;
   return RADAR.host + frame.path + '/' + RADAR.TILE_SIZE + '/{z}/{x}/{y}/' + RADAR.COLOR + '/' + opts + '.png';
 }
+function radarOpacity(){ return RADAR.mode === 'satellite' ? 0.85 : 0.70; }
 
-function radarShowFrame(idx){
-  if(!RADAR.frames.length) return;
-  idx = Math.max(0, Math.min(idx, RADAR.frames.length - 1));
-  RADAR.frameIdx = idx;
-
-  var frame = RADAR.frames[idx];
-
-  // Remove previous layer
-  if(RADAR.currentLayer){ RADAR.map.removeLayer(RADAR.currentLayer); }
-
-  RADAR.currentLayer = L.tileLayer(radarTileUrl(frame), {
+/* One tile layer per frame, built once and switched by opacity — the way
+ * RainViewer's own example does it. The old loop removed the layer and
+ * built a new L.tileLayer every 500 ms: each step began blank and faded
+ * in, and each step asked the tile server again (60 layers and 360 <img>
+ * in 30 s, measured here). A 429 is not cached, so once RainViewer
+ * started limiting, the loop kept re-asking and never recovered — while
+ * the status line said OK over an empty map. */
+function radarMakeLayer(frame){
+  var layer = L.tileLayer(radarTileUrl(frame), {
     tileSize: RADAR.TILE_SIZE,
-    opacity: RADAR.mode === 'satellite' ? 0.85 : 0.70,
+    opacity: 0,
     zIndex: 10,
+    className: 'rv-frame',
     // RainViewer only has tiles through zoom 7. Above that the server
     // returns "Zoom Level Not Supported" placeholders, so cap native
     // zoom and let Leaflet upscale — fuzzy but no error tiles at the
     // 2km / 10km presets.
     maxNativeZoom: 7,
-    maxZoom: 19
+    maxZoom: 19,
+    // 13 of these: no tiles mid-gesture, few kept off-screen.
+    updateWhenIdle: true,
+    updateWhenZooming: false,
+    keepBuffer: 1
   });
-  RADAR.currentLayer.addTo(RADAR.map);
+  layer._rvPath = frame.path;
+  layer._rvReady = false;     // every visible tile loaded, none failed
+  layer._rvErrors = 0;
+  layer.on('loading', function(){ layer._rvReady = false; });
+  layer.on('tileerror', function(){
+    layer._rvErrors++;
+    setTimeout(radarTilesFailed, 0);    // not from inside Leaflet's tile callback
+  });
+  layer.on('load', function(){
+    layer._rvReady = !layer._rvErrors;
+    if(layer._rvReady) radarLayerLoaded(layer);
+  });
+  return layer;
+}
 
-  // Update scrubber + time label
+/* Bring the frame layers in line with RADAR.frames: keep the layer of each
+ * frame still in the window (its tiles are loaded), drop the ones that left
+ * it, build the missing ones hidden. */
+function radarSyncLayers(){
+  var have = {}, next = [], i;
+  for(i = 0; i < RADAR.layers.length; i++){
+    if(RADAR.layers[i]) have[RADAR.layers[i]._rvPath] = RADAR.layers[i];
+  }
+  for(i = 0; i < RADAR.frames.length; i++){
+    var p = RADAR.frames[i].path;
+    next.push(have[p] || null);
+    delete have[p];
+  }
+  for(var k in have){
+    if(!have.hasOwnProperty(k)) continue;
+    if(have[k] === RADAR.shownLayer) RADAR.shownLayer = null;
+    RADAR.map.removeLayer(have[k]);
+  }
+  RADAR.layers = next;
+  radarBuildMissing();
+}
+function radarBuildMissing(){
+  // Nothing new is asked of the server while backing off from a failure.
+  if(RADAR.retryTimer || !RADAR.map) return;
+  var n = RADAR.frames.length;
+  if(!n) return;
+  // The newest frame first, the rest only once it has fully loaded: the
+  // "now" picture is up soonest, and while RainViewer is limiting us an
+  // attempt costs that frame's handful of tiles, not all 13 frames' worth.
+  if(!RADAR.layers[n - 1]) radarAddLayer(n - 1);
+  if(!RADAR.layers[n - 1]._rvReady) return;
+  // …and only once the card has been on screen: until then the older
+  // frames are mobile data nobody looks at.
+  if(!RADAR.everInView) return;
+  for(var i = n - 2; i >= 0; i--){
+    if(!RADAR.layers[i]) radarAddLayer(i);
+  }
+}
+function radarAddLayer(i){
+  RADAR.layers[i] = radarMakeLayer(RADAR.frames[i]);
+  RADAR.layers[i].addTo(RADAR.map);
+  // Scrubbed to this frame before its layer existed: radarShowFrame() then
+  // had nothing to show, and the map stayed empty under an 'OK' status.
+  if(i === RADAR.frameIdx && !RADAR.shownLayer) radarShowFrame(i);
+}
+
+function radarLayerLoaded(layer){
+  var n = RADAR.frames.length;
+  if(!n || RADAR.layers[n - 1] !== layer) return;
+  // The newest frame is on the map, every tile of it: only now is the radar
+  // reported as working — a 200 from the frame list proved nothing about
+  // the tiles.
+  RADAR.failCount = 0;
+  RADAR.okPath = layer._rvPath;
+  radarBuildMissing();      // now the older frames
+  if(!RADAR.playing && RADAR.followLatest && RADAR.frameIdx !== n - 1) radarShowFrame(n - 1);
+  radarUpdateStatus();
+}
+
+/* A tile failed. In practice that is RainViewer's rate limit, per IP and
+ * shared by every device on the home connection. Its 429 carries
+ * retry-after: 60 but no CORS header, so neither an <img> nor fetch() can
+ * read it from here; we wait the documented 60 s window, doubling on each
+ * consecutive failure up to 10 min. Leaflet never retries a failed tile,
+ * and every layer that has not finished is dropped (which aborts its
+ * pending tiles), so nothing more is asked of the server until the retry. */
+function radarTilesFailed(){
+  if(RADAR.retryTimer || !RADAR.map) return;
+  RADAR.failCount++;
+  var wait = Math.min(10 * 60 * 1000, 60 * 1000 * Math.pow(2, RADAR.failCount - 1));
+  RADAR.retryAt = Date.now() + wait;
+  RADAR.retryTimer = setTimeout(radarRetry, wait);
+  radarStop();
+  for(var i = 0; i < RADAR.layers.length; i++){
+    var l = RADAR.layers[i];
+    if(l && !l._rvReady){
+      if(l === RADAR.shownLayer) RADAR.shownLayer = null;
+      RADAR.map.removeLayer(l);
+      RADAR.layers[i] = null;
+    }
+  }
+  // Rest on the newest frame that did load completely, if any.
+  var best = radarNewestReady();
+  if(best >= 0) radarShowFrame(best); else radarShowNone();
+  radarSetStatus('warn', 'Radar piiratud · uus katse ' + formatTime(new Date(RADAR.retryAt)));
+}
+function radarRetry(){
+  RADAR.retryTimer = null;
+  radarSetStatus('', 'Laen radaripilte…');
+  radarFetchData();       // a fresh frame list; radarApplyData() rebuilds what was dropped
+}
+function radarNewestReady(){
+  for(var i = RADAR.layers.length - 1; i >= 0; i--){
+    if(RADAR.layers[i] && RADAR.layers[i]._rvReady) return i;
+  }
+  return -1;
+}
+
+/* Zoom: only the frame on screen follows a zoom; the hidden layers are
+ * dropped at zoomstart and rebuilt at zoomend. Otherwise a pinch or a
+ * preset has all 13 fetch — and hold — tiles for each level on the way,
+ * and animates 13 layers instead of one. From z7 up the rebuild is the
+ * same z7 tiles, scaled, straight from the HTTP cache. */
+function radarZoomStart(){
+  for(var i = 0; i < RADAR.layers.length; i++){
+    var l = RADAR.layers[i];
+    if(l && l !== RADAR.shownLayer){
+      RADAR.map.removeLayer(l);
+      RADAR.layers[i] = null;
+    }
+  }
+}
+function radarZoomEnd(){ radarBuildMissing(); }
+
+function radarShowFrame(idx){
+  var n = RADAR.frames.length;
+  if(!n) return;
+  idx = Math.max(0, Math.min(isNaN(idx) ? n - 1 : idx, n - 1));
+  var layer = RADAR.layers[idx] || null;
+  // New frame up first, then the old one down: no paint without radar.
+  if(layer) layer.setOpacity(radarOpacity());
+  if(RADAR.shownLayer && RADAR.shownLayer !== layer) RADAR.shownLayer.setOpacity(0);
+  RADAR.shownLayer = layer;
+  RADAR.frameIdx = idx;
+
+  var mapEl = document.getElementById('radar-map');
+  if(mapEl) mapEl.classList.toggle('radar-none', !layer);
   var scrub = document.getElementById('radar-scrub');
   if(scrub) scrub.value = idx;
+  radarLabelFrame();
+}
+function radarShowNone(){
+  if(RADAR.shownLayer) RADAR.shownLayer.setOpacity(0);
+  RADAR.shownLayer = null;
+  var mapEl = document.getElementById('radar-map');
+  if(mapEl) mapEl.classList.add('radar-none');
+  radarLabelFrame();
+}
 
-  var d = new Date(frame.time * 1000);
-  var label = d.toLocaleDateString('et-EE', {day:'2-digit',month:'2-digit'}) +
-              ' ' + d.toLocaleTimeString('et-EE', {hour:'2-digit',minute:'2-digit'});
+/* "nüüd 12:40" on the newest frame, "−40 min 12:00" on the others —
+ * counted back from the newest frame, which is what "now" means for a
+ * radar that updates every 10 min. It used to read '29.09 21:40' on every
+ * frame, and the newest was on screen 2 samples in 40. Once the feed has
+ * stalled (radarStale) the age is counted from the clock instead, so an
+ * hour-old picture never reads "nüüd", and it goes amber. */
+function radarLabelFrame(){
   var lbl = document.getElementById('radar-time-label');
-  if(lbl) lbl.textContent = label;
+  var card = document.getElementById('radar-card');
+  var n = RADAR.frames.length;
+  if(!lbl) return;
+  if(!n || !RADAR.shownLayer){
+    lbl.textContent = '—';
+    lbl.classList.remove('stale');
+    if(card) card.classList.remove('radar-past');
+    return;
+  }
+  var f = RADAR.frames[RADAR.frameIdx];
+  var isLatest = RADAR.frameIdx === n - 1;
+  var stale = radarStale();
+  var ref = stale ? Date.now() : RADAR.frames[n - 1].time * 1000;
+  var ageMin = Math.round((ref - f.time * 1000) / 60000);
+  // '−490 min' is arithmetic, not an answer: past 90 min say hours.
+  var rel = (isLatest && !stale) ? 'nüüd'
+          : '−' + (ageMin < 90 ? ageMin + ' min' : Math.round(ageMin / 60) + ' h');
+  lbl.innerHTML = '<span class="rt-rel">' + rel + '</span> <span class="rt-clock">' +
+                  formatTime(new Date(f.time * 1000)) + '</span>';
+  lbl.classList.toggle('stale', stale);
+  if(card) card.classList.toggle('radar-past', !isLatest);
+}
+function radarStale(){
+  var n = RADAR.frames.length;
+  return n > 0 && Date.now() - RADAR.frames[n - 1].time * 1000 > RADAR.STALE_MIN * 60 * 1000;
+}
+
+/* The status line under the map and, for trouble, the badge on the map:
+ * rate-limited, stalled or unavailable. Without the badge an outage looked
+ * exactly like a dry day. 'ok' only once the newest frame's tiles are all
+ * in (radarLayerLoaded) — it used to say 'RainViewer · 23:02' when the
+ * frame LIST arrived, over an empty map of failed tiles. */
+function radarSetStatus(kind, text){
+  var st = document.getElementById('radar-status');
+  if(st && st.textContent !== text) st.textContent = text;
+  if(st) st.classList.toggle('warn', kind === 'warn');
+  var badge = document.getElementById('radar-badge');
+  if(badge){
+    var b = kind === 'warn' ? text : '';
+    if(badge._text !== b){
+      // One unbreakable piece per ' · ' part, so a narrow map wraps it at
+      // the separator ('Radar piiratud ·' / 'uus katse 09:01').
+      badge._text = b;
+      badge.textContent = '';
+      b.split(' · ').forEach(function(part, i){
+        if(i) badge.appendChild(document.createTextNode('\u00a0· '));
+        var seg = document.createElement('span');
+        seg.className = 'seg';
+        seg.textContent = part;
+        badge.appendChild(seg);
+      });
+    }
+    badge.classList.toggle('on', kind === 'warn');
+  }
+}
+function radarUpdateStatus(){
+  radarLabelFrame();
+  if(RADAR.retryTimer) return;     // the back-off message stands until the retry
+  var n = RADAR.frames.length;
+  if(!n) return;
+  var newest = RADAR.frames[n - 1];
+  if(radarStale()){
+    radarSetStatus('warn', 'Radar ei uuene · viimane kaader ' + stampText(newest.time * 1000));
+    return;
+  }
+  // The newest frame whose tiles all loaded — normally the newest, or the
+  // one before it for the second a fresh frame takes to come in.
+  for(var i = n - 1; i >= 0; i--){
+    if(RADAR.frames[i].path === RADAR.okPath){
+      radarSetStatus('ok', 'RainViewer · viimane kaader ' + formatTime(new Date(RADAR.frames[i].time * 1000)));
+      return;
+    }
+  }
+  radarSetStatus('', 'Laen radaripilte…');
 }
 
 function radarTogglePlay(){
-  // Track explicit user pause so radarApplyData()'s auto-play doesn't
-  // restart the loop when fresh frames arrive every 5 min.
-  if(RADAR.playing){ RADAR.userPaused = true;  radarStop(); }
-  else             { RADAR.userPaused = false; radarPlay(); }
+  // An explicit ⏸ stays paused across data refreshes (radarAutoplay honours
+  // userPaused). An explicit ▶ plays even under reduced motion, for
+  // USER_PLAY_MS, then the loop rests again.
+  if(RADAR.playing){ RADAR.userPaused = true;  RADAR.userPlayUntil = 0; radarStop(); }
+  else             { RADAR.userPaused = false; RADAR.userPlayUntil = Date.now() + RADAR.USER_PLAY_MS; radarPlay(true); }
 }
 
-function radarPlay(){
+/* Idempotent: a second call — a tap racing the automatic start, say —
+ * replaces the pending step rather than starting a second loop that ⏸
+ * could no longer stop. (Two taps on 'Radar' 60 ms apart used to leave an
+ * orphan 500-ms interval running behind a '▶' button.) */
+function radarPlay(byUser){
+  if(RADAR.playTimer){ clearTimeout(RADAR.playTimer); RADAR.playTimer = null; }
   if(!RADAR.frames.length) return;
   RADAR.playing = true;
+  RADAR.followLatest = true;
   var btn = document.getElementById('radar-play');
   if(btn) btn.textContent = '⏸';
-  // Advance one frame every 500ms
-  RADAR.playTimer = setInterval(function(){
-    var next = (RADAR.frameIdx + 1) % RADAR.frames.length;
-    radarShowFrame(next);
-  }, 500);
+  // Started by itself on the newest frame: let that stand its hold first.
+  var first = (!byUser && RADAR.frameIdx === RADAR.frames.length - 1) ? RADAR.HOLD_MS : RADAR.STEP_MS;
+  RADAR.playTimer = setTimeout(radarStep, first);
+}
+
+function radarStep(){
+  RADAR.playTimer = null;
+  if(!RADAR.playing) return;
+  var n = RADAR.frames.length;
+  if(!n){ radarStop(); return; }
+  // On to the next frame whose tiles are all in; one still loading (or
+  // dropped after a failure) is skipped rather than shown half-drawn.
+  for(var k = 1; k <= n; k++){
+    var j = (RADAR.frameIdx + k) % n;
+    if(RADAR.layers[j] && RADAR.layers[j]._rvReady){
+      if(j !== RADAR.frameIdx) radarShowFrame(j);
+      break;
+    }
+  }
+  // The newest frame is held: it is what the map is for; the rest is the
+  // run-up to it.
+  RADAR.playTimer = setTimeout(radarStep, RADAR.frameIdx === n - 1 ? RADAR.HOLD_MS : RADAR.STEP_MS);
 }
 
 function radarStop(){
   RADAR.playing = false;
-  if(RADAR.playTimer){ clearInterval(RADAR.playTimer); RADAR.playTimer = null; }
+  if(RADAR.playTimer){ clearTimeout(RADAR.playTimer); RADAR.playTimer = null; }
   var btn = document.getElementById('radar-play');
   if(btn) btn.textContent = '▶';
+}
+
+/* May the loop run by itself right now? Not while the card is off-screen
+ * or the page hidden — nobody sees it, and each step is a style recalc —
+ * and not for someone who has asked the system for reduced motion. The
+ * newest frame, standing still, is the useful picture in all three cases. */
+function radarAutoplayAllowed(){
+  if(document.hidden || !RADAR.inView) return false;
+  if(RADAR_RM && RADAR_RM.matches) return false;
+  return true;
+}
+
+/* Start or stop the loop to match the rules above. Called whenever they may
+ * have changed: new data, the minute tick, visibility, scrolling into or out
+ * of view, the idle timer. Resting means standing on the newest frame, not
+ * wherever the loop was. */
+function radarAutoplay(){
+  if(!RADAR.frames.length) return;
+  var now = Date.now(), want;
+  if(document.hidden || !RADAR.inView) want = false;
+  else if(RADAR.userPaused || now - RADAR.scrubMs < RADAR.IDLE_MS) want = null;  // the user's hands are on it
+  else if(now < RADAR.userPlayUntil) want = true;
+  else if(RADAR.retryTimer) want = null;     // backing off: radarRetry() decides
+  else want = radarAutoplayAllowed();
+  if(want === true && !RADAR.playing) radarPlay(false);
+  else if(want === false && RADAR.playing){ radarStop(); radarRestOnLatest(); }
+}
+function radarRestOnLatest(){
+  RADAR.followLatest = true;
+  var n = RADAR.frames.length;
+  if(!n) return;
+  var l = RADAR.layers[n - 1];
+  var idx = (l && l._rvReady) ? n - 1 : radarNewestReady();
+  if(idx >= 0) radarShowFrame(idx);
+}
+function radarTick(){
+  radarUpdateStatus();    // staleness grows with the clock, not only with new data
+  radarAutoplay();        // a tapped ▶ runs out
+}
+function radarOnVisibility(){
+  // Timers are throttled while hidden, so on return the frame list can be
+  // several refreshes old: fetch it before the staleness check cries wolf.
+  if(!document.hidden && RADAR.map && !RADAR.retryTimer && Date.now() - RADAR.lastFetchMs > 5 * 60 * 1000){
+    radarFetchData();
+  }
+  radarAutoplay();
+}
+
+/* A scrub takes the loop's place for IDLE_MS: then the newest frame comes
+ * back and the loop resumes (or rests) per radarAutoplay(). Map touches
+ * are left alone — pan and zoom behaviour is for the layout redesign. */
+function radarNoteScrub(){
+  RADAR.scrubMs = Date.now();
+  if(RADAR.idleTimer) clearTimeout(RADAR.idleTimer);
+  RADAR.idleTimer = setTimeout(radarIdleReturn, RADAR.IDLE_MS);
+}
+function radarIdleReturn(){
+  RADAR.idleTimer = null;
+  RADAR.scrubMs = 0;
+  if(!RADAR.playing && !RADAR.userPaused) radarRestOnLatest();
+  radarAutoplay();
 }
 
 // Start the radar card once the page is fully loaded
 window.addEventListener('DOMContentLoaded', function(){
   // Small delay so the main script block (CONFIG etc.) has run
   setTimeout(initRadar, 500);
-  setTimeout(initRadarExtras, 900);
 });
 
 /* ═══════════════════════════════════════════════════════════════════════
  * RADAR EXTRAS — ported from the iPad kiosk (wa1).
  *
  * Adds, on top of the base RainViewer radar card:
- *   1. An Esri World Imagery satellite base layer + a MAP / SAT toggle
+ *   1. A MAP / SAT toggle between the two base layers initRadar() builds
  *      (default SAT — the "same map style" as the iPad build).
  *   2. Zoom-preset buttons (2km / 10km / 80km / EE).
  *   3. An SVG overlay painted inside the map div:
@@ -6126,7 +6647,8 @@ window.addEventListener('DOMContentLoaded', function(){
  *          a faint drifting-particle stream and a speed/gust label.
  *
  * Unlike wa1 (gated to landscape iPad), this runs on the phone too — it's
- * sized to the existing 260 px radar box.
+ * sized to the existing 260 px radar box. Called by initRadar() once the
+ * map exists.
  * ═══════════════════════════════════════════════════════════════════════ */
 var RX = {
   active: false,
@@ -6139,24 +6661,12 @@ var RX = {
 };
 
 function initRadarExtras(){
-  // Wait for the base radar map to exist
-  if(typeof RADAR === 'undefined' || !RADAR.map){ setTimeout(initRadarExtras, 400); return; }
-  if(RX.active) return;
+  if(typeof RADAR === 'undefined' || !RADAR.map || RX.active) return;
   RX.active = true;
 
-  // Capture the existing CartoDB Positron layer so MAP/SAT can flip it
-  RADAR.map.eachLayer(function(layer){
-    if(layer && layer._url && layer._url.indexOf('basemaps.cartocdn') !== -1){
-      RX.baseLayer = layer;
-    }
-  });
-
-  // Esri World Imagery — colour aerial photography, no API key, CORS-open
-  RX.satLayer = L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    { maxZoom: 18, updateWhenIdle: true, keepBuffer: 1, attribution: 'Tiles © Esri' }
-  );
-  // Default to satellite (matches the iPad design language)
+  RX.satLayer  = RADAR.baseLayers.satellite;
+  RX.baseLayer = RADAR.baseLayers.light;
+  // Satellite is already the base (initRadar); make the chips say so.
   rxBaseMap('satellite');
 
   // Keep in-map control rows from triggering map drag/zoom on tap
@@ -6206,6 +6716,20 @@ function initRadarExtras(){
 
   // Default to the EE (whole-Estonia) view
   RADAR.map.setView([CONFIG.lat, CONFIG.lng], 7, { animate: false });
+
+  // renderWeather() feeds the wind into this overlay only if
+  // updateWindOverlay already exists — and it lives in this later script,
+  // so the cache paint (and, when Open-Meteo beats the CDN, the first
+  // fetch) ran before it: the map had no wind arrow until the next 5-min
+  // render, or for good while Open-Meteo was down. Catch up from the
+  // payload the hero was painted from (wa1's ipadEnterMap fix).
+  if(RX.windDir === null && typeof HERO_SKY !== 'undefined' && HERO_SKY && HERO_SKY.cur){
+    var hc = HERO_SKY.cur;
+    if(isNum(hc.wind_direction_10m) && isNum(hc.wind_speed_10m)){
+      updateWindOverlay(Math.round(hc.wind_direction_10m), round1(hc.wind_speed_10m),
+                        isNum(hc.wind_gusts_10m) ? round1(hc.wind_gusts_10m) : null);
+    }
+  }
   setTimeout(function(){ RADAR.map.invalidateSize(); drawOverlay(); }, 200);
   setTimeout(drawOverlay, 1500);
 
@@ -6227,7 +6751,7 @@ function rxBaseMap(mode){
     if(RADAR.map.hasLayer(RX.satLayer)) RADAR.map.removeLayer(RX.satLayer);
     if(!RADAR.map.hasLayer(RX.baseLayer)) RX.baseLayer.addTo(RADAR.map);
   }
-  if(RADAR.currentLayer) RADAR.currentLayer.bringToFront();
+  // (The frame layers sit above either base by their zIndex.)
   var sat = document.getElementById('rx-base-sat');
   var lt  = document.getElementById('rx-base-light');
   if(sat) sat.classList.toggle('active', mode === 'satellite');
