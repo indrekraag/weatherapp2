@@ -263,6 +263,14 @@ same box as Modcranebuilder):
 
 To stop it: `ssh root@77.42.127.225 'crontab -l | grep -v wa-dispatch | crontab -'`.
 
+**Same day — `warnings_ok` in `emhi.json`.** `fetch_warnings()` used to
+turn any MeteoAlarm fetch/parse failure into `warnings: []` under a fresh
+`fetched_at`, which is indistinguishable from "no warnings". It now returns
+`None` on failure and the bundle carries `"warnings_ok": false` (with
+`warnings: []`), `true` otherwise. This app ignores the field (it reads
+`data.warnings` only); the wa1 iPad kiosk shows "Hoiatused teadmata" for it.
+Found by the Codex audit of wa1 (wa1 HANDOFF, 2026-09-29).
+
 ## Recent changes (2026-09-18b — forecast-icon audit, ported from wa1)
 
 An audit of the iPad build's card logic against 194 days of actuals

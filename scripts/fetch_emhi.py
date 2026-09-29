@@ -220,8 +220,10 @@ def fetch_warnings() -> list:
       • duplicate identifiers are collapsed (same alert appears once
         per language block in the feed)
 
-    Returns [] on any error — warnings are decorative, not critical, so
-    a failure here doesn't fail the whole workflow."""
+    Returns None on any error, so the snapshot can say "warnings unknown"
+    (``warnings_ok: false``) instead of an empty list that reads as "no
+    warnings" — the iPad kiosk shows that difference. A failure here still
+    doesn't fail the whole workflow."""
     try:
         # MeteoAlarm rejects a strict Accept header with 406; use */*
         req = urllib.request.Request(
@@ -238,7 +240,7 @@ def fetch_warnings() -> list:
             xml_bytes = resp.read()
     except Exception as exc:
         print(f"MeteoAlarm fetch failed: {exc}", file=sys.stderr)
-        return []
+        return None
 
     ns = {
         "a": "http://www.w3.org/2005/Atom",
@@ -248,7 +250,7 @@ def fetch_warnings() -> list:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError as exc:
         print(f"MeteoAlarm parse failed: {exc}", file=sys.stderr)
-        return []
+        return None
 
     now = dt.datetime.now(dt.timezone.utc)
     future_cutoff = now + dt.timedelta(hours=WARNING_LOOKAHEAD_HOURS)
@@ -328,6 +330,8 @@ def fetch_warnings() -> list:
 
 
 def build_snapshot(xml_bytes: bytes, wmo_codes: list[str], warnings=None) -> dict:
+    if warnings is None:
+        warnings = fetch_warnings()      # None = MeteoAlarm failed
     root = ET.fromstring(xml_bytes)
     xml_ts = root.get("timestamp")
     obs_time = None
@@ -350,7 +354,10 @@ def build_snapshot(xml_bytes: bytes, wmo_codes: list[str], warnings=None) -> dic
         "observation_time": obs_time,
         "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "stations": stations,
-        "warnings": fetch_warnings() if warnings is None else warnings,
+        "warnings": warnings or [],
+        # False when MeteoAlarm couldn't be read: [] then means "unknown",
+        # not "no warnings". Readers that predate the flag just see [].
+        "warnings_ok": warnings is not None,
         "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
         "warnings_target_counties": sorted(TARGET_COUNTIES),
     }
@@ -400,8 +407,11 @@ def fetch_snapshot_with_retries(wmo_codes: list[str], attempts: int = FETCH_ATTE
                 print(f"  retrying in {delay}s…", file=sys.stderr)
                 time.sleep(delay)
             continue
-        # EMHI is good — warnings are decorative and soft-fail to [].
-        snap["warnings"] = fetch_warnings()
+        # EMHI is good — now the warnings. A MeteoAlarm failure doesn't fail
+        # the run; it is flagged so the kiosk can say "hoiatused teadmata".
+        warnings = fetch_warnings()
+        snap["warnings"] = warnings or []
+        snap["warnings_ok"] = warnings is not None
         return snap
 
     print(
