@@ -265,68 +265,7 @@ body {
 
 .card { padding: 18px 18px; }
 
-/* Refresh buttons — small borderless icon buttons in the hero-bar.
- * Same glass recipe as the rest of the hero-bar; visually quiet so
- * they don't compete with the date/time reading. The hard-refresh
- * gets a faint amber tint to differentiate it (cache-clearing is a
- * more destructive action than a soft refresh). */
-.hero-refresh-btn {
-  position: relative;
-  background: none;
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 7px;
-  color: rgba(255,255,255,0.65);
-  font-size: 13px;
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  /* No double-tap-to-zoom: ⟲'s confirming second tap must reach the button. */
-  touch-action: manipulation;
-  transition: color 0.15s, border-color 0.15s, transform 0.3s;
-  flex-shrink: 0;
-  padding: 0;
-}
-/* ⟲ armed by a first tap (hardRefreshTap): an amber 'Kinnita?' tab grows
-   leftwards out of the button, over ↻, for three seconds. It is part of the
-   button, so tapping it — or ⟲ again — confirms. */
-.hero-refresh-btn .confirm-label { display: none; }
-.hero-refresh-btn-hard.confirm .confirm-label {
-  display: flex;
-  align-items: center;
-  position: absolute;
-  right: -1px; top: -1px; bottom: -1px;
-  z-index: 1;
-  padding: 0 10px;
-  border-radius: 7px;
-  background: var(--warn);
-  color: #221503;
-  font-family: -apple-system, "SF Pro Text", sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.hero-refresh-btn:active {
-  color: rgba(255,255,255,0.95);
-  border-color: rgba(255,255,255,0.35);
-  transform: scale(0.92);
-}
-.hero-refresh-btn-hard {
-  color: rgba(233,167,107,0.70);
-  border-color: rgba(233,167,107,0.22);
-}
-.hero-refresh-btn-hard:active {
-  color: #e9a76b;
-  border-color: rgba(233,167,107,0.55);
-}
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.hero-refresh-btn.spinning { animation: spin 0.6s linear; }
-@media (prefers-reduced-motion: reduce) {
-  .hero-refresh-btn.spinning { animation: none; }
-}
 
 /* The forecast's own alert (renderAlertBanner) — the .alert recipe, so it
    no longer sits as an unstyled 16 px box above the warning bar. */
@@ -357,9 +296,9 @@ body {
  * 17 px, station temperatures 17 px < 18); the new pieces (verdict, the
  * secondary row, the 12-hour grid) use the existing 13/12/11/10/9 steps.
  * Colours mean one thing each on this page — cold/frost blue, caution
- * yellow, all-clear green, danger coral, rain blue — scoped to the pages
- * ported so far, so the others keep theirs until they are. */
-#p-nuud, #p-radar, #p-24h, #p-nadal {
+ * yellow, all-clear green, danger coral, rain blue — on all five pages
+ * (the day sheet, outside the pager, keeps main's). */
+#p-nuud, #p-radar, #p-24h, #p-nadal, #p-hind {
   --warm: #e9a76b;          /* warm temps ≥ 25°                        */
   --cold: #8ec5ff;          /* below zero, frost, ice                  */
   --warn: #f2c14e;          /* caution: rain soon, old data            */
@@ -837,55 +776,15 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 }
 .rain-bar strong { color: var(--cold); font-weight: 600; font-size: 12px; }
 
-/* ─── TWO CARDS SIDE BY SIDE (Nädal: Päike + Kuu; Hind) ─ */
+/* ─── TWO CARDS SIDE BY SIDE (Nädal: Päike + Kuu) ─────── */
 .duo {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-/* ─── POLLEN / AURORA ──────────────────────────────────── */
-.gauge-row {
-  /* List row inside Õietolm / Virmalised. Same shape as .dl-row but
-   * with no middle gauge column (severity is in the value text colour).
-   * Label column slightly wider (68px vs dl-row's 60px) because the
-   * Virmalised "Tõenäosus" label is 9 chars and needs the room. The
-   * value column right-edge alignment is preserved by the same 20px
-   * right padding as dl-row. */
-  display: grid;
-  grid-template-columns: 68px 1fr;
-  align-items: baseline;
-  gap: 10px;
-  padding: 8px 20px 8px 4px;
-  font-size: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.gauge-row:last-of-type,
-.gauge-row:has(+ .kp-chart) {
-  /* Kill the divider on the visually-last gauge-row. Two conditions:
-   *   1. :last-of-type → Õietolm (last gauge-row is also the last div)
-   *   2. :has(+ .kp-chart) → Virmalised (last gauge-row is followed
-   *      by the kp-chart div, so :last-of-type misses it)
-   * Both rules together cover both cards. */
-  border-bottom: none;
-  margin-bottom: 0;
-}
-.gauge-label {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  color: rgba(255,255,255,0.70);
-  text-transform: uppercase;
-  line-height: 1.4;
-  /* Label column is 60px; "Tõenäosus" is the only label that exceeds it.
-   * Nowrap + overflow visible lets it bleed slightly into the gap before
-   * the value column without wrapping or being truncated. */
-  white-space: nowrap;
-  overflow: visible;
-}
-/* Subtle baseline so the user knows the track is a scale, not a fill —
- * thin enough to read as a scale axis, not as a separator line */
+/* ─── POLLEN / AURORA values (the Hind page's sky card) ── */
+/* Level words and figures; the colour says how much (lo / mid / hi). */
 .gauge-text {
   font-family: -apple-system, "SF Pro Display", sans-serif;
   font-size: 14px;
@@ -940,25 +839,6 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   line-height: 11px;
 }
 .kp-label > span { position: absolute; top: 0; white-space: nowrap; }
-
-/* ─── FOOTER ──────────────────────────────────────────── */
-.footer {
-  text-align: center;
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 11px;
-  letter-spacing: 0;
-  color: rgba(255,255,255,0.60);
-  text-transform: none;
-  padding: 10px 0;
-  margin-top: 4px;
-}
-.footer-updated {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 11px;
-  color: rgba(255,255,255,0.55);
-  margin-bottom: 6px;
-}
-.footer span { color: rgba(255,255,255,0.60); }
 
 /* ─── METRIC CARD · Active Bento (Apple/MS/Spotify 2026) ────────
  * Asymmetric 4-col bento grid. Tuul and Sadu are priority metrics
@@ -1513,19 +1393,6 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 /* Below zero the bars hang from the zero line, in a colour of their own
    (PRICE_NEG_C) — drawn like zero, a free hour looked like a cheap one. */
 .price-bars > span.neg { border-radius: 0 0 2px 2px; }
-/* 'odavaim' over the cheapest hour ahead (renderNps places it). */
-.price-bars > span .bar-val {
-  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-  margin-bottom: 1px;
-  font-size: 9px; font-weight: 700; line-height: 1;
-  color: rgba(255,255,255,0.95); white-space: nowrap; pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
-  z-index: 2;   /* over the later bars it spans */
-}
-.price-bars > span .bar-val.over {
-  padding: 1px 3px; border-radius: 3px;
-  background: rgba(10,12,16,0.85); text-shadow: none;
-}
 /* Midnight: a rule between 23 and 00 across the bars, and 'homme' where
    tomorrow's labels start (renderNps). It stops at the bars: run on through
    the hour labels, it cut a bold current-hour '23' in two. */
@@ -1542,12 +1409,6 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   color: rgba(255,255,255,0.92); font-weight: 700;
 }
 
-.price-foot {
-  display: flex; justify-content: space-between;
-  margin-top: 12px;
-  font-size: 11px; color: rgba(255,255,255,0.6);
-}
-.price-foot b { color: rgba(255,255,255,0.9); font-weight: 600; }
 .price-status {
   margin-top: 6px;
   font-size: 10px; color: rgba(255,255,255,0.4);
@@ -1823,7 +1684,7 @@ body { padding: 0; }
    and the moon as a compact pair. No type above main's (7-day tiles: day
    and date 10 px, high 14 → 13, low 11, rain and wind 10; Päike/Kuu:
    times 14, day length 15 → 13, labels and azimuths 10). ─── */
-#p-nadal .lic { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#p-nadal .lic, #p-hind .lic { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #p-nadal > .week { flex: 1 0 auto; display: flex; flex-direction: column; padding: 12px 12px 6px; }
 .week .card-header { margin-bottom: 2px; padding: 0 2px; }
 .days { flex: 1 1 auto; display: flex; flex-direction: column; }
@@ -1886,13 +1747,101 @@ body { padding: 0; }
 .cel-foot { margin-top: 3px; font-size: 10px; color: var(--fg-3); white-space: nowrap; }
 .cel-foot b { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.9); }
 
-/* ─── Andmed (placeholder): the build stamp and the two-tap ⟲ ride in
-   its header until that card is ported. The stamp is dim and small on
-   purpose: a version marker, never to be misread as a time. ─── */
-.data-card .card-header { align-items: center; }
-.data-head-r { display: flex; align-items: center; gap: 10px; }
+/* ─── 5 · HIND — prototype C's price card (trimmed to 3 h behind), B's
+   Õietolm + Virmalised as one card, C's Andmed. Type as main's price card
+   (header 11, 'Hetkel' 22, axis and tags 9, status 10; the day lines 11 =
+   its Odavaim/Kalleim), card titles 11, values ≤ 12 (main's pollen and
+   aurora values were 14), the Andmed rows 11 (= main's footer). ─── */
+#p-hind > #price-card { flex: 1 0 auto; display: flex; flex-direction: column; padding: 12px 14px 10px; }
+#price-card .card-header { margin-bottom: 4px; }
+.price-best { font-size: 11px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.price-best b { color: var(--ok); font-weight: 600; }
+#p-hind .price-chart { flex: 1 1 auto; height: auto; min-height: 110px; margin-top: 16px; }
+/* the cheapest three hours: a green band behind their bars */
+.price-band {
+  position: absolute; top: -4px; bottom: 0; pointer-events: none;
+  background: rgba(109,192,142,0.13); border-radius: 3px 3px 0 0;
+  box-shadow: inset 0 -2px 0 rgba(109,192,142,0.75);
+}
+/* value tags: the priciest hour ahead (coral) and the hour now */
+.price-bars > span .ptag {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  margin-bottom: 3px; padding: 2px 4px; border-radius: 4px; z-index: 2;
+  font: 700 9px/1 ui-monospace, "SF Mono", Menlo, monospace;
+  white-space: nowrap; pointer-events: none;
+  color: rgba(255,255,255,0.95); background: rgba(10,12,16,0.88);
+  border: 1px solid rgba(255,255,255,0.28);
+}
+.price-bars > span .ptag.hi { color: #ff9a8c; border-color: rgba(236,123,110,0.55); }
+.price-bars > span .ptag.in { bottom: auto; top: 3px; margin-bottom: 0; }
+.price-days { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.pd { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 6px 9px; border-radius: 10px; background: rgba(255,255,255,0.035); }
+.pd-l { font: 700 9px/1.2 -apple-system, "SF Pro Display", sans-serif; letter-spacing: 0.8px; text-transform: uppercase; color: var(--fg-3); }
+.pd-v { display: flex; flex-wrap: wrap; column-gap: 8px; row-gap: 2px; font-size: 11px; color: rgba(255,255,255,0.88); }
+.pd-v .pdx { white-space: nowrap; }
+.pd-v b { font-weight: 600; }
+.pd-v .lo { color: var(--ok); }
+.pd-v .hi { color: #ff9a8c; }
+.pd-v.muted { color: var(--fg-3); }
+#p-hind .price-status { margin-top: 7px; color: var(--fg-3); }
+
+/* One-line cards: Õietolm + Virmalised (one card, two lines) and Andmed.
+   A line is a button: it opens and closes its details. */
+#p-hind .card.sky-card, #p-hind .card.qcard { padding: 0; }
+.q-line {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; min-height: 44px; padding: 8px 14px;
+  background: none; border: 0; border-radius: 0; color: inherit; font: inherit; text-align: left;
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.q-line:active { background: rgba(255,255,255,0.04); }
+.sky-card #aurora-line { border-top: 1px solid rgba(255,255,255,0.06); }
+.q-ic { width: 18px; height: 18px; flex-shrink: 0; color: var(--fg-2); }
+.q-t { flex-shrink: 0; font: 700 11px/1 -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.92); }
+.q-sum { margin-left: auto; min-width: 0; font-size: 12px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-sum .mid { color: var(--warn); }
+.q-sum .hi { color: var(--bad); }
+.q-sum .go, .q-sum .okc { color: var(--ok); }
+.q-sum .go { font-weight: 600; }
+.q-chev { width: 12px; height: 12px; flex-shrink: 0; fill: none; stroke: var(--fg-3); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.q-line[aria-expanded="true"] .q-chev { transform: rotate(90deg); }
+.q-detail { display: none; padding: 0 14px 12px 40px; }
+.q-detail.open { display: block; }
+.q-grid { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.q-detail.q-grid.open, .q-grid.q-grid3 { display: grid; }
+.q-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.q-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.q-lab { font: 500 10px/1.2 -apple-system, "SF Pro Display", sans-serif; letter-spacing: 0.3px; text-transform: uppercase; color: rgba(255,255,255,0.70); white-space: nowrap; }
+.sky-card .gauge-text { font-size: 12px; text-align: left; }
+.sky-card .kp-chart { margin-top: 10px; height: 34px; padding: 6px 10px; }   /* 10 px sides: renderKpForecast's axis counts on them */
+.sky-card .kp-label { margin-top: 5px; }
+
+.data-card .q-detail { padding-left: 14px; }
+.src-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 16px; }
+.src { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 2px 0; font-size: 11px; color: var(--fg-2); white-space: nowrap; }
+.src b { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.88); }
+.src b.old { color: var(--warn); }
+.src b.dead { color: var(--fg-3); font-weight: 500; }
+.src-actions { display: flex; gap: 8px; margin-top: 10px; }
+.src-btn {
+  flex: 1 1 0; min-width: 0; min-height: 40px; padding: 4px 8px; border-radius: 12px;
+  font: 600 12px/1.2 -apple-system, "SF Pro Display", sans-serif; color: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.src-btn:active { background: rgba(255,255,255,0.11); }
+.src-btn > span { display: none; }
+.src-btn .sb-idle { display: inline; }
+.src-btn.busy .sb-idle, .src-btn.offline .sb-idle, .src-btn.confirm .sb-idle, .src-btn.spinning .sb-idle { display: none; }
+.src-btn.busy .sb-busy, .src-btn.offline .sb-off, .src-btn.confirm .sb-confirm, .src-btn.spinning .sb-busy { display: inline; }
+.src-btn.busy { color: var(--fg-3); }
+.src-hard { color: var(--fg-2); }
+.src-hard.confirm { color: #1a1206; background: var(--warn); border-color: var(--warn); }
+.src-btn.offline { color: var(--warn); border-color: rgba(242,193,78,0.45); }
+.src-foot { margin-top: 9px; font-size: 10px; line-height: 1.5; color: var(--fg-3); text-align: center; }
 .build-stamp { font-size: 9.6px;   /* = main's 0.8em of the 12 px hero bar */ font-weight: 500; color: rgba(255,255,255,0.50); letter-spacing: 0.2px; }
-.data-head-r .hero-refresh-btn { width: 32px; height: 32px; border-radius: 9px; }
 
 /* ─── Tab bar ─── */
 .tabbar {
@@ -2249,8 +2198,12 @@ html.sim-sa .sim-home {
 <!-- ─── 5 · HIND — electricity price, pollen and aurora, data ─── -->
 <section class="page" id="p-hind" data-slug="hind" aria-label="Hind">
   <!-- ELEKTRI HIND — Nord Pool day-ahead spot price (EE zone) via the
-       Elering bridge on the 'data' branch. Next-24h hourly bars reuse
-       the forecast sparkline system; current hour is highlighted. -->
+       Elering bridge on the 'data' branch (renderNps): 3 h behind, then
+       every published hour ahead; the cheapest 3 h ahead (a green band on
+       the chart), value tags on the hour now and the priciest hour ahead,
+       a rule at midnight, negative prices below zero, and each day's
+       cheapest and priciest hour underneath. The chart takes the height
+       the page has left. -->
   <div class="glass card" id="price-card">
     <div class="card-header">
       <h2>Elektri hind</h2>
@@ -2260,86 +2213,79 @@ html.sim-sa .sim-home {
         <span class="price-unit">s/kWh</span>
       </div>
     </div>
-    <!-- Chart: Y-axis gridlines layer behind, bars in front, hour
-         axis below. Built by renderNps() (today 00–24, snt/kWh). -->
-    <div class="price-chart">
+    <div class="price-best" id="price-best">Laen hindu…</div>
+    <div class="price-chart" id="price-chart">
       <div class="price-grid" id="price-grid"></div>
       <div class="price-bars" id="price-spark" aria-hidden="true"></div>
     </div>
     <div class="price-axis" id="price-axis"></div>
-    <div class="price-foot">
-      <span>Odavaim <b id="price-min">—</b></span>
-      <span>Kalleim <b id="price-max">—</b></span>
+    <div class="price-days">
+      <div class="pd"><span class="pd-l">Täna</span><span class="pd-v muted" id="price-today">—</span></div>
+      <div class="pd"><span class="pd-l">Homme</span><span class="pd-v muted" id="price-tomorrow">—</span></div>
     </div>
     <div class="price-status" id="price-status">käibemaksuga · Nord Pool / Elering</div>
   </div>
 
-  <!-- POLLEN / AURORA -->
-  <div class="duo">
-    <div class="glass card">
-      <div class="card-header"><h2>Õietolm</h2></div>
-      <div class="gauge-row">
-        <span class="gauge-label">Üldine</span>
-        <span class="gauge-text lo" id="pollen-overall">—</span>
-      </div>
-      <div class="gauge-row">
-        <span class="gauge-label">Kask</span>
-        <span class="gauge-text lo" id="pollen-birch">—</span>
-      </div>
-      <div class="gauge-row">
-        <span class="gauge-label">Hein</span>
-        <span class="gauge-text lo" id="pollen-grass">—</span>
-      </div>
-      <div class="gauge-row">
-        <span class="gauge-label">Lepp</span>
-        <span class="gauge-text lo" id="pollen-alder">—</span>
-      </div>
+  <!-- ÕIETOLM + VIRMALISED — one card, one line each while quiet
+       (renderSkyCard). A line opens by itself when there is something to
+       know — pollen above 'madal', or Kp ≥ 4 / a 10 % chance over Madise
+       in the next 24 h — and a tap opens or closes it by hand. -->
+  <div class="glass card sky-card" id="sky-card">
+    <button type="button" class="q-line" id="pollen-line" aria-expanded="false" aria-controls="pollen-detail">
+      <svg class="lic q-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M12 10c-1.7-1.8-1.7-4.3 0-6.2 1.7 1.9 1.7 4.4 0 6.2zM12 14c1.7 1.8 1.7 4.3 0 6.2-1.7-1.9-1.7-4.4 0-6.2zM10 12c-1.8 1.7-4.3 1.7-6.2 0 1.9-1.7 4.4-1.7 6.2 0zM14 12c1.8-1.7 4.3-1.7 6.2 0-1.9 1.7-4.4 1.7-6.2 0z"/></svg>
+      <span class="q-t">Õietolm</span>
+      <span class="q-sum" id="pollen-sum">—</span>
+      <svg class="q-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>
+    </button>
+    <div class="q-detail q-grid" id="pollen-detail">
+      <div class="q-cell"><span class="q-lab">Üldine</span><span class="gauge-text lo" id="pollen-overall">—</span></div>
+      <div class="q-cell"><span class="q-lab">Kask</span><span class="gauge-text lo" id="pollen-birch">—</span></div>
+      <div class="q-cell"><span class="q-lab">Hein</span><span class="gauge-text lo" id="pollen-grass">—</span></div>
+      <div class="q-cell"><span class="q-lab">Lepp</span><span class="gauge-text lo" id="pollen-alder">—</span></div>
     </div>
-    <div class="glass card">
-      <div class="card-header"><h2>Virmalised</h2></div>
-      <div class="gauge-row">
-        <span class="gauge-label">Kp 24h</span>
-        <span class="gauge-text num lo" id="kp-24h-max">—</span>
+    <button type="button" class="q-line" id="aurora-line" aria-expanded="false" aria-controls="aurora-detail">
+      <svg class="lic q-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 19c2.3-6.2 5.5-9.6 9.5-9.6s7.2 3.4 9.5 9.6M6.2 19c1.6-3.9 3.5-5.9 5.8-5.9s4.2 2 5.8 5.9"/><path d="M17.5 3v3M16 4.5h3"/></svg>
+      <span class="q-t">Virmalised</span>
+      <span class="q-sum" id="aurora-sum">—</span>
+      <svg class="q-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>
+    </button>
+    <div class="q-detail" id="aurora-detail">
+      <div class="q-grid q-grid3">
+        <div class="q-cell"><span class="q-lab">Kp 24 h</span><span class="gauge-text num lo" id="kp-24h-max">—</span></div>
+        <div class="q-cell"><span class="q-lab">Tõenäosus</span><span class="gauge-text num lo" id="aurora-prob">—</span></div>
+        <div class="q-cell"><span class="q-lab">Bz</span><span class="gauge-text num lo" id="solar-bz">—</span></div>
       </div>
-      <div class="gauge-row">
-        <span class="gauge-label">Tõenäosus</span>
-        <span class="gauge-text num lo" id="aurora-prob">—</span>
-      </div>
-      <div class="gauge-row">
-        <span class="gauge-label">Bz</span>
-        <span class="gauge-text num lo" id="solar-bz">—</span>
-      </div>
-      <div class="kp-chart" id="kp-chart">
-        <!-- bars added by script -->
-      </div>
+      <div class="kp-chart" id="kp-chart"></div>
       <!-- 'nüüd · +24h · +48h' at their real places on the bars —
            renderKpForecast() writes them from the slot times. -->
       <div class="kp-label" id="kp-axis"></div>
     </div>
   </div>
 
-  <!-- ANDMED — placeholder until the Andmed card lands (per-source ages,
-       ↻ Uuenda kõik, two-tap ⟲). For now: the build stamp and ⟲ (moved
-       here from the old hero bar — Nüüd's header has the freshness chip,
-       which is the ↻), the old footer's last-update line, the sources. -->
-  <div class="glass card data-card" id="data-card">
-    <div class="card-header">
-      <h2>Andmed</h2>
-      <div class="data-head-r">
-        <span class="build-stamp mono" id="build-stamp"></span>
-        <!-- ⟲ takes two taps (hardRefreshTap): the first shows
-             'Kinnita?', the second within 3 s clears the caches. -->
-        <button class="hero-refresh-btn hero-refresh-btn-hard" id="hard-refresh-btn" title="Tühjenda vahemälu" aria-label="Tühjenda vahemälu" onclick="hardRefreshTap()">⟲<span class="confirm-label" aria-hidden="true">Kinnita?</span></button>
+  <!-- ANDMED — how old each source is (renderSources: amber past its own
+       limit, and the line names the old ones), '↻ Uuenda kõik', and
+       '⟲ Tühjenda vahemälu' — two taps (the first asks), and it refuses
+       while offline: it would throw away the last good data with nothing
+       to replace it. The build stamp at the foot. -->
+  <div class="glass card qcard data-card" id="data-card">
+    <button type="button" class="q-line" id="data-line" aria-expanded="false" aria-controls="data-detail">
+      <svg class="lic q-ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6"/></svg>
+      <span class="q-t">Andmed</span>
+      <span class="q-sum" id="src-sum">laen…</span>
+      <svg class="q-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>
+    </button>
+    <div class="q-detail" id="data-detail">
+      <div class="src-grid" id="src-grid"></div>
+      <div class="src-actions">
+        <button type="button" class="src-btn" id="refresh-all-btn" onclick="refreshAllTap()"><span class="sb-idle">↻ Uuenda kõik</span><span class="sb-busy">Uuendan…</span><span class="sb-off">Võrku pole</span></button>
+        <!-- hardRefreshTap(): the first tap shows 'Kinnita — tühjenda'; a
+             second within 3 s clears wa2's caches and reloads. -->
+        <button type="button" class="src-btn src-hard" id="hard-refresh-btn" onclick="hardRefreshTap()"><span class="sb-idle">⟲ Tühjenda vahemälu</span><span class="sb-confirm">Kinnita — tühjenda</span><span class="sb-off">Võrku pole — jätan alles</span><span class="sb-busy">Tühjendan…</span></button>
       </div>
-    </div>
-    <div class="footer">
-      <div class="footer-updated" id="last-updated">Viimati uuendatud: —</div>
-      Ilmaradar · <span>Open-Meteo</span> · <span>NOAA</span> · <span>Ilmateenistus</span> · <span>RainViewer</span>
-      <div style="margin-top:4px;font-size:10px;opacity:0.4;" id="footer-version"></div>
+      <div class="src-foot">Open-Meteo · Ilmateenistus · Transpordiamet · RainViewer · NOAA · Elering<br><span class="build-stamp mono" id="build-stamp"></span></div>
     </div>
   </div>
 </section>
-
 </main>
 
 <!-- Bottom tab bar — tap to jump; a swipe turns the page as well. The dot
@@ -2491,8 +2437,6 @@ function fitHeader(){
   /* Written once: a build stamp cannot change without a reload. */
   var bs = byId('build-stamp');
   if(bs) bs.textContent = APP_VERSION + ' · ' + APP_BUILT;
-  var fv = byId('footer-version');
-  if(fv) fv.textContent = APP_VERSION;
 })();
 
 /* ─── Stale-data indicator ─────────────────────────────────────────
@@ -2511,6 +2455,8 @@ function manualRefresh(){
   fetchKurevere();
   fetchLaaneNigula();       // also brings the warnings (same bundle)
   fetchNps();
+  // The radar's frame list too — unless it is waiting out a rate limit.
+  if(typeof RADAR !== 'undefined' && RADAR && RADAR.map && !RADAR.retryTimer) radarFetchData();
 }
 
 /* ⟲ throws away the cached weather and the app-shell cache — offline it
@@ -2525,6 +2471,16 @@ var HARD_REFRESH_ARM = { at: 0, timer: null };
 function hardRefreshTap(){
   var btn = byId('hard-refresh-btn');
   var now = Date.now();
+  // Offline it would throw away the last good data with nothing to replace
+  // it: refuse, and say so ('Võrku pole — jätan alles'), on either tap.
+  if(navigator.onLine === false){
+    clearTimeout(HARD_REFRESH_ARM.timer);
+    HARD_REFRESH_ARM.at = 0;
+    if(btn){ btn.classList.remove('confirm'); btn.classList.add('offline'); }
+    HARD_REFRESH_ARM.timer = setTimeout(function(){ if(btn) btn.classList.remove('offline'); }, HARD_REFRESH_ARM_MS);
+    return;
+  }
+  if(btn) btn.classList.remove('offline');
   if(HARD_REFRESH_ARM.at){
     if(now - HARD_REFRESH_ARM.at < HARD_REFRESH_MIN_GAP_MS) return;
     clearTimeout(HARD_REFRESH_ARM.timer);
@@ -2635,17 +2591,7 @@ function updateStaleIndicator(){
   renderWarningBar();
   refreshRainTexts();       // 'Vihm ~kl 14' → 'Sajab', '~40 min' keeps counting
   nuudFit();
-  if(!LAST_FETCH_MS) return;
-  var el = byId('last-updated');
-  if(!el) return;
-  var d = new Date(LAST_FETCH_MS);
-  var dd = String(d.getDate()).padStart(2,'0');
-  var mm = String(d.getMonth()+1).padStart(2,'0');
-  var hh = String(d.getHours()).padStart(2,'0');
-  var min = String(d.getMinutes()).padStart(2,'0');
-  el.textContent = 'Viimati uuendatud: ' + dd + '.' + mm + ' ' + hh + ':' + min;
-  var age = Date.now() - LAST_FETCH_MS;
-  el.style.color = age > 10*60*1000 ? '#e9a76b' : '';
+  renderSources();          // Andmed: every source's age (the old footer's 'Viimati uuendatud')
 }
 
 /* ─── localStorage cache (6 h max age; weather and EMHI 24 h) ──────
@@ -4885,7 +4831,15 @@ function renderPollen(data){
     applyPollen('pollen-birch',   pollenLevel(birch));
     applyPollen('pollen-grass',   pollenLevel(grass));
     applyPollen('pollen-alder',   pollenLevel(alder));
+    // For the one-line summary (renderSkyCard): the highest, and whose.
+    var worst = null, seen = false;
+    [['lepp', alder], ['kask', birch], ['hein', grass], ['puju', mug], ['ambroosia', rag]].forEach(function(p){
+      if(!isNaN(p[1])) seen = true;
+      if(!isNaN(p[1]) && (!worst || p[1] > worst.v)) worst = { name: p[0], v: p[1] };
+    });
+    POLLEN = { seen: seen, max: maxVal, worst: worst };
   }catch(e){}
+  renderSkyCard();
 }
 function fetchPollen(){
   var url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + CONFIG.lat + '&longitude=' + CONFIG.lng + '&current=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&timezone=auto';
@@ -5495,10 +5449,13 @@ function showNpsEmpty(fetchedMs){
   });
   var nowEl = byId('price-now');
   if(nowEl){ nowEl.textContent = '—'; nowEl.style.color = ''; }
-  if(byId('price-min')) byId('price-min').textContent = '—';
-  if(byId('price-max')) byId('price-max').textContent = '—';
+  if(byId('price-best')) byId('price-best').textContent = 'Hinnad puuduvad';
+  ['price-today', 'price-tomorrow'].forEach(function(id){
+    var el = byId(id);
+    if(el){ el.textContent = '—'; el.className = 'pd-v muted'; }
+  });
   if(byId('price-status')) byId('price-status').textContent =
-    'Hinnad puuduvad' + (fetchedMs !== null ? ' · andmed ' + stampText(fetchedMs) : '');
+    'Nord Pool / Elering' + (fetchedMs !== null ? ' · andmed ' + stampText(fetchedMs) : '');
   NPS_RENDERED = false;
 }
 /* Below zero: a colour of its own. priceBarColor() clamps at its first
@@ -5517,12 +5474,39 @@ function priceWhen(d){
   return (w === 'täna' ? '' : w + ' ') + pad(d.getHours()) + ':00';
 }
 var NPS_NEG_MIN_FRAC = 0.12;   // the band below zero is at least this share of the chart
-var PRICE_TAG_LIFT_MAX = 12;   // px the 'odavaim' tag may rise above its bar (renderNps)
+var NPS_LAST = null;           // the last bundle drawn — redrawn when the chart's size changes
+/* A day's cheapest and priciest hour, over every published hour of that
+   calendar day (off: 0 today, 1 tomorrow); null until at least 20 of its
+   hours are in (tomorrow's arrive ~14:00). Local midnight onwards in epoch
+   hours, so a DST day has its 23 or 25. */
+function priceDayStats(byTs, off){
+  var t = new Date(), d0 = new Date(t.getFullYear(), t.getMonth(), t.getDate() + off);
+  var key = localDayKey(d0), lo = null, hi = null, count = 0;
+  for(var h = 0; h < 26; h++){
+    var ms = d0.getTime() + h * 3600000;
+    if(localDayKey(new Date(ms)) !== key) break;
+    var eur = byTs[Math.floor(ms / 1000)];
+    if(eur === undefined) continue;
+    var v = { snt: priceSnt(eur), h: new Date(ms).getHours() };
+    count++;
+    if(!lo || v.snt < lo.snt) lo = v;
+    if(!hi || v.snt > hi.snt) hi = v;
+  }
+  return count >= 20 ? { lo: lo, hi: hi } : null;
+}
+/* The price card (prototype C's, on this build's fixed price logic):
+ * 3 h behind, then every published hour ahead; 'Odavaim 3 h' (the cheapest
+ * three hours in a row from now, also a green band on the chart); value
+ * tags on the hour now and the priciest hour ahead; a rule at midnight
+ * with 'homme'; negative prices below zero; today's and tomorrow's
+ * cheapest and priciest hour underneath. */
 function renderNps(data){
   try{
     var barsEl = byId('price-spark'), gridEl = byId('price-grid'), axisEl = byId('price-axis');
     if(!barsEl) return;
+    NPS_LAST = data;
     var fetchedMs = isoMs(data && data.fetched_at);
+    NPS_FETCHED_MS = fetchedMs;
     var prices = data && Object.prototype.toString.call(data.prices) === '[object Array]' ? data.prices : [];
     if(!prices.length){ showNpsEmpty(fetchedMs); return; }
     if(typeof data.vat_pct === 'number') NPS_VAT_PCT = data.vat_pct;
@@ -5558,15 +5542,12 @@ function renderNps(data){
     }
     if(items.length < 2){ showNpsEmpty(fetchedMs); return; }
     var n = items.length;
-    var nowIdx = -1, maxIdx = 0, minIdx = 0, cheapIdx = -1, peakIdx = -1;
+    var nowIdx = -1, maxIdx = 0, minIdx = 0, peakIdx = -1;
     items.forEach(function(x, k){
       if(x.isNow) nowIdx = k;
       if(x.snt > items[maxIdx].snt) maxIdx = k;
       if(x.snt < items[minIdx].snt) minIdx = k;
-      if(!x.isPast){
-        if(cheapIdx < 0 || x.snt < items[cheapIdx].snt) cheapIdx = k;
-        if(peakIdx  < 0 || x.snt > items[peakIdx].snt)  peakIdx  = k;
-      }
+      if(!x.isPast && (peakIdx < 0 || x.snt > items[peakIdx].snt)) peakIdx = k;
     });
     var maxV = items[maxIdx].snt, minV = items[minIdx].snt;
 
@@ -5634,6 +5615,33 @@ function renderNps(data){
       bars.push(bar);
     });
 
+    // The cheapest three hours in a row from the hour now on — when to run
+    // the machines. Upcoming hours are consecutive (a gap ends the chart).
+    // A green band behind them on the chart; bar k starts at k·(W + gap)/n.
+    var best = null;
+    for(var s0 = 0; s0 + 2 < n; s0++){
+      if(items[s0].isPast) continue;
+      var avg = (items[s0].snt + items[s0 + 1].snt + items[s0 + 2].snt) / 3;
+      if(!best || avg < best.avg - 1e-9) best = { i: s0, avg: avg };
+    }
+    if(best){
+      var band = document.createElement('div');
+      band.className = 'price-band';
+      band.style.left = 'calc((100% + 3px) * ' + (best.i / n).toFixed(5) + ')';
+      band.style.width = 'calc((100% + 3px) * ' + (3 / n).toFixed(5) + ' - 3px)';
+      barsEl.insertBefore(band, barsEl.firstChild);
+    }
+    var bestEl = byId('price-best');
+    if(bestEl){
+      if(best){
+        var bs = items[best.i].date, be = new Date(bs.getTime() + 3 * 3600000), bw = dayWord(bs.getTime());
+        bestEl.innerHTML = 'Odavaim 3 h: <b>' + (bw === 'täna' ? '' : bw + ' ') + pad(bs.getHours()) + '–' + pad(be.getHours())
+          + '</b> · keskm. ' + priceText(best.avg) + ' s/kWh';
+      } else {
+        bestEl.textContent = 'Odavaim 3 h: — · järgmisi hindu pole veel';
+      }
+    }
+
     // Midnight inside the window: a rule between 23 and 00, and — where
     // tomorrow starts ahead of now, not the midnight just past — its hour
     // label reads 'homme'. With both days on one axis '19' came twice and
@@ -5648,7 +5656,7 @@ function renderNps(data){
       split.className = 'price-daysplit';
       // Bar i starts at i·(W + gap)/n; the rule sits in the 3px gap before it.
       split.style.left = 'calc((100% + 3px) * ' + (mi / n).toFixed(5) + ' - 2px)';
-      barsEl.insertBefore(split, barsEl.firstChild);   // under the value tag
+      barsEl.insertBefore(split, barsEl.firstChild);   // under the value tags
       if(midIdx < 0 && nowIdx >= 0 && mi > nowIdx) midIdx = mi;
     }
     var homme = midIdx > 0 && midIdx <= n - 2;
@@ -5676,6 +5684,20 @@ function renderNps(data){
         // blank the hour labels it would sit on.
         var rg = document.createRange();
         rg.selectNodeContents(ds);
+        // …and on its left the hour before midnight ran into it ('23homme'):
+        // blank that label, or — the hour now's, which stays — move
+        // 'homme' clear of it.
+        var dayLeft = rg.getBoundingClientRect().left;
+        var prev = midIdx > 0 ? axisSpans[midIdx - 1] : null;
+        if(prev && prev.textContent && dayLeft){
+          var rp = document.createRange();
+          rp.selectNodeContents(prev);
+          var clash = rp.getBoundingClientRect().right + 4 - dayLeft;
+          if(clash > 0){
+            if(prev.className === 'now') ds.style.paddingLeft = (3 + clash) + 'px';
+            else prev.textContent = '';
+          }
+        }
         var dayRight = rg.getBoundingClientRect().right;
         for(var j = midIdx + 1; j < n && dayRight; j++){
           var sr = axisSpans[j].getBoundingClientRect();
@@ -5685,50 +5707,35 @@ function renderNps(data){
       }
     }
 
-    // The cheapest hour from now on — the one worth waiting for — is tagged
-    // on its bar. Kept inside the chart, centred on its bar or reaching
-    // right or left from it, whichever has to rise least over taller bars
-    // it spans — but never more than PRICE_TAG_LIFT_MAX: the tag is five
-    // phone bars wide, and a cheapest hour at the right edge beside the
-    // evening peak was lifted to the top of the chart, where it read as the
-    // peak's label. Then it sits on its own bar, on a dark pill over the
-    // neighbours instead.
-    if(cheapIdx >= 0 && bars[cheapIdx]){
-      var bar = bars[cheapIdx];
+    // Value tags (the iPad card's pair): the priciest hour ahead, and the
+    // hour now. Above the bar, or just inside its top where the bar
+    // reaches the top of the chart; kept inside the chart sideways. Where
+    // the two would overlap the one for now goes — 'Hetkel' says it.
+    var chartBox = barsEl.getBoundingClientRect();
+    function valueTag(k, cls){
       var t = document.createElement('span');
-      t.className = 'bar-val';
-      t.textContent = 'odavaim';
-      bar.appendChild(t);
-      var r0 = t.getBoundingClientRect();
-      if(r0.width){
-        var chartBox = barsEl.getBoundingClientRect();
-        var barBoxes = bars.map(function(b){ return b.getBoundingClientRect(); });
-        var half = (r0.width - barBoxes[cheapIdx].width) / 2, best = null;
-        [0, half, -half].forEach(function(dx){
-          var l = r0.left + dx, rr = r0.right + dx;
-          if(rr > chartBox.right){ l -= rr - chartBox.right; rr = chartBox.right; }
-          if(l < chartBox.left){ rr += chartBox.left - l; l = chartBox.left; }
-          var clear = r0.bottom;
-          barBoxes.forEach(function(b){
-            if(b.right > l && b.left < rr && b.top - 1 < clear) clear = b.top - 1;
-          });
-          var lift = Math.max(0, Math.min(r0.bottom - clear, r0.top - chartBox.top));
-          if(!best || lift < best.lift - 0.5) best = { dx: l - r0.left, lift: lift };
-        });
-        if(best.lift > PRICE_TAG_LIFT_MAX){
-          t.className = 'bar-val over';
-          var r1 = t.getBoundingClientRect(), dx1 = 0;
-          if(r1.right > chartBox.right) dx1 = chartBox.right - r1.right;
-          if(r1.left + dx1 < chartBox.left) dx1 = chartBox.left - r1.left;
-          best = { dx: dx1, lift: 0 };
+      t.className = 'ptag ' + cls;
+      t.textContent = priceText(items[k].snt);
+      bars[k].appendChild(t);
+      var r = t.getBoundingClientRect();
+      if(!r.width) return t;
+      if(r.top < chartBox.top){ t.className += ' in'; r = t.getBoundingClientRect(); }
+      if(r.right > chartBox.right) t.style.marginLeft = (chartBox.right - r.right) + 'px';
+      else if(r.left < chartBox.left) t.style.marginLeft = (chartBox.left - r.left) + 'px';
+      return t;
+    }
+    var peakTag = peakIdx >= 0 ? valueTag(peakIdx, 'hi') : null;
+    if(nowIdx >= 0 && nowIdx !== peakIdx){
+      var nowTag = valueTag(nowIdx, 'at');
+      if(peakTag){
+        var a = peakTag.getBoundingClientRect(), b = nowTag.getBoundingClientRect();
+        if(a.width && b.width && a.left < b.right + 2 && b.left < a.right + 2 && a.top < b.bottom + 2 && b.top < a.bottom + 2){
+          nowTag.parentNode.removeChild(nowTag);
         }
-        if(best.dx) t.style.marginLeft = best.dx + 'px';
-        if(best.lift) t.style.marginBottom = (1 + best.lift) + 'px';
       }
     }
 
-    // Current price (big) + cheapest/priciest among UPCOMING hours, with
-    // the day when it is not today.
+    // Current price (big).
     var nowEl = byId('price-now');
     if(nowEl){
       if(nowIdx >= 0){
@@ -5741,16 +5748,26 @@ function renderNps(data){
         nowEl.style.color = '';
       }
     }
-    if(cheapIdx >= 0){
-      if(byId('price-min')) byId('price-min').textContent = priceWhen(items[cheapIdx].date) + ' · ' + priceText(items[cheapIdx].snt);
-      if(byId('price-max')) byId('price-max').textContent = priceWhen(items[peakIdx].date) + ' · ' + priceText(items[peakIdx].snt);
-    } else {
-      if(byId('price-min')) byId('price-min').textContent = '—';
-      if(byId('price-max')) byId('price-max').textContent = '—';
-    }
-    if(byId('price-status')) byId('price-status').textContent = 's/kWh · käibemaksuga (' + NPS_VAT_PCT + '%) · Nord Pool / Elering';
+
+    // Täna / Homme: each day's cheapest and priciest hour, over all of it.
+    [['price-today', 0], ['price-tomorrow', 1]].forEach(function(p){
+      var el = byId(p[0]);
+      if(!el) return;
+      var st = priceDayStats(byTs, p[1]);
+      if(st){
+        el.innerHTML = '<span class="pdx"><b class="lo">' + priceText(st.lo.snt) + '</b> kl ' + pad(st.lo.h) + '</span>'
+                     + '<span class="pdx"><b class="hi">' + priceText(st.hi.snt) + '</b> kl ' + pad(st.hi.h) + '</span>';
+        el.className = 'pd-v mono';
+      } else {
+        el.textContent = p[1] === 0 ? '—' : now.getHours() < 14 ? 'avaldatakse ~14:00' : 'pole veel avaldatud';
+        el.className = 'pd-v muted';
+      }
+    });
+    if(byId('price-status')) byId('price-status').textContent = 's/kWh · käibemaksuga ' + NPS_VAT_PCT + ' % · Nord Pool / Elering'
+      + (fetchedMs !== null ? ' · ' + stampText(fetchedMs) : '');
     NPS_RENDERED = true;
   }catch(e){ console.warn('renderNps error', e); }
+  fitHind();                // its day lines may have wrapped
 }
 function fetchKurevere(){
   // Request all fields (*) so we can see what the API actually returns
@@ -5830,6 +5847,7 @@ function renderKpForecast(data){
     slots.forEach(function(r){
       if(r.t < now + 24 * 3600000 && (!maxRow || r.kp > maxRow.kp)) maxRow = r;
     });
+    AUR.kp = maxRow ? maxRow.kp : null;
     if(kpEl){
       if(maxRow){
         kpEl.textContent = maxRow.kp.toFixed(1);
@@ -5884,6 +5902,7 @@ function renderKpForecast(data){
       }
     }
   }catch(e){ console.warn('Kp render', e); }
+  renderSkyCard();
 }
 function fetchKpForecast(){
   var xhr = new XMLHttpRequest();
@@ -5914,6 +5933,8 @@ function renderOvation(data){
         prob = coords[i][2]; break;
       }
     }
+    AUR.prob = isNum(prob) ? prob : null;
+    renderSkyCard();
     var el = byId('aurora-prob');
     if(!el) return;
     if(prob === null){ el.textContent = '—'; return; }
@@ -5974,6 +5995,7 @@ function renderSolarWind(data){
       }
     }
   }catch(e){}
+  AUR.bz = last;
   if(last === null){ el.textContent = '—'; el.className = 'gauge-text num lo'; return; }
   el.textContent = (last >= 0 ? '+' : '\u2212') + Math.abs(last).toFixed(1);
   if(last <= -5) el.className = 'gauge-text num hi';
@@ -5998,6 +6020,171 @@ function fetchSolarWind(){
   xhr.ontimeout = function(){ console.warn('solarwind timeout'); failed(); };
   xhr.send();
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * HIND page — the Õietolm + Virmalised card, the Andmed card
+ * ═══════════════════════════════════════════════════════════════ */
+/* One card, a line each (prototype B), which opens by itself when there is
+ * something to know and by a tap otherwise (the choice holds for the
+ * session, as prototype C's cards did). Pollen: above 'madal' (≥ 10
+ * grains/m³). Aurora: Kp ≥ 4 in the next 24 h, or Ovation's chance over
+ * Madise ≥ 10 % — 'võimalik näha', from Kp 6 / 30 % 'tõenäoliselt näha'.
+ * The renderers leave their figures in POLLEN and AUR. */
+var POLLEN = null;                          // { seen, max, worst: { name, v } }
+var AUR = { kp: null, prob: null, bz: null };
+var Q_USER = {};                            // line id → opened / closed by a tap
+function qLineSet(lineId, open){
+  var b = byId(lineId);
+  if(!b) return;
+  if(Q_USER[lineId] !== undefined) open = Q_USER[lineId];
+  b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  var d = byId(b.getAttribute('aria-controls'));
+  if(d) d.classList.toggle('open', !!open);
+}
+function renderSkyCard(){
+  if(!AUR) return;                          // (called before this block ran)
+  var ps = byId('pollen-sum'), as = byId('aurora-sum');
+  if(ps){
+    var pOpen = false, ph;
+    if(!POLLEN || !POLLEN.seen) ph = '—';
+    else if(POLLEN.max < 1) ph = 'puudub · vaikne hooaeg';
+    else if(POLLEN.max < 10) ph = 'madal';
+    else {
+      var lv = pollenLevel(POLLEN.max);
+      ph = (POLLEN.worst ? POLLEN.worst.name + ' ' : '') + '<span class="' + lv.cls + '">' + lv.text.toLowerCase() + '</span>';
+      pOpen = true;
+    }
+    if(ps.innerHTML !== ph) ps.innerHTML = ph;
+    qLineSet('pollen-line', pOpen);
+  }
+  if(as){
+    var kp = AUR.kp, pr = AUR.prob, aOpen = false, ah;
+    if(kp === null && pr === null) ah = '—';
+    else {
+      aOpen = (kp !== null && kp >= 4) || (pr !== null && pr >= 10);
+      var strong = (kp !== null && kp >= 6) || (pr !== null && pr >= 30);
+      var nums = (kp !== null ? 'Kp ' + kp.toFixed(1) : '') + (pr !== null ? (kp !== null ? ' · ' : '') + Math.round(pr) + ' %' : '');
+      ah = (aOpen ? '<span class="go">' + (strong ? 'tõenäoliselt näha' : 'võimalik näha') + '</span> · ' : 'vaikne · ') + nums;
+    }
+    if(as.innerHTML !== ah) as.innerHTML = ah;
+    qLineSet('aurora-line', aOpen);
+  }
+  fitHind();
+}
+/* Andmed starts open (it holds the build stamp) — unless that would push
+ * Hind past the screen, e.g. while pollen and the aurora have opened, or
+ * on a short phone; its line still names any old source. A tap decides
+ * for the rest of the session. */
+function fitHind(){
+  var pg = byId('p-hind');
+  if(!pg || !Q_USER || Q_USER['data-line'] !== undefined) return;
+  qLineSet('data-line', true);
+  if(pg.scrollHeight > pg.clientHeight + 1) qLineSet('data-line', false);
+}
+
+/* ─── Andmed: how old each source is ─────────────────────────────────
+ * From the ages the app already keeps: the weather's fetch time, the
+ * warnings bundle's fetched_at, the stations' own measurement times (the
+ * older EMHI one), the newest radar frame, the price bundle's fetched_at,
+ * and when pollen / the Kp forecast were last fetched (their cache
+ * stamp). Amber past each one's own limit — the same limits the rest of
+ * the app uses; '—' while there is nothing, 'puudub' in the line once
+ * the first minute has passed without it. Re-drawn on the 30-s tick. */
+var APP_START_MS = Date.now();
+var NPS_FETCHED_MS = null;                  // the price bundle's fetched_at (renderNps)
+function radarNewestMs(){
+  if(typeof RADAR === 'undefined' || !RADAR || !RADAR.frames) return null;
+  var now = Date.now();
+  for(var i = RADAR.frames.length - 1; i >= 0; i--){
+    var t = RADAR.frames[i] && RADAR.frames[i].time * 1000;
+    if(isNum(t) && t <= now + 60000) return t;       // not a nowcast frame
+  }
+  return null;
+}
+function stationObs(prefixes){
+  var ms = null, force = false;
+  prefixes.forEach(function(p){
+    var o = STATION_OBS[p];
+    if(!o) return;
+    if(o.force) force = true;
+    if(isNum(o.ms) && (ms === null || o.ms < ms)) ms = o.ms;
+  });
+  return { ms: ms, force: force && ms === null };
+}
+var SRC_DEFS = [
+  // [ name, () → { ms, force?, bad? }, amber after (min) ]
+  ['Ilm',          function(){ return { ms: WX_RENDERED ? LAST_FETCH_MS : null }; }, WX_AGE_WARN_MIN],
+  ['Hoiatused',    function(){ return { ms: WARN_FEED.ms, bad: WARN_FEED.ms !== null && (!WARN_FEED.ok || WARN_FEED.malformed) }; }, WARN_FEED_STALE_MIN],
+  ['Kurevere',     function(){ return stationObs(['kv']); }, STATION_AGE_TAG_MIN],
+  ['EMHI jaamad',  function(){ return stationObs(['ln', 'hp']); }, STATION_AGE_TAG_MIN],
+  ['Radar',        function(){ return { ms: radarNewestMs() }; }, 30],          // = RADAR.STALE_MIN
+  ['Elektri hind', function(){ return { ms: NPS_FETCHED_MS }; }, 6 * 60],
+  ['Õietolm',      function(){ return { ms: cacheSavedAt('wx.pollen') }; }, 3 * 60],
+  ['Virmalised',   function(){ return { ms: cacheSavedAt('wx.kpForecast') }; }, 2 * 60]
+];
+function srcAge(min){
+  return min < 1 ? 'äsja' : min < 60 ? Math.floor(min) + ' min'
+       : min < 1440 ? Math.floor(min / 60) + ' t' : Math.floor(min / 1440) + ' p';
+}
+function renderSources(){
+  var g = byId('src-grid');
+  if(!g || !SRC_DEFS) return;
+  var now = Date.now(), html = '', old = [], missing = 0, settled = now - APP_START_MS > 60000;
+  SRC_DEFS.forEach(function(s){
+    var r = s[1]() || {}, age = isNum(r.ms) ? Math.max(0, (now - r.ms) / 60000) : null;
+    var txt, cls = '';
+    if(r.bad){ txt = 'teadmata'; cls = 'old'; }
+    else if(age === null && r.force){ txt = 'vana'; cls = 'old'; }
+    else if(age === null){ txt = '—'; cls = 'dead'; missing++; if(settled) old.push(s[0] + ' puudub'); }
+    else { txt = srcAge(age); if(age > s[2]) cls = 'old'; }
+    if(cls === 'old') old.push(s[0] + ' ' + txt);
+    html += '<div class="src"><span>' + s[0] + '</span><b class="mono' + (cls ? ' ' + cls : '') + '"'
+          + (isNum(r.ms) ? ' title="' + stampText(r.ms) + '"' : '') + '>' + txt + '</b></div>';
+  });
+  if(g.innerHTML !== html) g.innerHTML = html;
+  var sum = byId('src-sum');
+  if(sum){
+    var sh = old.length ? '<span class="mid">' + old.slice(0, 2).join(' · ') + (old.length > 2 ? ' +' + (old.length - 2) : '') + '</span>'
+           : missing ? 'laen…' : '<span class="okc">kõik värsked ✓</span>';
+    if(sum.innerHTML !== sh) sum.innerHTML = sh;
+  }
+}
+
+/* '↻ Uuenda kõik' — manualRefresh(), with the button saying so; offline it
+ * says 'Võrku pole' instead of pretending. The ages follow as the answers
+ * come in. */
+var REFRESH_ALL_T = null;
+function refreshAllTap(){
+  var btn = byId('refresh-all-btn');
+  clearTimeout(REFRESH_ALL_T);
+  if(btn) btn.classList.remove('busy', 'offline');
+  if(navigator.onLine === false){
+    if(btn) btn.classList.add('offline');
+    REFRESH_ALL_T = setTimeout(function(){ if(btn) btn.classList.remove('offline'); }, 2500);
+    return;
+  }
+  if(btn) btn.classList.add('busy');
+  manualRefresh();
+  REFRESH_ALL_T = setTimeout(function(){ if(btn) btn.classList.remove('busy'); renderSources(); }, 2000);
+  setTimeout(renderSources, 8000);
+}
+
+/* The three lines on this page open and close by a tap (fitHind: how
+ * Andmed starts). */
+(function(){
+  ['pollen-line', 'aurora-line', 'data-line'].forEach(function(id){
+    var b = byId(id);
+    if(!b) return;
+    b.addEventListener('click', function(){
+      Q_USER[id] = b.getAttribute('aria-expanded') !== 'true';
+      qLineSet(id, Q_USER[id]);
+      if(id === 'data-line') renderSources();
+      else fitHind();
+    });
+  });
+  fitHind();
+  window.addEventListener('resize', fitHind);
+})();
 
 /* ═══════════════════════════════════════════════════════════════
  * SPARKLINES — wire the bento sparkline data to Open-Meteo
@@ -6596,6 +6783,7 @@ function pagerSettle(){
   var radarI = PAGER.slugs.indexOf('radar');
   if((i === radarI || prev === radarI) && typeof radarPageShown === 'function') radarPageShown(i === radarI);
   if(prev === PAGER.slugs.indexOf('24h')) d24Reset();      // the tapped hour goes back to 'Praegu'
+  if(PAGER.slugs[i] === 'hind') renderSources();            // the ages as of now, not the last tick
 }
 /* The #hash names the page on screen. history.state is kept: an open day
  * sheet's entry must survive this. Also run on popstate — a Back that
@@ -6690,6 +6878,18 @@ pagerInit();
   var n12 = byId('n12');
   if(n12 && typeof ResizeObserver === 'function'){
     new ResizeObserver(function(){ n12Layout(); }).observe(n12);
+  }
+  // The price chart takes the height Hind has left (a line opening above
+  // or below changes it): its gridline spacing and value tags are placed
+  // in pixels, so it is redrawn at its new size.
+  var pc = byId('price-chart'), pcW = 0, pcH = 0;
+  if(pc && typeof ResizeObserver === 'function'){
+    new ResizeObserver(function(){
+      var w = pc.clientWidth, h = pc.clientHeight;
+      if(Math.abs(w - pcW) < 2 && Math.abs(h - pcH) < 2) return;
+      pcW = w; pcH = h;
+      if(NPS_LAST && NPS_RENDERED) renderNps(NPS_LAST);
+    }).observe(pc);
   }
   window.addEventListener('resize', function(){ fitHeader(); nuudFit(); d24FitHeader(); });
 })();
