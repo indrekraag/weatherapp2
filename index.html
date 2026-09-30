@@ -1407,6 +1407,8 @@ body { padding: 0; }
 .d24-bars .grid::after { content: attr(data-v); position: absolute; right: 0; top: -12px; font: 500 9px ui-monospace, "SF Mono", Menlo, monospace; color: rgba(255,255,255,0.45); }
 .d24-bars .zero { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(142,197,255,0.55); pointer-events: none; }
 .d24-bars .tlab { position: absolute; transform: translate(-50%, -100%); margin-top: -3px; font: 600 10px ui-monospace, "SF Mono", Menlo, monospace; color: rgba(255,255,255,0.92); white-space: nowrap; pointer-events: none; }
+.d24-bars .tlab.l { transform: translate(0, -100%); }
+.d24-bars .tlab.r { transform: translate(-100%, -100%); }
 .d24-line { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .d24-mid { position: absolute; top: -3px; bottom: -1px; width: 0; border-left: 1px dashed rgba(255,255,255,0.40); pointer-events: none; }
 .d24-dirs { flex: none; position: relative; height: 16px; margin-top: 4px; color: var(--wind-arrow); }
@@ -1415,6 +1417,8 @@ body { padding: 0; }
 .d24-axis { flex: none; position: relative; height: 25px; margin-top: 3px; font-size: 10px; color: var(--fg-3); }
 .d24-axis span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .d24-axis span.mid { color: rgba(255,255,255,0.95); font-weight: 700; }
+.d24-axis span.l { transform: none; }
+.d24-axis span.r { transform: translateX(-100%); }
 .d24-axis em { position: absolute; top: 13px; font: 600 9px/1.2 -apple-system, "SF Pro Display", sans-serif; font-style: normal; letter-spacing: 0.5px; text-transform: uppercase; color: var(--fg-3); white-space: nowrap; }
 .d24-axis em.tom { color: rgba(255,255,255,0.85); padding-left: 4px; border-left: 1px dashed rgba(255,255,255,0.40); }
 .d24-hint { flex: none; margin-top: 5px; min-height: 12px; font-size: 10px; color: var(--fg-3); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1504,6 +1508,7 @@ body { padding: 0; }
 .price-best { font-size: 11px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .price-best b { color: var(--ok); font-weight: 600; }
 #p-hind .price-chart { flex: 1 1 auto; height: auto; min-height: 110px; margin-top: 16px; }
+@media (max-height: 720px) { #p-hind .price-chart { min-height: 96px; } }   /* 375 × 667 with pollen and aurora open */
 /* the cheapest three hours: a green band behind their bars */
 .price-band {
   position: absolute; top: -4px; bottom: 0; pointer-events: none;
@@ -1585,6 +1590,10 @@ body { padding: 0; }
 .src-btn > span { display: none; }
 .src-btn .sb-idle { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 .src-btn .lic { width: 14px; height: 14px; stroke-width: 2; }
+@media (max-width: 380px) {   /* the bin + 'Tühjenda vahemälu' stay on one line at 360 px */
+  .src-btn { padding-left: 5px; padding-right: 5px; }
+  .src-btn .sb-idle { gap: 4px; }
+}
 .src-btn.busy .sb-idle, .src-btn.offline .sb-idle, .src-btn.confirm .sb-idle, .src-btn.spinning .sb-idle { display: none; }
 .src-btn.busy .sb-busy, .src-btn.offline .sb-off, .src-btn.confirm .sb-confirm, .src-btn.spinning .sb-busy { display: inline; }
 .src-btn.busy { color: var(--fg-3); }
@@ -1672,6 +1681,31 @@ body { padding: 0; }
 .sk-drow i:nth-child(2) { width: 24px; height: 24px; border-radius: 50%; }
 .sk-drow i:nth-child(4) { height: 6px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ─── The narrowest phones (Z Fold folded, 320 px) ─────────────────────
+ * Nothing is cut off with an ellipsis any more: a tile's second line and
+ * a summary line may wrap to two lines, the 24 h keys drop under their
+ * row name, the readout's columns take the width their text needs. Type
+ * sizes unchanged. (Here, and at 375 × 667, a page may still scroll.) */
+@media (max-width: 340px) {
+  .tile { padding-left: 7px; padding-right: 7px; }
+  .tile-sub { white-space: normal; overflow: visible; line-height: 1.2; }
+  .q-sum { white-space: normal; text-align: right; line-height: 1.25; }
+  .d24-lab { flex-wrap: wrap; row-gap: 1px; }
+  .d24-key { order: 3; flex: 0 0 100%; }
+  .d24-readout { grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 4px; padding: 7px 6px; }
+  .ro-cell { padding-left: 5px; }
+  .sec-row { flex-wrap: wrap; row-gap: 4px; }            /* UV drops to a second line if it must */
+  .wa-pre { display: none; }                              /* chip: '↻ 3 min', not 'uuendatud 3 min' */
+  .drow { column-gap: 5px; }
+  .d-rng { gap: 4px; }
+  .d-lo { width: 24px; }
+  .d-bar { min-width: 14px; }
+  .cel-hero { gap: 6px; }                                 /* the day length and the moon's caption */
+  .cel-ico, .cel-ico svg { width: 22px; height: 22px; }   /* ran past the card edge ('84% valgustatu') */
+  .cel-cap { white-space: normal; line-height: 1.2; }
+  .src-btn .lic { display: none; }                        /* 'Tühjenda vahemälu' on one line */
+}
 
 /* ─── Tab bar ─── */
 .tabbar {
@@ -2286,7 +2320,7 @@ function fitHeader(){
   if(!box || !wd || !ds) return;
   var d = new Date();
   var steps = [[ET_WD_FULL[d.getDay()], true], [ET_WD_FULL[d.getDay()], false],
-               [ET_WD_LETTER[d.getDay()], true], [ET_WD_LETTER[d.getDay()], false]];
+               [ET_WD_LETTER[d.getDay()], true], [ET_WD_LETTER[d.getDay()], false], ['', false]];
   ds.textContent = d.getDate() + '.' + pad(d.getMonth() + 1);
   for(var i = 0; i < steps.length; i++){
     wd.textContent = steps[i][0];
@@ -2456,7 +2490,14 @@ function updateWeatherAge(){
     chip.title = title;
     chip.setAttribute('aria-label', txt + ' · uuenda');
   }
-  if(el.textContent !== txt){ el.textContent = txt; fitHeader(); }
+  // 'uuendatud' in its own span: the narrowest phones drop it (.wa-pre)
+  // and keep the age beside the ↻ icon.
+  if(el.textContent !== txt){
+    var sp = txt.indexOf('uuendatud ') === 0 ? 10 : 0;
+    el.innerHTML = sp ? '<span class="wa-pre">uuendatud </span>' : '';
+    el.appendChild(document.createTextNode(txt.slice(sp)));
+    fitHeader();
+  }
 }
 
 /* The 30-s tick: every age on screen keeps counting while a feed is down,
@@ -4053,7 +4094,11 @@ function d24Temp(){
   [tMax, tMin].forEach(function(k, which){
     if(k < 0 || (which === 1 && (k === tMax || d.t[k] === d.t[tMax]))) return;
     var up = Math.max(d.t[k], isNum(d.f[k]) ? d.f[k] : -99);
-    html += '<span class="tlab" style="left:' + d24Centre(k) + ';top:' + (100 - sc.pct(up)).toFixed(1) + '%">' + fmtT(d.t[k], 0, true) + '°</span>';
+    // At the chart's ends a tag centred on its bar ran into the card's
+    // padding ('−3°' on the first column): align it to the bar instead.
+    var edge = k <= 1 ? ' l' : k >= d.n - 2 ? ' r' : '';
+    var at = edge === ' l' ? d24Edge(k) : edge === ' r' ? d24Edge(k + 1) : d24Centre(k);
+    html += '<span class="tlab' + edge + '" style="left:' + at + ';top:' + (100 - sc.pct(up)).toFixed(1) + '%">' + fmtT(d.t[k], 0, true) + '°</span>';
   });
   html += '<svg class="d24-line" id="d24-line" aria-hidden="true"></svg>';
   el.innerHTML = html;
@@ -4168,7 +4213,8 @@ function d24Axis(){
   var html = '';
   for(var k = 0; k < d.n; k++){
     if(d.hr[k] === null || d.hr[k] % 3 !== 0) continue;
-    html += '<span' + (k === d.mid ? ' class="mid"' : '') + ' style="left:' + d24Centre(k) + '">' + pad(d.hr[k]) + '</span>';
+    var cl = (k === d.mid ? 'mid' : '') + (k === 0 ? ' l' : k === d.n - 1 ? ' r' : '');   // ends: not past the chart
+    html += '<span' + (cl ? ' class="' + cl.trim() + '"' : '') + ' style="left:' + (k === 0 ? d24Edge(0) : k === d.n - 1 ? d24Edge(d.n) : d24Centre(k)) + '">' + pad(d.hr[k]) + '</span>';
   }
   // 'täna' under the first hours unless midnight is right there; 'homme'
   // from the midnight line when three columns follow it (it may run into
@@ -5556,8 +5602,11 @@ function renderNps(data){
 
     // Hour labels: every other one past 22 bars, counted from the current
     // hour, so 'now' is always a labelled slot. It used to be forced in
-    // between two labelled neighbours and crowd them ('2122 23').
-    var labelEvery = n > 22 ? 2 : 1;
+    // between two labelled neighbours and crowd them ('2122 23'). On a
+    // narrow phone every third, so two 9-px labels keep ≥ 13 px apart (at
+    // 320 px every other one ran together: '2022', '0810').
+    var slotPx = axisEl && axisEl.clientWidth ? (axisEl.clientWidth + 3) / n : 99;
+    var labelEvery = Math.max(n > 22 ? 2 : 1, Math.ceil(13 / slotPx));
     var anchor = nowIdx >= 0 ? nowIdx : 0;
     if(axisEl){
       axisEl.innerHTML = '';
@@ -5598,6 +5647,16 @@ function renderNps(data){
           axisSpans[j].textContent = '';
         }
       }
+      // A label wider than its slot is centred on it and can run past the
+      // chart's ends (the last '23' into the card's edge at 320 px): drop it.
+      var ab = axisEl.getBoundingClientRect();
+      var labelled = axisSpans.filter(function(sp){ return !!sp.textContent; });
+      [labelled[0], labelled[labelled.length - 1]].forEach(function(sp){
+        if(!sp || sp.className) return;                        // keep 'now' and 'homme'
+        var rr = document.createRange(); rr.selectNodeContents(sp);
+        var tb = rr.getBoundingClientRect();
+        if(tb.width && (tb.right > ab.right + 1 || tb.left < ab.left - 31)) sp.textContent = '';   // 30 px gutter on the left
+      });
     }
 
     // Value tags (the iPad card's pair): the priciest hour ahead, and the
@@ -6040,7 +6099,11 @@ function renderSources(){
     html += '<div class="src"><span>' + s[0] + '</span><b class="mono' + (cls ? ' ' + cls : '') + '"'
           + (isNum(r.ms) ? ' title="' + stampText(r.ms) + '"' : '') + '>' + txt + '</b></div>';
   });
-  if(g.innerHTML !== html) g.innerHTML = html;
+  if(g.innerHTML !== html){
+    var first = !g.firstChild;
+    g.innerHTML = html;
+    if(first) fitHind();      // the rows only now take their height (375 × 667 ran 16 px past)
+  }
   var sum = byId('src-sum');
   if(sum){
     var sh = old.length ? '<span class="mid">' + old.slice(0, 2).join(' · ') + (old.length > 2 ? ' +' + (old.length - 2) : '') + '</span>'
