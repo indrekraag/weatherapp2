@@ -248,8 +248,11 @@ body {
   padding-top: calc(var(--sat) + 4px);
 }
 #p-nuud > .grow { flex: 1 0 auto; }
-/* Line icons: the tab bar's family (24-grid, round caps). */
-#p-nuud .lic { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+/* Line icons (LIC / lic()): the tab bar's family — 24-grid, round caps
+   and joins, currentColor. Everywhere: pages, banner, day sheet. */
+.lic { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.lic.fill { fill: currentColor; }
+.ico-t { display: inline-flex; align-items: center; gap: 4px; }   /* icon + text, one line */
 
 /* Header: one slim line */
 .ph {
@@ -286,10 +289,11 @@ button.chip {
 }
 button.chip::after { content: ''; position: absolute; inset: -10px -4px; }   /* ≥ 44 px to tap */
 button.chip:active { background: rgba(255,255,255,0.10); }
-.chip-ico { font-size: 12px; line-height: 1; }
+.chip-ico { width: 12px; height: 12px; stroke-width: 2; }
+.chip .lic { width: 12px; height: 12px; stroke-width: 2.2; }
 .chip.ok  { color: var(--ok); border-color: rgba(109,192,142,0.30); background: rgba(109,192,142,0.08); }
 .chip.old { color: var(--warn); border-color: rgba(242,193,78,0.40); background: rgba(242,193,78,0.10); }
-.chip-fresh.spinning .chip-ico { display: inline-block; animation: spin 0.6s linear; }
+.chip-fresh.spinning .chip-ico { animation: spin 0.6s linear; }
 @media (prefers-reduced-motion: reduce) { .chip-fresh.spinning .chip-ico { animation: none; } }
 
 /* Official warning bar — only while there is a warning, or while the
@@ -323,8 +327,9 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   border: 1px dashed rgba(255,255,255,0.28);
 }
 .warn-bar.unk .wb-ev { color: rgba(255,255,255,0.88); }
-.warn-bar .wb-q { font-weight: 700; flex-shrink: 0; }
-#p-nuud .alert-banner { padding: 7px 12px; border-radius: 14px; }
+.warn-bar .wb-q { width: 16px; height: 16px; flex-shrink: 0; }
+#p-nuud .alert-banner { padding: 7px 12px; border-radius: 14px; gap: 8px; }
+.alert-banner .ab-ico { width: 18px; height: 18px; }
 
 /* Hero */
 .hero { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
@@ -417,6 +422,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .sec b.ok { color: var(--ok); } .sec b.warn, .sec em.warn { color: var(--warn); } .sec b.bad, .sec em.bad { color: var(--bad); }
 .sec em { font-style: normal; font-size: 10px; color: var(--fg-2); }
 .sec em:empty { display: none; }
+.sec em .lic.trend { width: 11px; height: 11px; margin: 0 0 0 1px; stroke-width: 2.2; color: var(--fg-2); align-self: auto; }
 
 /* No weather yet: dashes in grey, no arrow — nothing that could pass for
    a reading. Failed with nothing to show: the condition line says so. */
@@ -879,6 +885,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   transition: background 0.12s;
 }
 .radar-ctrl-btn:active { background: rgba(255,255,255,0.14); }
+.radar-ctrl-btn .lic { width: 18px; height: 18px; stroke-width: 2.2; }
 .radar-scrub-wrap {
   flex: 1;
   display: flex;
@@ -1170,6 +1177,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .daysheet-grip{flex:0 0 auto;display:flex;justify-content:center;align-items:center;
   height:24px;touch-action:none;cursor:grab;}
 .daysheet-grip::before{content:'';width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,0.30);}
+.daysheet-close .lic{width:14px;height:14px;stroke-width:2.2;display:block;margin:auto;}
 .daysheet-close{position:absolute;top:10px;right:12px;width:30px;height:30px;border:0;
   border-radius:50%;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.82);
   font-size:14px;line-height:30px;text-align:center;cursor:pointer;z-index:3;}
@@ -1184,6 +1192,8 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .dsheet-sum{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;
   color:rgba(255,255,255,0.78);margin:9px 0 4px;}
 .dsheet-sum b{font-weight:600;color:#fff;}
+.dsheet-sum .lic{width:16px;height:16px;color:rgba(255,255,255,0.6);}
+.dsheet-sum .lic + *, .dsheet-sum .ico-t .lic:not(:first-child){margin-left:6px;}
 .dsheet-sum .hot{color:var(--warm);}
 .dsheet-sum .cold{color:var(--cold);}
 .dsheet-row{margin:13px 0;}
@@ -1308,7 +1318,7 @@ body { padding: 0; }
 }
 .radar-foot .radar-status { flex: 1 1 auto; min-width: 0; margin: 0; text-align: left; line-height: 1.3; }
 .radar-links { display: flex; gap: 6px; flex: none; }
-.radar-link {       /* = main's 'Satelliit ↗' in the card header: 9 px */
+.radar-link {       /* = main's 'Satelliit ↗' in the card header: 9 px (now a line icon) */
   position: relative; display: inline-flex; align-items: center;
   height: 28px; padding: 0 10px; border-radius: 99px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
@@ -1318,6 +1328,7 @@ body { padding: 0; }
   -webkit-tap-highlight-color: transparent;
 }
 .radar-link::after { content: ''; position: absolute; inset: -8px -3px; }   /* ≥ 44 px to tap */
+.radar-link .lic { width: 10px; height: 10px; margin-left: 4px; stroke-width: 2.4; }
 .radar-link:active { background: rgba(255,255,255,0.12); }
 
 /* ─── 3 · 24 H — prototype A's page 2 (render24): the readout, then
@@ -1419,7 +1430,6 @@ body { padding: 0; }
    and the moon as a compact pair. No type above main's (7-day tiles: day
    and date 10 px, high 14 → 13, low 11, rain and wind 10; Päike/Kuu:
    times 14, day length 15 → 13, labels and azimuths 10). ─── */
-#p-nadal .lic, #p-hind .lic { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #p-nadal > .week { flex: 1 0 auto; display: flex; flex-direction: column; padding: 12px 12px 6px; }
 .week .card-header { margin-bottom: 2px; padding: 0 2px; }
 .days { flex: 1 1 auto; display: flex; flex-direction: column; }
@@ -1541,6 +1551,7 @@ body { padding: 0; }
 .q-sum .hi { color: var(--bad); }
 .q-sum .go, .q-sum .okc { color: var(--ok); }
 .q-sum .go { font-weight: 600; }
+.q-sum .lic { width: 13px; height: 13px; stroke-width: 2.2; }
 .q-chev { width: 12px; height: 12px; flex-shrink: 0; fill: none; stroke: var(--fg-3); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
 .q-line[aria-expanded="true"] .q-chev { transform: rotate(90deg); }
 .q-detail { display: none; padding: 0 14px 12px 40px; }
@@ -1570,7 +1581,8 @@ body { padding: 0; }
 }
 .src-btn:active { background: rgba(255,255,255,0.11); }
 .src-btn > span { display: none; }
-.src-btn .sb-idle { display: inline; }
+.src-btn .sb-idle { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.src-btn .lic { width: 14px; height: 14px; stroke-width: 2; }
 .src-btn.busy .sb-idle, .src-btn.offline .sb-idle, .src-btn.confirm .sb-idle, .src-btn.spinning .sb-idle { display: none; }
 .src-btn.busy .sb-busy, .src-btn.offline .sb-off, .src-btn.confirm .sb-confirm, .src-btn.spinning .sb-busy { display: inline; }
 .src-btn.busy { color: var(--fg-3); }
@@ -1668,7 +1680,7 @@ html.sim-sa .sim-home {
     <div class="ph-chips">
       <span class="chip chip-wait" id="warn-chip">hoiatused …</span>
       <button type="button" class="chip chip-fresh" id="refresh-btn" onclick="manualRefresh()" title="Uuenda kõik andmed">
-        <span class="chip-ico" aria-hidden="true">↻</span><span id="wx-age">laadin…</span>
+        <svg class="lic chip-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4"/></svg><span id="wx-age">laadin…</span>
       </button>
     </div>
   </header>
@@ -1817,7 +1829,7 @@ html.sim-sa .sim-home {
     <!-- Timeline: 40 px play button, the scrubber (a slider, not a page
          swipe) and the frame's age -->
     <div class="radar-timeline">
-      <button type="button" class="radar-ctrl-btn" id="radar-play" aria-label="Mängi / peata" disabled>▶</button>
+      <button type="button" class="radar-ctrl-btn" id="radar-play" aria-label="Mängi / peata" disabled><svg class="lic fill" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.8v12.4L18.2 12z"/></svg></button>
       <div class="radar-scrub-wrap">
         <input type="range" class="radar-scrub" id="radar-scrub" min="0" value="0" step="1" aria-label="Radaripildi aeg">
         <div class="radar-time-label" id="radar-time-label">—</div>
@@ -1829,9 +1841,9 @@ html.sim-sa .sim-home {
       <div class="radar-status" id="radar-status">Laen radaripilte…</div>
       <div class="radar-links">
         <a class="radar-link" href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/satelliidipildid/infrapunane-pilt/"
-           target="_blank" rel="noopener">Satelliit ↗</a>
+           target="_blank" rel="noopener">Satelliit<svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 16.5l9-9M10 7.5h6.5V14"/></svg></a>
         <a class="radar-link" href="https://www.ilmateenistus.ee/ilm/prognoosid/mudelprognoosid/eesti/#layers/temp2mv2,temp2mtx,pilvMada,pilvKesk,pilvKorg"
-           target="_blank" rel="noopener">Pilvisus ↗</a>
+           target="_blank" rel="noopener">Pilvisus<svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 16.5l9-9M10 7.5h6.5V14"/></svg></a>
       </div>
     </div>
   </div>
@@ -2014,10 +2026,10 @@ html.sim-sa .sim-home {
     <div class="q-detail" id="data-detail">
       <div class="src-grid" id="src-grid"></div>
       <div class="src-actions">
-        <button type="button" class="src-btn" id="refresh-all-btn" onclick="refreshAllTap()"><span class="sb-idle">↻ Uuenda kõik</span><span class="sb-busy">Uuendan…</span><span class="sb-off">Võrku pole</span></button>
+        <button type="button" class="src-btn" id="refresh-all-btn" onclick="refreshAllTap()"><span class="sb-idle"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4"/></svg>Uuenda kõik</span><span class="sb-busy">Uuendan…</span><span class="sb-off">Võrku pole</span></button>
         <!-- hardRefreshTap(): the first tap shows 'Kinnita — tühjenda'; a
              second within 3 s clears wa2's caches and reloads. -->
-        <button type="button" class="src-btn src-hard" id="hard-refresh-btn" onclick="hardRefreshTap()"><span class="sb-idle">⟲ Tühjenda vahemälu</span><span class="sb-confirm">Kinnita — tühjenda</span><span class="sb-off">Võrku pole — jätan alles</span><span class="sb-busy">Tühjendan…</span></button>
+        <button type="button" class="src-btn src-hard" id="hard-refresh-btn" onclick="hardRefreshTap()"><span class="sb-idle"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9.5 7V5.2c0-.7.5-1.2 1.2-1.2h2.6c.7 0 1.2.5 1.2 1.2V7M6.5 7l.8 11.8c.1.9.8 1.6 1.7 1.6h6c.9 0 1.6-.7 1.7-1.6l.8-11.8M10 11v5.5M14 11v5.5"/></svg>Tühjenda vahemälu</span><span class="sb-confirm">Kinnita — tühjenda</span><span class="sb-off">Võrku pole — jätan alles</span><span class="sb-busy">Tühjendan…</span></button>
       </div>
       <div class="src-foot">Open-Meteo · Ilmateenistus · Transpordiamet · RainViewer · NOAA · Elering<br><span class="build-stamp mono" id="build-stamp"></span></div>
     </div>
@@ -2096,6 +2108,32 @@ function tempTone(t, dp){
   if(!isNum(t)) return '';
   var f = Math.pow(10, dp || 0), v = Math.round(t * f) / f;
   return v <= 0 ? 'cold' : v >= 25 ? 'hot' : '';
+}
+/* ─── Line icons — one family with the tab bar and the cards' icons:
+ * 24-grid, round caps and joins, stroked in currentColor (.lic). They
+ * replace the text glyphs and colour emoji that used to stand in for
+ * icons (↻ ⟲ ✓ ↗ ▶ ⏸ ✕ ☀, ⛈ 🌧 💨): those drew in the phone's emoji or
+ * symbol font, each in its own style. The markup carries the same paths. */
+var LIC = {
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  refresh: 'M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4',
+  trash: 'M4.5 7h15M9.5 7V5.2c0-.7.5-1.2 1.2-1.2h2.6c.7 0 1.2.5 1.2 1.2V7M6.5 7l.8 11.8c.1.9.8 1.6 1.7 1.6h6c.9 0 1.6-.7 1.7-1.6l.8-11.8M10 11v5.5M14 11v5.5',
+  play: 'M8 5.8v12.4L18.2 12z',
+  pause: 'M9 6v12M15 6v12',
+  close: 'M6.5 6.5l11 11M17.5 6.5l-11 11',
+  ext: 'M7.5 16.5l9-9M10 7.5h6.5V14',
+  up: 'M6.5 17.5 17 7M10 7h7v7',
+  down: 'M6.5 6.5 17 17M17 10v7h-7',
+  flat: 'M4.5 12h14M13.5 7l5 5-5 5',
+  thunder: 'M7.5 14.5h9.5a3.5 3.5 0 0 0 .5-6.97A5 5 0 0 0 8 7.1a3.7 3.7 0 0 0-.5 7.4zM12.6 16.2l-2.1 3.2h3l-2.1 3.1',
+  rain: 'M7.5 14.5h9.5a3.5 3.5 0 0 0 .5-6.97A5 5 0 0 0 8 7.1a3.7 3.7 0 0 0-.5 7.4zM9 17.5l-1 2.8M13 17.5l-1 2.8M17 17.5l-1 2.8',
+  wind: 'M3 8.5h10.5a2.5 2.5 0 1 0-2.5-2.5M3 12.5h15.5a2.5 2.5 0 1 1-2.5 2.5M3 16.5h7',
+  sunrise: 'M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9.4 6.1 12 3.5l2.6 2.6M4.6 12.6l1.5 1.1M19.4 12.6l-1.5 1.1',
+  sunset: 'M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 9.5v-6M9.4 6.9 12 9.5l2.6-2.6M4.6 12.6l1.5 1.1M19.4 12.6l-1.5 1.1',
+  unknown: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.6 9.4a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1.1.9-1.1 1.6v.4M12 16.6v.2'
+};
+function lic(name, cls){
+  return '<svg class="lic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + LIC[name] + '"/></svg>';
 }
 function localDayKey(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 /* First daily index that is today or later. Weather is cached for up to
@@ -2847,7 +2885,7 @@ var APP_ALERT_TITLE = {
   rain:    ['Tugev vihm', 'Väga tugev vihm', 'Erakordselt tugev vihm'],
   wind:    ['Tugev tuul', 'Väga tugev tuul', 'Erakordselt tugev tuul']
 };
-var APP_ALERT_ICON = { thunder: '⛈', rain: '🌧', wind: '💨' };
+var APP_ALERT_ICON = { thunder: 'thunder', rain: 'rain', wind: 'wind' };   // LIC names
 var APP_ALERT_KIND_RANK = { thunder: 0, wind: 1, rain: 2 };
 var APP_ALERTS = [];        // the last checkAlerts() result
 var ALERT_BANNER_KEY = null;
@@ -2910,13 +2948,14 @@ function renderAlertBanner(){
   var now = Date.now();
   var items = APP_ALERTS.filter(function(a){ return a.endMs > now && !officialCovers(a); });
   var key = '';
-  var txt = '', urgent = false;
+  var txt = '', urgent = false, icon = '';
   if(items.length){
     var a = items.slice().sort(function(x, y){
       return (y.level - x.level) || (APP_ALERT_KIND_RANK[x.kind] - APP_ALERT_KIND_RANK[y.kind])
           || (x.startMs - y.startMs);
     })[0];
-    txt = APP_ALERT_ICON[a.kind] + ' ' + APP_ALERT_TITLE[a.kind][Math.max(0, a.level - 1)] + ' '
+    icon = APP_ALERT_ICON[a.kind];
+    txt = APP_ALERT_TITLE[a.kind][Math.max(0, a.level - 1)] + ' '
         + (a.startMs <= now ? 'praegu' : 'oodata ~ ' + formatTime(new Date(a.startMs)) + ' paiku');
     if(a.kind === 'rain') txt += ' · kuni ' + round1(a.peak) + ' mm/h';
     if(a.kind === 'wind') txt += ' · puhanguti kuni ' + Math.round(a.peak) + ' m/s';
@@ -2933,7 +2972,8 @@ function renderAlertBanner(){
   }
   banner.className = 'alert-banner' + (urgent ? ' urgent' : '');
   banner.style.display = '';
-  banner.textContent = txt;
+  banner.innerHTML = lic(icon, 'ab-ico') + '<span class="ab-t"></span>';
+  banner.querySelector('.ab-t').textContent = txt;
   if(typeof nuudFit === 'function') nuudFit();
 }
 function alertBannerShown(){
@@ -3026,7 +3066,7 @@ function renderWeather(data, savedAt){
     if(byId('wx-pressure')) byId('wx-pressure').textContent = pressure;
     var diffP = pressureTendency3h(data.hourly), trendEl = byId('wx-pressure-trend');
     if(trendEl){
-      trendEl.textContent = diffP === null ? '' : diffP >= 1 ? '↗' : diffP <= -1 ? '↘' : '→';
+      trendEl.innerHTML = diffP === null ? '' : lic(diffP >= 1 ? 'up' : diffP <= -1 ? 'down' : 'flat', 'trend');
       trendEl.title = diffP === null ? ''
         : (diffP >= 1 ? 'tõuseb' : diffP <= -1 ? 'langeb' : 'stabiilne') + ' · ' + (diffP >= 0 ? '+' : '') + diffP.toFixed(1) + ' hPa / 3 h';
     }
@@ -3117,7 +3157,7 @@ function _daySheetEnsure(){
   var bd = document.createElement('div'); bd.className = 'daysheet-backdrop';
   var sh = document.createElement('div'); sh.className = 'daysheet';
   sh.innerHTML = '<div class="daysheet-grip"></div>'
-    + '<button class="daysheet-close" aria-label="Sulge">✕</button>'
+    + '<button class="daysheet-close" aria-label="Sulge">' + lic('close') + '</button>'
     + '<div class="daysheet-track"></div>';
   document.body.appendChild(bd); document.body.appendChild(sh);
   bd.addEventListener('click', function(){ closeDaySheet(); });
@@ -3192,7 +3232,7 @@ function _buildDayPanel(di){
       icons += '<span class="ic">' + ic + '<span class="hr">' + (hh < 10 ? '0' + hh : hh) + '</span></span>';
     }
   }
-  var sunStr = sun && sun.sunrise ? ('☀ ' + formatTime(sun.sunrise) + ' · ' + formatTime(sun.sunset)) : '';
+  var sunStr = sun && sun.sunrise ? (lic('sunrise') + formatTime(sun.sunrise) + ' ' + lic('sunset') + formatTime(sun.sunset)) : '';
   var p = document.createElement('div'); p.className = 'daysheet-panel';
   p.innerHTML =
       '<div class="dsheet-h"><span class="dsheet-day">' + dayName + '</span>'
@@ -3201,7 +3241,7 @@ function _buildDayPanel(di){
         + '<span><b class="' + tempTone(hi) + '">' + fmtT(hi, 0) + '°</b> / <b class="' + tempTone(lo) + '">' + fmtT(lo, 0) + '°</b></span>'
         + '<span>Sadu <b>' + (psum >= RAIN_MIN_MM ? psum.toFixed(1) + ' mm' : '—') + '</b></span>'
         + '<span>Tuul kuni <b>' + wmax + ' m/s</b></span>'
-        + (sunStr ? '<span>' + sunStr + '</span>' : '')
+        + (sunStr ? '<span class="ico-t">' + sunStr + '</span>' : '')
       + '</div>'
     + '<div class="dsheet-row"><div class="dsheet-row-lab"><span>Temperatuur</span><span class="dsheet-val" id="' + idTv + '">—</span></div><div class="metric-spark dsheet-spark" id="' + idT + '"></div></div>'
     + '<div class="dsheet-row"><div class="dsheet-row-lab"><span>Sadu — tõenäosus %</span><span class="dsheet-val" id="' + idPv + '">—</span></div><div class="metric-spark dsheet-spark" id="' + idP + '"></div></div>'
@@ -5062,8 +5102,8 @@ function renderWarningBar(){
     // Green only for a quiet day. Next to the forecast's own storm banner
     // it must not read as 'nothing to worry about': say what it knows.
     st = 'calm';
-    if(alertBannerShown()){ chipCls = 'chip'; chipTxt = '✓ ametlikke pole'; }
-    else { chipCls = 'chip ok'; chipTxt = '✓ hoiatusi pole'; }
+    if(alertBannerShown()){ chipCls = 'chip'; chipTxt = 'ametlikke pole'; }
+    else { chipCls = 'chip ok'; chipTxt = 'hoiatusi pole'; }
   }else if(!WARN_FEED.tried){
     st = 'wait'; chipCls = 'chip chip-wait'; chipTxt = 'hoiatused …';
   }else{
@@ -5076,14 +5116,14 @@ function renderWarningBar(){
   WARN_BAR_KEY = key;
   if(chip){
     chip.hidden = !chipTxt;
-    if(chipTxt){ chip.className = chipCls; chip.textContent = chipTxt; }
+    if(chipTxt){ chip.className = chipCls; chip.innerHTML = (st === 'calm' ? lic('check') : '') + chipTxt; }
   }
   if(st === 'warn' || st === 'unk'){
     el.hidden = false;
     el.className = 'warn-bar ' + (st === 'unk' ? 'unk' : 'l' + lvl + (soon ? ' soon' : ''));
     el.title = st === 'unk' ? 'Hoiatuste andmed on vanad või puuduvad — see ei tähenda, et hoiatusi pole'
       : ['', 'Kollane', 'Oranž', 'Punane'][lvl] + ' hoiatus · Lääne maakond' + (soon ? ' · algab ' + warnWhen(list[0].startMs, now) : '');
-    el.innerHTML = (st === 'unk' ? '<span class="wb-q" aria-hidden="true">?</span>' : '<span class="wb-lvl" aria-hidden="true"></span>')
+    el.innerHTML = (st === 'unk' ? lic('unknown', 'wb-q') : '<span class="wb-lvl" aria-hidden="true"></span>')
       + '<span class="wb-body"><span class="wb-ev"></span> <span class="wb-when"></span></span>';
     el.querySelector('.wb-ev').textContent = ev;
     el.querySelector('.wb-when').textContent = when;
@@ -5887,7 +5927,7 @@ function renderSources(){
   var sum = byId('src-sum');
   if(sum){
     var sh = old.length ? '<span class="mid">' + old.slice(0, 2).join(' · ') + (old.length > 2 ? ' +' + (old.length - 2) : '') + '</span>'
-           : missing ? 'laen…' : '<span class="okc">kõik värsked ✓</span>';
+           : missing ? 'laen…' : '<span class="okc ico-t">kõik värsked' + lic('check') + '</span>';
     if(sum.innerHTML !== sh) sum.innerHTML = sh;
   }
 }
@@ -7229,7 +7269,7 @@ function radarPlay(byUser){
   RADAR.playing = true;
   RADAR.followLatest = true;
   var btn = document.getElementById('radar-play');
-  if(btn) btn.textContent = '⏸';
+  if(btn) btn.innerHTML = lic('pause');
   // Started by itself on the newest frame: let that stand its hold first.
   var first = (!byUser && RADAR.frameIdx === RADAR.frames.length - 1) ? RADAR.HOLD_MS : RADAR.STEP_MS;
   RADAR.playTimer = setTimeout(radarStep, first);
@@ -7258,7 +7298,7 @@ function radarStop(){
   RADAR.playing = false;
   if(RADAR.playTimer){ clearTimeout(RADAR.playTimer); RADAR.playTimer = null; }
   var btn = document.getElementById('radar-play');
-  if(btn) btn.textContent = '▶';
+  if(btn) btn.innerHTML = lic('play', 'fill');
 }
 
 /* May the loop run by itself right now? Not while the card is off-screen
