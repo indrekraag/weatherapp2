@@ -1592,6 +1592,85 @@ body { padding: 0; }
 .src-foot { margin-top: 9px; font-size: 10px; line-height: 1.5; color: var(--fg-3); text-align: center; }
 .build-stamp { font-size: 9.6px;   /* = main's 0.8em of the 12 px hero bar */ font-weight: 500; color: rgba(255,255,255,0.50); letter-spacing: 0.2px; }
 
+/* ─── Loading: a light shimmer where the first data will land ─────────
+ * Only on a first start with nothing cached. The weather cards carry
+ * .no-data (not yet .wx-failed), the stations .wait, the price card
+ * .loading and the sky lines .wait until their first render drops the
+ * class — or their failure path drops it and says what is missing
+ * ('Hinnad puuduvad · viimati 14:53', 'andmed puuduvad', 'pole andmeid').
+ * .sk-v: a value's own box as a block (its '—' kept for screen readers,
+ * not drawn); .sk-b: a shimmering area under a visible caption. No sheen
+ * under prefers-reduced-motion — the blocks stay, still. */
+:root { --sk-anim: sk-sheen 1.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { :root { --sk-anim: none; } }
+@keyframes sk-sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.hero.no-data:not(.wx-failed) .temp-big,
+.hero.no-data:not(.wx-failed) .hero-feels,
+.hero.no-data:not(.wx-failed) .hero-icon,
+.hero.no-data:not(.wx-failed) .hero-condition,
+.hero.no-data:not(.wx-failed) .tile-val,
+.hero.no-data:not(.wx-failed) .tile-sub,
+.hero.no-data:not(.wx-failed) .sec b,
+.station.wait .station-temp,
+.station.wait .station-sub,
+.station.wait .station-road,
+.d24-card.no-data:not(.wx-failed) .ro-cell b,
+.d24-card.no-data:not(.wx-failed) .d24-sub,
+#price-card.loading #price-now,
+#price-card.loading .pd-v,
+.q-line.wait .q-sum,
+.sk-drow i {
+  color: transparent !important;
+  border-radius: 6px;
+  background: linear-gradient(100deg, rgba(255,255,255,0.055) 40%, rgba(255,255,255,0.13) 50%, rgba(255,255,255,0.055) 60%) 0 0 / 300% 100%;
+  animation: var(--sk-anim);
+}
+.hero.no-data:not(.wx-failed) .verdict,
+.n12 > .sk-b,
+.d24-card.no-data:not(.wx-failed) .d24-bars,
+#price-card.loading .price-chart {
+  background: linear-gradient(100deg, rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.085) 50%, rgba(255,255,255,0.03) 60%) 0 0 / 300% 100%;
+  animation: var(--sk-anim);
+}
+.hero.no-data:not(.wx-failed) .temp-big * ,
+.hero.no-data:not(.wx-failed) .tile-val *,
+.hero.no-data:not(.wx-failed) .tile-sub *,
+.station.wait .station-temp *,
+.station.wait .station-sub * { color: transparent !important; visibility: hidden; }
+.hero.no-data:not(.wx-failed) .temp-big { align-self: flex-start; width: 150px; border-radius: 12px; }
+.hero.no-data:not(.wx-failed) .hero-icon { border-radius: 50%; filter: none; }
+.hero.no-data:not(.wx-failed) .hero-condition { min-width: 72px; }
+.hero.no-data:not(.wx-failed) .tile-val,
+.hero.no-data:not(.wx-failed) .tile-sub { align-self: flex-start; min-width: 62%; }
+.hero.no-data:not(.wx-failed) .sec b { display: inline-block; min-width: 30px; }
+.hero.no-data:not(.wx-failed) .verdict { border-left-color: rgba(255,255,255,0.18); color: var(--fg-3); }
+.station.wait .station-temp { min-width: 58px; }
+.station.wait .station-sub, .station.wait .station-road { min-width: 72%; margin-top: 2px; }
+.n12 > .empty-note, .days > .empty-note { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+.hero.no-data .temp-big .deg { visibility: hidden; }   /* a lone '—', not '—°' */
+.d24-card.no-data:not(.wx-failed) .ro-cell b { align-self: flex-start; min-width: 38px; }
+.d24-card.no-data:not(.wx-failed) .d24-sub { min-width: 64px; }
+.d24-card.no-data:not(.wx-failed) .d24-bars { border-radius: 6px 6px 0 0; }
+/* Failed with nothing to show: say so in the middle of the empty chart. */
+.d24-card.wx-failed .d24-hint { position: absolute; left: 0; right: 0; top: 38%; margin: 0; color: var(--fg-2); }
+#price-card.loading #price-now { display: inline-block; min-width: 46px; }
+#price-card.loading .pd-v { min-width: 70%; }
+#price-card.loading .price-chart { border-radius: 8px; }
+.price-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--fg-3); border: 1px dashed rgba(255,255,255,0.10); border-radius: 8px; }
+.q-line.wait .q-sum { flex: 0 0 110px; }
+.q-sum .nod { color: var(--fg-3); }
+.sk-drow {
+  flex: 1 1 auto; display: grid;
+  grid-template-columns: 34px 28px 44px minmax(0, 1fr) 44px;
+  align-items: center; column-gap: 8px; min-height: 44px; padding: 3px 4px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sk-drow:first-of-type { border-top: 0; }
+.sk-drow i { display: block; height: 11px; }
+.sk-drow i:nth-child(2) { width: 24px; height: 24px; border-radius: 50%; }
+.sk-drow i:nth-child(4) { height: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
 /* ─── Tab bar ─── */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 800;
@@ -1750,17 +1829,17 @@ html.sim-sa .sim-home {
        coral when slippery — renderKurevereRoad); the EMHI two read wind
        and the last hour's precipitation. Age tags past 90 min. -->
   <div class="glass stations">
-    <div class="station" id="kv-block">
+    <div class="station wait" id="kv-block">
       <div class="station-name">Kurevere</div>
       <div class="station-temp mono"><span id="kv-temp">—</span>°</div>
       <div class="station-road">tee —</div>
     </div>
-    <div class="station" id="ln-block">
+    <div class="station wait" id="ln-block">
       <div class="station-name">Lääne-Nigula</div>
       <div class="station-temp mono"><span id="ln-temp">—</span>°</div>
       <div class="station-sub"><span id="ln-wind">—</span>&nbsp;m/s · <span class="station-precip" id="ln-precip">—</span></div>
     </div>
-    <div class="station" id="hp-block">
+    <div class="station wait" id="hp-block">
       <div class="station-name">Haapsalu</div>
       <div class="station-temp mono"><span id="hp-temp">—</span>°</div>
       <div class="station-sub"><span id="hp-wind">—</span>&nbsp;m/s · <span class="station-precip" id="hp-precip">—</span></div>
@@ -1776,7 +1855,7 @@ html.sim-sa .sim-home {
       <h2>Järgmised 12 h</h2>
       <span class="meta n12-legend"><i class="lg-bar"></i>temp <i class="lg-line"></i>tundub</span>
     </div>
-    <div class="n12" id="n12"><div class="empty-note">Laen tunniprognoosi…</div></div>
+    <div class="n12" id="n12"><div class="empty-note sk-b">Laen tunniprognoosi…</div></div>
     <div class="tap-read" id="n12-read" aria-live="polite"></div>
   </div>
 </section>
@@ -1914,7 +1993,15 @@ html.sim-sa .sim-home {
       <h2>7 päeva</h2>
       <span class="meta">puuduta päeva → tunnid</span>
     </div>
-    <div class="days" id="daily-strip"><div class="empty-note">Laen nädala prognoosi…</div></div>
+    <div class="days" id="daily-strip"><span class="sr-only">Laen nädala prognoosi…</span>
+      <div class="sk-drow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk-drow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk-drow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk-drow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk-drow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk-drow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk-drow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
   </div>
 
   <!-- SUN / MOON — compact pair: the day's length (or the moon's phase,
@@ -1953,7 +2040,7 @@ html.sim-sa .sim-home {
        a rule at midnight, negative prices below zero, and each day's
        cheapest and priciest hour underneath. The chart takes the height
        the page has left. -->
-  <div class="glass card" id="price-card">
+  <div class="glass card loading" id="price-card">
     <div class="card-header">
       <h2>Elektri hind</h2>
       <div class="price-now-wrap">
@@ -1980,7 +2067,7 @@ html.sim-sa .sim-home {
        know — pollen above 'madal', or Kp ≥ 4 / a 10 % chance over Madise
        in the next 24 h — and a tap opens or closes it by hand. -->
   <div class="glass card sky-card" id="sky-card">
-    <button type="button" class="q-line" id="pollen-line" aria-expanded="false" aria-controls="pollen-detail">
+    <button type="button" class="q-line wait" id="pollen-line" aria-expanded="false" aria-controls="pollen-detail">
       <svg class="lic q-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M12 10c-1.7-1.8-1.7-4.3 0-6.2 1.7 1.9 1.7 4.4 0 6.2zM12 14c1.7 1.8 1.7 4.3 0 6.2-1.7-1.9-1.7-4.4 0-6.2zM10 12c-1.8 1.7-4.3 1.7-6.2 0 1.9-1.7 4.4-1.7 6.2 0zM14 12c1.8-1.7 4.3-1.7 6.2 0-1.9 1.7-4.4 1.7-6.2 0z"/></svg>
       <span class="q-t">Õietolm</span>
       <span class="q-sum" id="pollen-sum">—</span>
@@ -1992,7 +2079,7 @@ html.sim-sa .sim-home {
       <div class="q-cell"><span class="q-lab">Hein</span><span class="gauge-text lo" id="pollen-grass">—</span></div>
       <div class="q-cell"><span class="q-lab">Lepp</span><span class="gauge-text lo" id="pollen-alder">—</span></div>
     </div>
-    <button type="button" class="q-line" id="aurora-line" aria-expanded="false" aria-controls="aurora-detail">
+    <button type="button" class="q-line wait" id="aurora-line" aria-expanded="false" aria-controls="aurora-detail">
       <svg class="lic q-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 19c2.3-6.2 5.5-9.6 9.5-9.6s7.2 3.4 9.5 9.6M6.2 19c1.6-3.9 3.5-5.9 5.8-5.9s4.2 2 5.8 5.9"/><path d="M17.5 3v3M16 4.5h3"/></svg>
       <span class="q-t">Virmalised</span>
       <span class="q-sum" id="aurora-sum">—</span>
@@ -4255,21 +4342,26 @@ function showWeatherEmpty(failed){
     var el = document.querySelector(sel);
     if(el) el.classList.add('no-data');
   });
-  var hero = document.querySelector('.glass.hero');
   if(!failed) return;
-  if(hero) hero.classList.add('wx-failed');
+  // .wx-failed ends the loading shimmer on both cards (see Loading, CSS).
+  WX_EMPTY_CARDS.forEach(function(sel){
+    var el = document.querySelector(sel);
+    if(el) el.classList.add('wx-failed');
+  });
   var savedAt = cacheSavedAt('wx.weather');
+  var last = savedAt ? ' · viimati ' + stampText(savedAt) : '';
+  var again = navigator.onLine === false ? ' — võrku pole' : ' — proovin uuesti';
   var cond = byId('wx-cond');
-  if(cond) cond.textContent = 'Ilmaandmed puuduvad' + (savedAt ? ' · viimati ' + stampText(savedAt) : '');
+  if(cond) cond.textContent = 'Ilmaandmed puuduvad' + last;
   // Nüüd's forecast pieces say so too, instead of 'Laen…' for ever.
   var v = byId('verdict');
-  if(v){ v.textContent = 'Prognoos puudub — proovin uuesti'; v.className = 'verdict none'; }
+  if(v){ v.textContent = 'Prognoos puudub' + again; v.className = 'verdict none'; }
   var n = byId('n12');
-  if(n && !N12) n.innerHTML = '<div class="empty-note">Tunniprognoos puudub</div>';
+  if(n && !N12) n.innerHTML = '<div class="empty-note">Tunniprognoos puudub' + last + '</div>';
   var h24 = byId('d24-hint');
-  if(h24 && !D24) h24.textContent = 'Prognoos puudub — proovin uuesti';
+  if(h24 && !D24) h24.textContent = 'Prognoos puudub' + last + again;
   var wk = byId('daily-strip');
-  if(wk && !wk.querySelector('.drow')) wk.innerHTML = '<div class="empty-note">Nädala prognoos puudub — proovin uuesti</div>';
+  if(wk && !wk.querySelector('.drow')) wk.innerHTML = '<div class="empty-note">Nädala prognoos puudub' + last + again + '</div>';
   updateWeatherAge();
 }
 function clearWeatherEmpty(){
@@ -4628,15 +4720,15 @@ function fetchPollen(){
   xhr.open('GET', url, true);
   xhr.timeout = 10000;
   xhr.onload = function(){
-    if(xhr.status !== 200){ console.warn('pollen HTTP', xhr.status); return; }
+    if(xhr.status !== 200){ console.warn('pollen HTTP', xhr.status); skyFeedFailed('pollen'); return; }
     try{
       var data = JSON.parse(xhr.responseText);
       saveCache('wx.pollen', data);
       renderPollen(data);
-    }catch(e){ console.warn('pollen parse error', e); }
+    }catch(e){ console.warn('pollen parse error', e); skyFeedFailed('pollen'); }
   };
-  xhr.onerror   = function(){ console.warn('pollen network error'); };
-  xhr.ontimeout = function(){ console.warn('pollen timeout'); };
+  xhr.onerror   = function(){ console.warn('pollen network error'); skyFeedFailed('pollen'); };
+  xhr.ontimeout = function(){ console.warn('pollen timeout'); skyFeedFailed('pollen'); };
   xhr.send();
 }
 
@@ -4648,6 +4740,8 @@ function fetchPollen(){
    publish null fields), and a missing Kurevere precipitation became 0. */
 function renderStation(prefix, vals){
   function ok(v){ return v !== null && v !== undefined && v !== '' && !isNaN(v); }
+  var blk = byId(prefix + '-block');
+  if(blk) blk.classList.remove('wait');          // the loading shimmer ends
   var el = byId(prefix + '-temp');
   if(el){
     if(ok(vals.temp)){
@@ -4738,6 +4832,7 @@ function refreshStationAges(){
 function setStationStatus(prefix, msg){
   var block = byId(prefix + '-block');
   if(!block) return;
+  block.classList.remove('wait');
   var el = block.querySelector('.station-status');
   if(!msg){
     if(el && el.parentNode) el.parentNode.removeChild(el);
@@ -5220,24 +5315,37 @@ function fetchNps(){
   fetchBundle(NPS_LOCAL_URL, NPS_REMOTE_URL, function(data){
     saveCache('wx.nps', data);
     renderNps(data);
-  }, function(){ if(!NPS_RENDERED) showNpsEmpty(null); });
+  }, function(){ if(!NPS_RENDERED) showNpsEmpty(npsLastMs()); });
+}
+/* The newest prices we ever had, however old: the cached bundle's own
+   fetched_at, else when it was cached — for 'Hinnad puuduvad · viimati'. */
+function npsLastMs(){
+  try{
+    var c = JSON.parse(localStorage.getItem(STORE_PREFIX + 'wx.nps'));
+    var f = c && c.data ? isoMs(c.data.fetched_at) : null;
+    return f !== null ? f : (c && c.savedAt ? c.savedAt : null);
+  }catch(e){ return null; }
 }
 /* No usable hours: say so, and clear an earlier chart so an expired one
    can't linger — it used to return silently, leaving 'Hetkel: —' over a
-   blank chart. 'andmed HH:MM' names the bundle's time when there is one. */
+   blank chart. 'viimati HH:MM' names the newest bundle there is (or was).
+   The chart area says it too, instead of standing empty. */
 function showNpsEmpty(fetchedMs){
+  var card = byId('price-card');
+  if(card) card.classList.remove('loading');
   ['price-spark', 'price-grid', 'price-axis'].forEach(function(id){
     if(byId(id)) byId(id).innerHTML = '';
   });
+  var msg = 'Hinnad puuduvad' + (fetchedMs !== null && fetchedMs !== undefined ? ' · viimati ' + stampText(fetchedMs) : '');
+  if(byId('price-grid')) byId('price-grid').innerHTML = '<div class="price-empty">' + (navigator.onLine === false ? 'Võrku pole' : 'Proovin uuesti') + '</div>';
   var nowEl = byId('price-now');
   if(nowEl){ nowEl.textContent = '—'; nowEl.style.color = ''; }
-  if(byId('price-best')) byId('price-best').textContent = 'Hinnad puuduvad';
+  if(byId('price-best')) byId('price-best').textContent = msg;
   ['price-today', 'price-tomorrow'].forEach(function(id){
     var el = byId(id);
     if(el){ el.textContent = '—'; el.className = 'pd-v muted'; }
   });
-  if(byId('price-status')) byId('price-status').textContent =
-    'Nord Pool / Elering' + (fetchedMs !== null ? ' · andmed ' + stampText(fetchedMs) : '');
+  if(byId('price-status')) byId('price-status').textContent = 'käibemaksuga · Nord Pool / Elering';
   NPS_RENDERED = false;
 }
 /* Below zero: a colour of its own. priceBarColor() clamps at its first
@@ -5286,6 +5394,7 @@ function renderNps(data){
   try{
     var barsEl = byId('price-spark'), gridEl = byId('price-grid'), axisEl = byId('price-axis');
     if(!barsEl) return;
+    if(byId('price-card')) byId('price-card').classList.remove('loading');
     NPS_LAST = data;
     var fetchedMs = isoMs(data && data.fetched_at);
     NPS_FETCHED_MS = fetchedMs;
@@ -5695,15 +5804,15 @@ function fetchKpForecast(){
   xhr.open('GET', 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json', true);
   xhr.timeout = 10000;
   xhr.onload = function(){
-    if(xhr.status !== 200){ console.warn('kp HTTP', xhr.status); return; }
+    if(xhr.status !== 200){ console.warn('kp HTTP', xhr.status); skyFeedFailed('kp'); return; }
     try{
       var data = JSON.parse(xhr.responseText);
       saveCache('wx.kpForecast', data);
       renderKpForecast(data);
-    }catch(e){ console.warn('kp parse error', e); }
+    }catch(e){ console.warn('kp parse error', e); skyFeedFailed('kp'); }
   };
-  xhr.onerror   = function(){ console.warn('kp network error'); };
-  xhr.ontimeout = function(){ console.warn('kp timeout'); };
+  xhr.onerror   = function(){ console.warn('kp network error'); skyFeedFailed('kp'); };
+  xhr.ontimeout = function(){ console.warn('kp timeout'); skyFeedFailed('kp'); };
   xhr.send();
 }
 
@@ -5733,15 +5842,15 @@ function fetchOvation(){
   xhr.open('GET', 'https://services.swpc.noaa.gov/json/ovation_aurora_latest.json', true);
   xhr.timeout = 10000;
   xhr.onload = function(){
-    if(xhr.status !== 200){ console.warn('ovation HTTP', xhr.status); return; }
+    if(xhr.status !== 200){ console.warn('ovation HTTP', xhr.status); skyFeedFailed('ov'); return; }
     try{
       var data = JSON.parse(xhr.responseText);
       saveCache('wx.ovation', data);
       renderOvation(data);
-    }catch(e){ console.warn('ovation parse error', e); }
+    }catch(e){ console.warn('ovation parse error', e); skyFeedFailed('ov'); }
   };
-  xhr.onerror   = function(){ console.warn('ovation network error'); };
-  xhr.ontimeout = function(){ console.warn('ovation timeout'); };
+  xhr.onerror   = function(){ console.warn('ovation network error'); skyFeedFailed('ov'); };
+  xhr.ontimeout = function(){ console.warn('ovation timeout'); skyFeedFailed('ov'); };
   xhr.send();
 }
 
@@ -5815,6 +5924,8 @@ function fetchSolarWind(){
 var POLLEN = null;                          // { seen, max, worst: { name, v } }
 var AUR = { kp: null, prob: null, bz: null };
 var Q_USER = {};                            // line id → opened / closed by a tap
+var SKY_FAIL = { pollen: false, kp: false, ov: false };   // a fetch failed with nothing shown
+function skyFeedFailed(k){ SKY_FAIL[k] = true; renderSkyCard(); }
 function qLineSet(lineId, open){
   var b = byId(lineId);
   if(!b) return;
@@ -5828,7 +5939,9 @@ function renderSkyCard(){
   var ps = byId('pollen-sum'), as = byId('aurora-sum');
   if(ps){
     var pOpen = false, ph;
-    if(!POLLEN || !POLLEN.seen) ph = '—';
+    // '—' shimmers while the first fetch is out (.wait); a failure with
+    // nothing to show says so instead of a dash for ever.
+    if(!POLLEN || !POLLEN.seen) ph = SKY_FAIL.pollen ? '<span class="nod">andmed puuduvad</span>' : '—';
     else if(POLLEN.max < 1) ph = 'puudub · vaikne hooaeg';
     else if(POLLEN.max < 10) ph = 'madal';
     else {
@@ -5837,11 +5950,12 @@ function renderSkyCard(){
       pOpen = true;
     }
     if(ps.innerHTML !== ph) ps.innerHTML = ph;
+    byId('pollen-line').classList.toggle('wait', ph === '—');
     qLineSet('pollen-line', pOpen);
   }
   if(as){
     var kp = AUR.kp, pr = AUR.prob, aOpen = false, ah;
-    if(kp === null && pr === null) ah = '—';
+    if(kp === null && pr === null) ah = SKY_FAIL.kp && SKY_FAIL.ov ? '<span class="nod">andmed puuduvad</span>' : '—';
     else {
       aOpen = (kp !== null && kp >= 4) || (pr !== null && pr >= 10);
       var strong = (kp !== null && kp >= 6) || (pr !== null && pr >= 30);
@@ -5849,6 +5963,7 @@ function renderSkyCard(){
       ah = (aOpen ? '<span class="go">' + (strong ? 'tõenäoliselt näha' : 'võimalik näha') + '</span> · ' : 'vaikne · ') + nums;
     }
     if(as.innerHTML !== ah) as.innerHTML = ah;
+    byId('aurora-line').classList.toggle('wait', ah === '—');
     qLineSet('aurora-line', aOpen);
   }
   fitHind();
