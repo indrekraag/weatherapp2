@@ -2208,6 +2208,7 @@ var CONFIG = { lat:58.81627, lng:23.74447, label:'Madise', weatherRefreshMs:5*60
 var TODAY_SUNRISE_MS = null, TODAY_SUNSET_MS = null;
 var SUN_DAY_KEY = null;        // local 'YYYY-MM-DD' the two above belong to
 var LAST_FETCH_MS = null;
+var APP_START_MS = Date.now();  // before the 30-s tick starts: Andmed says 'puudub' from its 60-s tick on
 var WX_RENDERED = false;       // renderWeather() has succeeded at least once
 var STATION_OBS = {};          // chip prefix → { ms, force } — see setStationAge()
 var WX_UV_FROM_EMHI = false;
@@ -2292,13 +2293,18 @@ function stampText(ms){
              && d.getDate() === now.getDate();
   return (sameDay ? '' : pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + ' ') + formatTime(d);
 }
-/* '40 min vana' / '5 t vana' / '2 p vana' — shared by the hero bar and the
-   station chips so every age is spelled the same way. */
-function ageText(ageMin){
-  return ageMin < 60   ? Math.round(ageMin) + ' min vana'
-       : ageMin < 1440 ? Math.round(ageMin / 60) + ' t vana'
-                       : Math.round(ageMin / 1440) + ' p vana';
+/* 'äsja' / '40 min' / '2 t' / '3 p' — the one age formatter: the
+   freshness chip, the station chips (ageText) and Andmed (srcAge) all
+   spell an age with it, so 95 min is '2 t' everywhere (Andmed floored it
+   to '1 t' beside a chip's '2 t vana'). Hours and days round. */
+function ageShort(ageMin){
+  return ageMin < 1    ? 'äsja'
+       : ageMin < 60   ? Math.floor(ageMin) + ' min'
+       : ageMin < 1440 ? Math.round(ageMin / 60) + ' t'
+                       : Math.round(ageMin / 1440) + ' p';
 }
+/* '40 min vana' / '2 t vana' / '2 p vana' — the station chips' age tag. */
+function ageText(ageMin){ return ageShort(ageMin) + ' vana'; }
 /* 'täna' / 'homme' / 'neljapäeval' for a timestamp, relative to today —
    and the date ('7.10') from a week on, where a weekday would name today's
    ('kolmapäeval' on a Wednesday read as today, 7 days early). */
@@ -2482,8 +2488,7 @@ function updateWeatherAge(){
   } else {
     var ageMin = Math.max(0, (Date.now() - LAST_FETCH_MS) / 60000);
     old = ageMin > WX_AGE_WARN_MIN;
-    txt = 'uuendatud ' + (ageMin < 1 ? 'äsja' : ageMin < 60 ? Math.floor(ageMin) + ' min'
-        : ageMin < 1440 ? Math.floor(ageMin / 60) + ' t' : Math.floor(ageMin / 1440) + ' p');
+    txt = 'uuendatud ' + ageShort(ageMin);
     title = 'Ilm uuendatud ' + stampText(LAST_FETCH_MS) + ' · puuduta, et uuendada';
     if(hero){
       if(ageMin > WX_AGE_DIM_MIN) hero.classList.add('wx-stale');
@@ -2534,6 +2539,7 @@ var STORE_PREFIX = 'wa2.';
 var STORE_MIGRATED_KEY = 'wa2.migrated';
 function saveCache(key, data){
   try { localStorage.setItem(STORE_PREFIX + key, JSON.stringify({ savedAt: Date.now(), data: data })); } catch(e){}
+  sourcesSoon();      // every feed that lands passes here: Andmed follows
 }
 function loadCache(key, maxAgeMs){
   try {
@@ -6059,7 +6065,6 @@ function fitHind(){
  * stamp). Amber past each one's own limit — the same limits the rest of
  * the app uses; '—' while there is nothing, 'puudub' in the line once
  * the first minute has passed without it. Re-drawn on the 30-s tick. */
-var APP_START_MS = Date.now();
 var NPS_FETCHED_MS = null;                  // the price bundle's fetched_at (renderNps)
 function radarNewestMs(){
   if(typeof RADAR === 'undefined' || !RADAR || !RADAR.frames) return null;
@@ -6091,14 +6096,22 @@ var SRC_DEFS = [
   ['Õietolm',      function(){ return { ms: cacheSavedAt('wx.pollen') }; }, 3 * 60],
   ['Virmalised',   function(){ return { ms: cacheSavedAt('wx.kpForecast') }; }, 2 * 60]
 ];
-function srcAge(min){
-  return min < 1 ? 'äsja' : min < 60 ? Math.floor(min) + ' min'
-       : min < 1440 ? Math.floor(min / 60) + ' t' : Math.floor(min / 1440) + ' p';
+function srcAge(min){ return ageShort(min); }
+/* Andmed as soon as a feed lands (saveCache, the cache paint, radar
+   frames) — not only on the 30-s tick: opened on #hind (a reload keeps
+   the page) it said 'laen…' and '—' beside data already on screen. One
+   redraw for a burst of arrivals. And once more when the first minute is
+   up, the moment a missing source turns 'puudub'. */
+var SRC_SOON_T = null;
+function sourcesSoon(){
+  clearTimeout(SRC_SOON_T);
+  SRC_SOON_T = setTimeout(renderSources, 150);
 }
+setTimeout(renderSources, 60500);
 function renderSources(){
   var g = byId('src-grid');
   if(!g || !SRC_DEFS) return;
-  var now = Date.now(), html = '', old = [], missing = 0, settled = now - APP_START_MS > 60000;
+  var now = Date.now(), html = '', old = [], missing = 0, settled = now - APP_START_MS >= 60000;
   SRC_DEFS.forEach(function(s){
     var r = s[1]() || {}, age = isNum(r.ms) ? Math.max(0, (now - r.ms) / 60000) : null;
     var txt, cls = '';
@@ -6629,6 +6642,7 @@ function hydrateFromCache(){
   }
   var np = loadCache('wx.nps');
   if(np) renderNps(np.data);
+  sourcesSoon();      // Andmed: the cached sources' ages, before any fetch answers
 }
 /* ═══════════════════════════════════════════════════════════════
  * PAGER — five pages swiped sideways, the tab bar, #hash per page
@@ -7145,6 +7159,7 @@ function radarApplyData(data){
   var nowcast = (data && data.radar && data.radar.nowcast) || [];
   var shown = RADAR.shownLayer;
   RADAR.frames = past.concat(nowcast);
+  if(typeof sourcesSoon === 'function') sourcesSoon();    // Andmed: the radar's age
   radarSyncLayers();
 
   var btn = document.getElementById('radar-play');
