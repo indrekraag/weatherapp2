@@ -250,7 +250,7 @@ body {
 #p-nuud {
   gap: 8px;
   gap: clamp(6px, calc((100vh - 760px) / 6), 14px);   /* a taller phone gets air, not bigger type */
-  padding-top: calc(var(--sat) + 4px);
+  padding-top: calc(var(--sat) + var(--top-cap) + 2px);   /* below the .top-cap strip */
 }
 #p-nuud > .grow { flex: 1 0 auto; }
 /* Line icons (LIC / lic()): the tab bar's family — 24-grid, round caps
@@ -1244,6 +1244,27 @@ button.chip:active { background: rgba(255,255,255,0.10); }
    headless fit checks (a desktop browser reports 0 for both). */
 html.sim-sa { --sat: 59px; --sab: 34px; }
 
+/* A flat strip across the top edge, over the status bar and 12 px below
+   it. iOS 26 draws a Liquid Glass "scroll edge effect" (a progressive blur
+   ~38–40 pt deep) over the top of an installed web app, and it blurred the
+   Nüüd header row. WebKit skips that blur when a fixed box with a
+   background covers the top edge (≥ ~10 px tall, ≥ 90 % of the width) and
+   uses the box's colour instead — so this box, in the page's own top
+   colour. It must stay opaque and full-width. Pages start below it. */
+:root { --top-cap: 12px; }
+.top-cap {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 850;
+  height: calc(var(--sat) + var(--top-cap));
+  background: #0a0a0c;
+  pointer-events: none;
+}
+/* A short fade below the flat strip, so the body's warm glow doesn't start
+   at a hard line. (The strip itself stays flat: that is what WebKit reads.) */
+.top-cap::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px;
+  background: linear-gradient(180deg, #0a0a0c, rgba(10,10,12,0));
+}
+
 html, body {
   height: 100%;
   min-height: 0;
@@ -1279,7 +1300,7 @@ body { padding: 0; }
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: calc(var(--sat) + 8px) var(--gut) calc(var(--sab) + var(--tabbar-h) + 10px);
+  padding: calc(var(--sat) + var(--top-cap) + 6px) var(--gut) calc(var(--sab) + var(--tabbar-h) + 10px);
 }
 .page > * { flex-shrink: 0; width: 100%; max-width: 480px; }
 /* No backdrop blur inside a sideways scroller: behind the cards is the
@@ -1785,6 +1806,7 @@ html.sim-sa .sim-home {
      Each page is one screen; vertical scroll inside a page is only the
      fallback for a short phone. The day sheet sits outside the pager.
      (pagerInit() in the main script; #hash per page.)                    -->
+<div class="top-cap" aria-hidden="true"></div>
 <main class="pager" id="pager">
 
 <!-- ─── 1 · NÜÜD — now, the next 12 hours, the three stations ─── -->
@@ -2209,8 +2231,8 @@ html.sim-sa .sim-home {
  *     redesign; APP_BUILT — 'DD.MM HH:MM' Tallinn time of the commit. A
  *     stale stamp makes a successful deploy look like it never landed.
  *     Bump SHELL_CACHE in sw.js only when sw.js itself changes. */
-var APP_VERSION = 'v3.0.1';
-var APP_BUILT   = '30.09 15:36';
+var APP_VERSION = 'v3.0.2';
+var APP_BUILT   = '30.09 15:51';
 
 var CONFIG = { lat:58.81627, lng:23.74447, label:'Madise', weatherRefreshMs:5*60*1000 };
 var TODAY_SUNRISE_MS = null, TODAY_SUNSET_MS = null;

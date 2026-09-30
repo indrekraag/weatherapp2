@@ -234,6 +234,23 @@ print('orphans:', sorted(refs - ids))"
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
 
+## Recent changes (2026-09-30d — no iOS 26 blur over the header, v3.0.2)
+
+v3.0.1's status-bar change did not show on the owner's phone: iOS keeps
+the launch settings from when the icon was added, so **the icon has to be
+removed and added again** for the bottom band to go (WebKit bug 301108:
+with black-translucent, iOS 26 sizes the web view one status bar short).
+The top blur is separate and independent of the status-bar style: iOS 26's
+Liquid Glass "scroll edge effect", a progressive blur ~38–40 pt deep over
+the top of an installed web app. WebKit skips it when a fixed box with a
+flat background covers the top edge (≥ ~10 px tall, ≥ 90 % wide), so
+`.top-cap` is exactly that: fixed, full width, `env(safe-area-inset-top)
++ 12px` tall, `#0a0a0c`, with a 10 px fade below. Pages (and `#p-nuud`)
+start at `--sat + --top-cap + …`. **Keep `.top-cap` opaque and full-width.**
+References: github.com/amir20/dozzle/pull/5222 (the blur and why the
+status-bar style doesn't help), github.com/bosskantaponguttarawichien-boop/MindSpace/pull/21
+(opaque status bar + re-adding the icon for the bottom edge).
+
 ## Recent changes (2026-09-30c — status bar "black", v3.0.1)
 
 On the owner's iPhone (440 × 956 pt, iOS 26) the installed app had a
