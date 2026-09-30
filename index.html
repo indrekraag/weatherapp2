@@ -359,7 +359,7 @@ body {
  * Colours mean one thing each on this page — cold/frost blue, caution
  * yellow, all-clear green, danger coral, rain blue — scoped to the pages
  * ported so far, so the others keep theirs until they are. */
-#p-nuud, #p-radar, #p-24h {
+#p-nuud, #p-radar, #p-24h, #p-nadal {
   --warm: #e9a76b;          /* warm temps ≥ 25°                        */
   --cold: #8ec5ff;          /* below zero, frost, ice                  */
   --warn: #f2c14e;          /* caution: rain soon, old data            */
@@ -837,240 +837,11 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 }
 .rain-bar strong { color: var(--cold); font-weight: 600; font-size: 12px; }
 
-/* ─── 7-DAY ────────────────────────────────────────────── */
-/* 7-day forecast as a horizontal scroll strip (mirrors the Hourly
- * strip pattern). Each day is a small bento tile of fixed width with
- * day name, weather icon, high temp, low temp stacked vertically.
- * Scrolls horizontally with snap; ~5 tiles visible at once on a 480px
- * parent. Today gets a cyan-tinted background so it's identifiable. */
-.daily {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  /* Same scroll setup as .hour-strip — no snap, no touch-action override,
-   * just default behaviour so vertical drags bubble up to the page. */
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  padding: 2px 2px 8px;
-  margin: 0 -4px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.30) transparent;
-}
-.daily::-webkit-scrollbar { height: 3px; }
-.daily::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.30); border-radius: 2px; }
-
-.day {
-  /* NO scroll-snap-align — see "Scroll capture bug" comment on .hour-strip. */
-  flex: 0 0 calc((100% - 24px) / 5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 4px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-}
-.day-name {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: rgba(255,255,255,0.70);
-  text-transform: uppercase;
-  text-align: center;
-  width: 100%;
-}
-.day-ico { font-size: 22px; line-height: 1; margin: 2px 0; }
-.day-temps {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-}
-.day-high { font-size: 14px; color: rgba(255,255,255,0.95); font-weight: 600; }
-.day-low  { font-size: 11px; color: rgba(255,255,255,0.70); font-weight: 500; }
-/* Rain total for the day — blue-tinted so it's visually distinct from
- * the temperature figures above it. "0.0" on a dry day is shown faded
- * so dry days don't clutter; any rain > 0 gets the full blue. */
-.day-rain {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  font-weight: 600;
-  color: rgba(100, 170, 240, 0.60);
-  letter-spacing: 0;
-}
-.day-rain.wet { color: rgba(100, 160, 235, 0.95); }
-/* Max wind speed for the day. Same compact 10px mono treatment as rain
- * so the bottom of the tile reads as two stacked metrics: rain ÷ wind.
- * Color picks up the same teal-blue used in the wind sparkline so the
- * value is immediately legible as wind without needing a label. */
-.day-wind {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.55);
-  letter-spacing: 0;
-  margin-top: 1px;
-}
-
-/* Today tile — same dimensions, just a tinted background so it's the
- * one you scroll to "now". Keeps the strip rhythm uniform. */
-.day.today {
-  background:
-    linear-gradient(180deg, rgba(233,167,107,0.16) 0%, rgba(233,167,107,0.05) 100%);
-  border-color: rgba(233,167,107,0.30);
-}
-.day.today .day-name { color: #e9a76b; }
-
-/* ─── SUN/MOON DUAL CARD ──────────────────────────────── */
+/* ─── TWO CARDS SIDE BY SIDE (Nädal: Päike + Kuu; Hind) ─ */
 .duo {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-}
-/* The .duo cards' internal layout is set further down via :has() rules —
- * either a 2-col grid of dl-row tiles (Päike / Kuu) or a 2-col grid of
- * gauge-row tiles (Õietolm / Virmalised). */
-
-.celestial-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 8px;
-  padding: 14px 10px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-}
-.celestial-icon {
-  width: 44px; height: 44px;
-  display: grid;
-  place-items: center;
-  font-size: 36px;
-  line-height: 1;
-}
-.sun-disc {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffd58a, #ff9a3e);
-  box-shadow: 0 0 18px rgba(255, 154, 62, 0.6);
-}
-/* Below the horizon: updateSunIcon() toggles .night, which had no rule, so
- * a glowing sun sat on the card all night. A dim, unlit grey disc. */
-.sun-disc.night {
-  background: radial-gradient(circle at 35% 35%, #aab6c8, #5d6b80);
-  box-shadow: none;
-  opacity: 0.55;
-}
-.celestial-main {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: rgba(255,255,255,0.95);
-  text-align: center;
-}
-.celestial-cap {
-  font-size: 10px;
-  color: var(--fg-3);
-  letter-spacing: 0.5px;
-}
-
-.dl-row {
-  /* Data list row inside Päike / Kuu. Asymmetric horizontal padding
-   * (4px left, 20px right) pulls the value column inward from the right
-   * card edge. Label column is 68px to match .gauge-row so the value
-   * columns align vertically across all four small cards (Päike, Kuu,
-   * Õietolm, Virmalised). */
-  display: grid;
-  grid-template-columns: 68px 1fr auto;
-  align-items: baseline;
-  gap: 10px;
-  padding: 8px 20px 8px 4px;
-  font-size: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.dl-row:last-of-type { border-bottom: none; }
-
-/* Pair the Loojang row with its (label-less) countdown row beneath:
- * kill the divider between them and reduce the countdown's top padding
- * so the two rows read as one grouped pair, not two list items. */
-.dl-row:has(+ .dl-row > .dl-countdown) { border-bottom: none; padding-bottom: 4px; }
-.dl-row:has(> .dl-countdown) { padding-top: 0; }
-.dl-label {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  color: rgba(255,255,255,0.70);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.dl-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.95);
-  text-align: right;
-  white-space: nowrap;
-}
-.dl-value.rise { color: var(--warm); }
-.dl-value.set  { color: #ff8c5a; }
-
-/* Countdown to the next sunset (by day) or sunrise (night) — sits in its
- * own dl-row directly under "Loojang"; its label says which ('Loojanguni'
- * / 'Tõusuni', updateSunCountdown()). Same font, size, weight, and
- * warm hue as the time above so the two rows read as one pair; .to-rise
- * takes the Tõus colour. The pulse (45-75 % opacity, 2.4 s loop) is the
- * single differentiator — signals "live, ticking value." Honours
- * prefers-reduced-motion.
- *
- * It used to carry a leading "−" (a ::before) instead of a label, which
- * read as '−0t 00m' whenever the countdown hit zero. The label now says
- * what is counted, so the sign is gone. */
-.dl-countdown {
-  /* The countdown digits must column-align with the Loojang time digits
-   * above — "7t 22m" right-edge MUST land at the same x as "21:54"
-   * right-edge: inline-block shrink-wraps the digits and justify-self: end
-   * hugs the right edge of the value cell. */
-  display: inline-block;
-  justify-self: end;
-  position: relative;
-  font-size: 14px;
-  font-weight: 600;
-  color: #ff8c5a;
-  letter-spacing: 0;
-  white-space: nowrap;
-  animation: countdown-pulse 2.4s ease-in-out infinite;
-}
-.dl-countdown.to-rise { color: var(--warm); }
-@keyframes countdown-pulse {
-  0%, 100% { opacity: 0.45; }
-  50%      { opacity: 0.75; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .dl-countdown { animation: none; opacity: 0.65; }
-}
-
-.dl-az {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.65);
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  /* Reserve a minimum width even when empty (countdown row has no
-   * azimuth) so the value cell's right edge lands at the same x as
-   * rows that DO have an azimuth. Without this, the empty .dl-az
-   * collapses to 0 and the countdown value drifts right by ~30px. */
-  min-width: 30px;
-  text-align: right;
 }
 
 /* ─── POLLEN / AURORA ──────────────────────────────────── */
@@ -2048,10 +1819,72 @@ body { padding: 0; }
   .d24-hint:not(.on) { display: none; }
 }
 
-/* ─── 7 days: a wrapped grid for now, so it no longer scrolls sideways
-   and fights the pager (it becomes a vertical list later). ─── */
-.daily { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
-.day { flex: 0 0 calc((100% - 18px) / 4); }
+/* ─── 4 · NÄDAL — prototype C's page 3: the week as rows, then the sun
+   and the moon as a compact pair. No type above main's (7-day tiles: day
+   and date 10 px, high 14 → 13, low 11, rain and wind 10; Päike/Kuu:
+   times 14, day length 15 → 13, labels and azimuths 10). ─── */
+#p-nadal .lic { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#p-nadal > .week { flex: 1 0 auto; display: flex; flex-direction: column; padding: 12px 12px 6px; }
+.week .card-header { margin-bottom: 2px; padding: 0 2px; }
+.days { flex: 1 1 auto; display: flex; flex-direction: column; }
+.drow {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 34px 28px 44px minmax(0, 1fr) 44px;
+  align-items: center; column-gap: 8px;
+  width: 100%; min-height: 44px; padding: 3px 4px;
+  background: none; border: 0; border-top: 1px solid rgba(255,255,255,0.06); border-radius: 0;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.drow:first-child { border-top: 0; }
+.drow:active { background: rgba(255,255,255,0.05); }
+.d-name { display: flex; flex-direction: column; gap: 3px; line-height: 1.1;
+  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif; }
+.d-name b { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: rgba(255,255,255,0.92); }
+.drow.today .d-name b { color: #fff; }
+.d-name small { font-size: 10px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.d-ico { width: 28px; height: 28px; }
+.d-ico svg { width: 28px; height: 28px; display: block; }
+.d-rain, .d-wind {
+  display: flex; flex-direction: column; gap: 3px; line-height: 1.1; white-space: nowrap;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px;
+}
+.d-rain b, .d-wind b { font-weight: 600; }
+.d-rain b { color: var(--fg-2); }
+.d-rain.wet b { color: var(--rain); }
+.d-rain small, .d-wind small { font-size: 10px; color: var(--fg-3); }
+.d-rain.wet small { color: rgba(120,178,245,0.85); }
+.d-rain b small, .d-wind b small { font-size: 9px; font-weight: 500; color: inherit; opacity: 0.8; }
+.d-wind { align-items: flex-end; }
+.d-wind b { color: rgba(255,255,255,0.85); }
+.d-wind b.strong { color: var(--warn); }
+.d-rng { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.d-lo, .d-hi { flex-shrink: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.d-lo { width: 28px; text-align: right; font-size: 11px; font-weight: 500; color: var(--fg-2); }
+.d-hi { width: 32px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.95); }
+.d-bar { position: relative; flex: 1 1 auto; min-width: 24px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.07); }
+.d-bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+.d-bar em { position: absolute; top: -2px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #fff; border: 2px solid rgba(10,12,16,0.9); }
+
+.cel-duo { gap: 8px; }
+.card.cel-card { padding: 12px 12px 10px; }
+.cel-card .card-header { margin-bottom: 8px; }
+.cel-hero { display: flex; align-items: center; gap: 9px; padding-bottom: 8px; margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.cel-ico { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; }
+.cel-ico svg { width: 30px; height: 30px; display: block; }
+.cel-ico.sun { color: #f5b942; }
+.cel-ico.sun.night { color: #8f9bb0; }
+.cel-txt { min-width: 0; }
+.cel-main { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.95); white-space: nowrap; }
+.cel-cap { margin-top: 2px; font-size: 10px; color: var(--fg-3); white-space: nowrap; }
+.cel-row { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+.cel-row .lic { width: 20px; height: 20px; flex-shrink: 0; color: var(--fg-2); }
+.cel-t { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95); }
+.cel-az { margin-left: auto; font-size: 10px; color: var(--fg-3); }
+.cel-foot { margin-top: 3px; font-size: 10px; color: var(--fg-3); white-space: nowrap; }
+.cel-foot b { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.9); }
 
 /* ─── Andmed (placeholder): the build stamp and the two-tap ⟲ ride in
    its header until that card is ported. The stamp is dim and small on
@@ -2369,63 +2202,46 @@ html.sim-sa .sim-home {
   </div>
 </section>
 
-<!-- ─── 4 · NÄDAL — 7 days, sun and moon ─── -->
+<!-- ─── 4 · NÄDAL — the week as a list, sun and moon ─── -->
 <section class="page" id="p-nadal" data-slug="nadal" aria-label="Nädal">
-  <!-- 7-DAY -->
-  <div class="glass card">
+  <!-- 7 DAYS — one row per day (renderDaily): weekday letter and date,
+       the day's icon, rain (amount from RAIN_MIN_MM, the chance; 'kuiv'
+       only for a day without one real-rain hour — rainOutlook's rule),
+       min–max with a range bar on one scale for the whole week (the dot
+       is now), max wind and gusts. A row opens that day in the day sheet
+       (swipe there between days). A tap, never a drag: a sideways swipe
+       on a row still turns the page. -->
+  <div class="glass card week" id="week-card">
     <div class="card-header">
-      <h2>7 päeva prognoos</h2>
+      <h2>7 päeva</h2>
+      <span class="meta">puuduta päeva → tunnid</span>
     </div>
-    <div class="daily" id="daily-strip"></div>
+    <div class="days" id="daily-strip"><div class="empty-note">Laen nädala prognoosi…</div></div>
   </div>
 
-  <!-- SUN / MOON -->
-  <div class="duo">
-    <div class="glass card">
+  <!-- SUN / MOON — compact pair: the day's length (or the moon's phase,
+       drawn), rise and set with their azimuths, then the countdown / the
+       next full moon. -->
+  <div class="duo cel-duo">
+    <div class="glass card cel-card">
       <div class="card-header"><h2>Päike</h2></div>
-      <div class="celestial-hero">
-        <div class="celestial-icon"><span class="sun-disc" id="sun-hero-icon"></span></div>
-        <div class="celestial-main mono" id="sun-hero-length">—</div>
-        <div class="celestial-cap">päikesevalgust</div>
+      <div class="cel-hero">
+        <span class="cel-ico sun" id="sun-hero-icon" aria-hidden="true"><svg class="lic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg></span>
+        <div class="cel-txt"><div class="cel-main mono" id="sun-hero-length">—</div><div class="cel-cap">päevavalgust</div></div>
       </div>
-      <div class="dl-row">
-        <span class="dl-label">Tõus</span>
-        <span class="dl-value rise mono"><span id="sunrise-time">—</span></span>
-        <span class="dl-az mono"><span id="sunrise-az">—</span></span>
-      </div>
-      <div class="dl-row">
-        <span class="dl-label">Loojang</span>
-        <span class="dl-value set mono"><span id="sunset-time">—</span></span>
-        <span class="dl-az mono"><span id="sunset-az">—</span></span>
-      </div>
-      <div class="dl-row">
-        <span class="dl-label" id="sun-countdown-label"></span>
-        <span class="dl-countdown mono"><span id="sun-countdown">—</span>
-        <span class="dl-az"></span>
-      </div>
+      <div class="cel-row" title="Päikesetõus · asimuut"><svg class="lic" viewBox="0 0 24 24" role="img" aria-label="tõus"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9.4 6.1 12 3.5l2.6 2.6M4.6 12.6l1.5 1.1M19.4 12.6l-1.5 1.1"/></svg><span class="cel-t mono" id="sunrise-time">—</span><span class="cel-az mono" id="sunrise-az"></span></div>
+      <div class="cel-row" title="Päikeseloojang · asimuut"><svg class="lic" viewBox="0 0 24 24" role="img" aria-label="loojang"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 9.5v-6M9.4 6.9 12 9.5l2.6-2.6M4.6 12.6l1.5 1.1M19.4 12.6l-1.5 1.1"/></svg><span class="cel-t mono" id="sunset-time">—</span><span class="cel-az mono" id="sunset-az"></span></div>
+      <div class="cel-foot"><span id="sun-countdown-label">Loojanguni</span> <b class="mono" id="sun-countdown">—</b></div>
     </div>
-    <div class="glass card">
+    <div class="glass card cel-card">
       <div class="card-header"><h2>Kuu</h2></div>
-      <div class="celestial-hero">
-        <div class="celestial-icon" id="moon-icon"></div>
-        <div class="celestial-main" id="moon-phase">—</div>
-        <div class="celestial-cap mono" id="moon-illum">—</div>
+      <div class="cel-hero">
+        <span class="cel-ico" id="moon-icon" role="img" aria-label="Kuu faas"></span>
+        <div class="cel-txt"><div class="cel-main" id="moon-phase">—</div><div class="cel-cap mono" id="moon-illum">—</div></div>
       </div>
-      <div class="dl-row">
-        <span class="dl-label">Tõus</span>
-        <span class="dl-value rise mono"><span id="moon-rise-time">—</span></span>
-        <span class="dl-az mono"><span id="moon-rise-az">—</span></span>
-      </div>
-      <div class="dl-row">
-        <span class="dl-label">Loojang</span>
-        <span class="dl-value set mono"><span id="moon-set-time">—</span></span>
-        <span class="dl-az mono"><span id="moon-set-az">—</span></span>
-      </div>
-      <div class="dl-row">
-        <span class="dl-label">Täiskuu</span>
-        <span class="dl-value mono"><span id="moon-full">—</span>
-        <span class="dl-az"></span>
-      </div>
+      <div class="cel-row" title="Kuutõus · asimuut"><svg class="lic" viewBox="0 0 24 24" role="img" aria-label="tõus"><path d="M3 20h18M13.8 16.5a5 5 0 1 1-3-8.9 4 4 0 0 0 3 8.9z"/><path d="M19 12.5v-7M16.8 7.7 19 5.5l2.2 2.2"/></svg><span class="cel-t mono" id="moon-rise-time">—</span><span class="cel-az mono" id="moon-rise-az"></span></div>
+      <div class="cel-row" title="Kuuloojang · asimuut"><svg class="lic" viewBox="0 0 24 24" role="img" aria-label="loojang"><path d="M3 20h18M13.8 16.5a5 5 0 1 1-3-8.9 4 4 0 0 0 3 8.9z"/><path d="M19 5.5v7M16.8 10.3l2.2 2.2 2.2-2.2"/></svg><span class="cel-t mono" id="moon-set-time">—</span><span class="cel-az mono" id="moon-set-az"></span></div>
+      <div class="cel-foot">Täiskuu <b class="mono" id="moon-full">—</b></div>
     </div>
   </div>
 </section>
@@ -3783,7 +3599,7 @@ function _wireDaySheet(){
   if(strip && !strip.__sheetWired){
     strip.__sheetWired = true;
     strip.addEventListener('click', function(e){
-      var t = e.target.closest ? e.target.closest('.day') : null;
+      var t = e.target.closest ? e.target.closest('.drow') : null;   // a Nädal row
       if(t && t.dataset && t.dataset.di != null) openDaySheet(parseInt(t.dataset.di, 10));
     });
   }
@@ -3864,49 +3680,85 @@ function dailyPrecipIcon(daily, i, hourly){
   return dominantSkyCode(hourly, daily.time[i]);
 }
 
+/* ─── Nädal: the week as rows (prototype C's page 3) ─────────────────
+ * One button per day: weekday letter (E T K N R L P; 'Täna') and date,
+ * the day's icon (dailyPrecipIcon), rain, min–max with a range bar on one
+ * scale for the seven days (the dot on today's is the temperature now),
+ * the max wind and the day's strongest gust. A row opens the day sheet.
+ *
+ * Rain: the amount only from RAIN_MIN_MM (as the old strip, and the day
+ * sheet); 'kuiv' only when none of the day's hours is real rain — the
+ * rule of rainOutlook() (isRealRainSlot), so this row can't call a day dry
+ * that the Nüüd verdict and the 24 h page count rain on. Below
+ * RAIN_MIN_MM with a real-rain hour it says '—' rather than either.
+ * Hourly values describe the hour ENDING at time[k], so each one goes to
+ * the day its hour starts in (slotStartMs) — the gusts too. */
 function renderDaily(daily, hourly){
   var strip = byId('daily-strip');
-  if(!strip) return;
-  strip.innerHTML = '';
-  var ET_DAY_ABBR = ['Püh','Esm','Teis','Kolm','Nelj','Reede','Laup'];
-  var i0 = dailyStartIdx(daily);
-  for(var i = i0; i < Math.min(i0 + 7, daily.time.length); i++){
-    var d = new Date(daily.time[i] + 'T12:00:00');
-    var tmax = Math.round(daily.temperature_2m_max[i]);
-    var tmin = Math.round(daily.temperature_2m_min[i]);
-    var rain = daily.precipitation_sum ? round1(daily.precipitation_sum[i] || 0) : null;
-    var wind = daily.wind_speed_10m_max ? Math.round(daily.wind_speed_10m_max[i] || 0) : null;
-    var icon = weatherCodeToSVG(dailyPrecipIcon(daily, i, hourly), true);
-    var isToday = dayWordFor(daily.time[i]) === 'Täna';
-    var dd = ('0' + d.getDate()).slice(-2);
-    var mm = ('0' + (d.getMonth() + 1)).slice(-2);
-    var name = isToday ? 'Täna' : dd + '/' + mm;
-    var rainHtml = '';
-    if(rain !== null){
-      var isDry = rain < RAIN_MIN_MM;
-      var rainStr = isDry ? '—' : rain.toFixed(1);
-      rainHtml = '<span class="day-rain' + (isDry ? '' : ' wet') + '">' + rainStr + '</span>';
+  if(!strip || !daily || !daily.time) return;
+  var i0 = dailyStartIdx(daily), i1 = Math.min(i0 + 7, daily.time.length);
+  var H = hourly && hourly.time ? hourly : null, slotDay = [], k;
+  if(H){
+    for(k = 0; k < H.time.length; k++){
+      var s0 = slotStartMs(H, k);
+      slotDay.push(s0 === null ? '' : localDayKey(new Date(s0)));
     }
-    // Wind row — small, muted, sits directly under the rain row
-    var windHtml = '';
-    if(wind !== null && !isNaN(wind)){
-      windHtml = '<span class="day-wind">' + wind + ' m/s</span>';
-    }
-    var el = document.createElement('div');
-    el.className = 'day' + (isToday ? ' today' : '');
-    el.dataset.di = i;
-    el.style.cursor = 'pointer';
-    el.innerHTML =
-      '<span class="day-name">' + name + '</span>' +
-      '<span class="day-ico" style="font-size:0;line-height:0;width:28px;height:28px;display:block">' + icon + '</span>' +
-      '<span class="day-temps">' +
-        '<span class="day-high mono">' + tmax + '°</span>' +
-        '<span class="day-low mono">' + tmin + '°</span>' +
-      '</span>' +
-      rainHtml +
-      windHtml;
-    strip.appendChild(el);
   }
+  var LO = daily.temperature_2m_min || [], HI = daily.temperature_2m_max || [];
+  var gmin = Infinity, gmax = -Infinity, i;
+  for(i = i0; i < i1; i++){
+    if(isNum(LO[i])) gmin = Math.min(gmin, LO[i]);
+    if(isNum(HI[i])) gmax = Math.max(gmax, HI[i]);
+  }
+  var span = Math.max(1, gmax - gmin);
+  var cur = WX_LAST ? currentIfRecent(WX_LAST.current) : null;
+  var curT = cur && isNum(cur.temperature_2m) ? cur.temperature_2m : null;
+  var html = '';
+  for(i = i0; i < i1; i++){
+    var key = daily.time[i], d = new Date(key + 'T12:00:00');
+    var isToday = dayWordFor(key) === 'Täna';
+    var lo = LO[i], hi = HI[i];
+    var mm = daily.precipitation_sum ? daily.precipitation_sum[i] : null;
+    var pr = daily.precipitation_probability_max ? daily.precipitation_probability_max[i] : null;
+    var w = daily.wind_speed_10m_max ? daily.wind_speed_10m_max[i] : null;
+    var real = false, g = null;
+    for(k = 0; k < slotDay.length; k++){
+      if(slotDay[k] !== key) continue;
+      if(isRealRainSlot(H, k)) real = true;
+      var gv = H.wind_gusts_10m ? H.wind_gusts_10m[k] : null;
+      if(isNum(gv) && (g === null || gv > g)) g = gv;
+    }
+    var wet = isNum(mm) && mm >= RAIN_MIN_MM;
+    var rainWord = wet ? round1(mm).toFixed(1) + ' mm' : (isNum(mm) && H && !real) ? 'kuiv' : '—';
+    var rainB = wet ? round1(mm).toFixed(1) + '<small> mm</small>' : rainWord;
+    var prTxt = isNum(pr) ? Math.round(pr) + ' %' : '';
+    var bar = '';
+    if(isNum(lo) && isNum(hi)){
+      var left = (lo - gmin) / span * 100, width = Math.max(4, (hi - lo) / span * 100);
+      bar = '<i style="left:' + left.toFixed(1) + '%;width:' + width.toFixed(1) + '%;background:linear-gradient(90deg,'
+          + solidColor(tempBarColor(lo)) + ',' + solidColor(tempBarColor(hi)) + ')"></i>';
+      if(isToday && curT !== null){
+        bar += '<em style="left:' + Math.max(0, Math.min(100, (curT - gmin) / span * 100)).toFixed(1) + '%"></em>';
+      }
+    }
+    var strong = (isNum(g) && g >= 15) || (isNum(w) && w >= 10);
+    var name = isToday ? 'Täna' : ET_WD_LETTER[d.getDay()];
+    var dateTxt = d.getDate() + '.' + (d.getMonth() + 1);
+    var aria = (isToday ? 'Täna' : ET_WD_FULL[d.getDay()]) + ' ' + dateTxt + ': '
+             + fmtT(lo, 0) + '…' + fmtT(hi, 0) + '°, sadu ' + rainWord + (prTxt ? ' (' + prTxt + ')' : '')
+             + (isNum(w) ? ', tuul kuni ' + Math.round(w) + ' m/s' : '') + (isNum(g) ? ', puhangud ' + Math.round(g) : '')
+             + ' — ava tunnid';
+    html += '<button type="button" class="drow' + (isToday ? ' today' : '') + '" data-di="' + i + '" aria-label="' + aria + '">'
+      + '<span class="d-name"><b>' + name + '</b><small>' + dateTxt + '</small></span>'
+      + '<span class="d-ico">' + weatherCodeToSVG(dailyPrecipIcon(daily, i, hourly), true) + '</span>'
+      + '<span class="d-rain' + (wet ? ' wet' : '') + '"><b>' + rainB + '</b><small>' + prTxt + '</small></span>'
+      + '<span class="d-rng"><span class="d-lo mono">' + fmtT(lo, 0) + '°</span><span class="d-bar">' + bar + '</span>'
+      + '<span class="d-hi mono">' + fmtT(hi, 0) + '°</span></span>'
+      + '<span class="d-wind"><b' + (strong ? ' class="strong"' : '') + '>' + (isNum(w) ? Math.round(w) : '—') + '<small> m/s</small></b>'
+      + '<small>' + (isNum(g) ? 'puh. ' + Math.round(g) : '') + '</small></span>'
+      + '</button>';
+  }
+  strip.innerHTML = html || '<div class="empty-note">Nädala prognoos puudub</div>';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -4689,6 +4541,8 @@ function showWeatherEmpty(failed){
   if(n && !N12) n.innerHTML = '<div class="empty-note">Tunniprognoos puudub</div>';
   var h24 = byId('d24-hint');
   if(h24 && !D24) h24.textContent = 'Prognoos puudub — proovin uuesti';
+  var wk = byId('daily-strip');
+  if(wk && !wk.querySelector('.drow')) wk.innerHTML = '<div class="empty-note">Nädala prognoos puudub — proovin uuesti</div>';
   updateWeatherAge();
 }
 function clearWeatherEmpty(){
@@ -4951,7 +4805,9 @@ function calcMoon(){
   else if(phase<23.99){ phaseEmoji='🌗'; phaseName='III veerand'; }
   else if(phase<27.68){ phaseEmoji='🌘'; phaseName='Vanakuu'; }
   else { phaseEmoji='🌑'; phaseName='Kuu loomine'; }
-  if(byId('moon-icon')) byId('moon-icon').textContent = phaseEmoji;
+  // Drawn, not the emoji (whose look is the phone's font): moonSVG().
+  var mi = byId('moon-icon');
+  if(mi){ mi.innerHTML = moonSVG(phase / synodicMonth); mi.setAttribute('aria-label', phaseName); }
   if(byId('moon-phase')) byId('moon-phase').textContent = phaseName;
   if(byId('moon-illum')) byId('moon-illum').textContent = illumination + '% valgustatud';
 
@@ -4986,6 +4842,17 @@ function calcMoon(){
   if(byId('moon-set-time')) byId('moon-set-time').textContent = rs.set ? formatTime(rs.set) : '—';
   if(byId('moon-rise-az')) byId('moon-rise-az').textContent = rs.rise ? Math.round(moonPosition(rs.rise, CONFIG.lat, CONFIG.lng).azimuth) + '°' : '';
   if(byId('moon-set-az')) byId('moon-set-az').textContent = rs.set ? Math.round(moonPosition(rs.set, CONFIG.lat, CONFIG.lng).azimuth) + '°' : '';
+}
+/* The Kuu card's moon (prototype C): the lit limb and the terminator as
+ * two arcs over a faint disc. f = the phase as a fraction of the synodic
+ * month: 0 new, 0.25 first quarter (lit on the right, as seen from here),
+ * 0.5 full, 0.75 last quarter. */
+function moonSVG(f){
+  var r = 12, cx = 15, cy = 15, x = r * Math.cos(2 * Math.PI * f), rx = Math.abs(x).toFixed(2);
+  var wax = f < 0.5, outer = wax ? 1 : 0, term = wax ? (x > 0 ? 0 : 1) : (x > 0 ? 1 : 0);
+  var lit = (f < 0.02 || f > 0.98) ? '' : '<path d="M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 0 ' + outer + ' ' + cx + ',' + (cy + r)
+    + ' A' + rx + ',' + r + ' 0 0 ' + term + ' ' + cx + ',' + (cy - r) + 'Z" fill="#e8edf5"/>';
+  return '<svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="rgba(200,210,225,0.14)" stroke="rgba(220,228,240,0.35)" stroke-width="0.8"/>' + lit + '</svg>';
 }
 setInterval(calcMoon, 60*60*1000);
 calcMoon();
