@@ -73,6 +73,11 @@
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 /* ─── DOCUMENT SCROLL PATTERN ───────────────────────────────
+ * SUPERSEDED (2026-09-30): the document no longer scrolls at all — the
+ * PAGER SHELL at the end of this stylesheet fixes html/body to the screen
+ * and scrolls pages sideways inside .pager. The notes below describe the
+ * old one-long-scroll page and are kept for its history.
+ *
  * IMPORTANT: This pattern is copied verbatim from the original
  * indexvana.html which scrolls correctly on iOS. The rules below look
  * minor but each one is load-bearing — DO NOT "refactor" them:
@@ -202,19 +207,6 @@ body {
   --blob1-color: rgba(120, 120, 130, 0.22);     /* heavy charged blue */
   --blob2-color: rgba(80, 75, 75, 0.24);       /* dark violet brewing */
   --drift-speed: 14s;                            /* fastest = electric */
-}
-
-.app {
-  max-width: 480px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  /* IMPORTANT: NO position: relative, NO z-index. The body owns the
-   * scroll context and the padding/safe-area. Adding either of those
-   * properties here regressed iOS Safari scroll multiple times. The
-   * blobs paint behind via body's own background (z-axis untouched),
-   * cards layer naturally via document order. Keep this minimal. */
 }
 
 /* ─── GLASS — the one and only card recipe ──────────────────
@@ -2162,422 +2154,621 @@ body {
 .dsheet-icons .ic svg{width:26px;height:26px;}
 .dsheet-icons .ic .hr{font-size:10px;color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums;}
 
+/* ═════════════════════════════════════════════════════════════════
+ * PAGER SHELL — five full-screen pages swiped sideways + a tab bar
+ * (Nüüd · Radar · 24 h · Nädal · Hind). Everything here overrides the
+ * one-long-scroll layout above: nothing scrolls the document any more
+ * (html/body are fixed to the screen), the pager scrolls sideways with
+ * mandatory snap, and each page scrolls vertically only as the fallback
+ * for a phone too short for it. Type sizes are not touched here.
+ * ═════════════════════════════════════════════════════════════════ */
+:root {
+  --sat: env(safe-area-inset-top, 0px);      /* notch / status bar      */
+  --sab: env(safe-area-inset-bottom, 0px);   /* home indicator          */
+  --tabbar-h: 54px;
+  --gut: 14px;
+  --lvl1: #f2c94c; --lvl2: #ef8a30; --lvl3: #cc362c;   /* = the warning bar's */
+}
+/* ?sim=standalone → the insets an installed iPhone app really has, for
+   headless fit checks (a desktop browser reports 0 for both). */
+html.sim-sa { --sat: 59px; --sab: 34px; }
+
+html, body {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body { padding: 0; }
+
+.pager {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pager::-webkit-scrollbar { display: none; }
+.page {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;         /* one page per swipe, however hard   */
+  overflow-x: hidden;
+  overflow-y: auto;                 /* short-phone fallback only          */
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: calc(var(--sat) + 8px) var(--gut) calc(var(--sab) + var(--tabbar-h) + 10px);
+}
+.page > * { flex-shrink: 0; width: 100%; max-width: 480px; }
+/* No backdrop blur inside a sideways scroller: behind the cards is the
+   body's smooth gradient, so the blur changes next to nothing on screen
+   and costs the GPU on every frame of a swipe. */
+.page .glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ─── Radar page: the map takes whatever height the page has left ─── */
+#p-radar #radar-card { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+#p-radar #radar-map {
+  flex: 1 1 auto;
+  min-height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a0a0c;
+}
+/* 'Liiguta' (top-left, where Leaflet's +/− used to be — pinch and the
+   presets do that job): amber while the map is unlocked. */
+.map-move {
+  position: absolute; top: 8px; left: 8px; z-index: 500;
+  -webkit-appearance: none; appearance: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 32px; padding: 0 11px; border-radius: 99px;
+  background: rgba(10,10,14,0.80); border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.88);
+  font: 600 11px -apple-system, "SF Pro Display", sans-serif;
+  cursor: pointer;
+}
+.map-move .lic { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.map-move.on { background: rgba(233,167,107,0.88); color: #1a1208; border-color: rgba(255,255,255,0.3); }
+#radar-map.radar-nolib .map-move { display: none; }
+/* The scrubber is a slider, not a page swipe; the play button is 40 px. */
+.radar-scrub-wrap, .radar-scrub { touch-action: none; }
+.radar-ctrl-btn { width: 40px; height: 40px; border-radius: 12px; }
+
+/* ─── 7 days: a wrapped grid for now, so it no longer scrolls sideways
+   and fights the pager (it becomes a vertical list later). ─── */
+.daily { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+.day { flex: 0 0 calc((100% - 18px) / 4); }
+
+/* ─── Tab bar ─── */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 800;
+  display: flex; justify-content: center;
+  height: calc(var(--tabbar-h) + var(--sab));
+  padding: 0 8px var(--sab);
+  background: rgba(8,10,14,0.86);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.tab {
+  position: relative; flex: 1 1 0; min-width: 0; max-width: 110px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  -webkit-appearance: none; appearance: none; background: none; border: 0; cursor: pointer;
+  color: rgba(255,255,255,0.60);
+  font: 600 10px/1 -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.3px;
+}
+.tab-label { white-space: nowrap; }
+/* One line-icon family: 24-grid, 1.6 stroke, round caps and joins. */
+.tab-ico { display: grid; place-items: center; width: 52px; height: 28px; border-radius: 14px; transition: background .2s; }
+.tab-ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tab.active { color: #fff; }
+.tab.active .tab-ico { background: rgba(255,255,255,0.13); }
+.tab-dot {
+  position: absolute; top: 6px; left: calc(50% + 12px);
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lvl1); box-shadow: 0 0 0 2px rgba(8,10,14,0.9);
+}
+.tab-dot.l2 { background: var(--lvl2); }
+.tab-dot.l3 { background: var(--lvl3); }
+.tab-dot[hidden] { display: none; }
+
+/* The day sheet covers the tab bar; keep it off the home indicator. */
+.daysheet { padding-bottom: var(--sab); }
+
+/* ─── ?sim=standalone chrome (screenshots only) ─── */
+.sim-bar, .sim-home { display: none; }
+html.sim-sa .sim-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  position: fixed; top: 0; left: 0; right: 0; height: 54px; z-index: 950;
+  padding: 14px 34px 0 50px; pointer-events: none;
+  font: 600 16px/1 -apple-system, "SF Pro Text", sans-serif; color: #fff;
+}
+html.sim-sa .sim-ind { width: 70px; height: 12px; border-radius: 4px; opacity: .9;
+  background: linear-gradient(90deg, #fff 0 22px, transparent 22px 30px, #fff 30px 46px, transparent 46px 52px, #fff 52px 70px); }
+html.sim-sa .sim-home {
+  display: block; position: fixed; bottom: 8px; left: 50%; z-index: 950;
+  width: 134px; height: 5px; margin-left: -67px; border-radius: 3px;
+  background: rgba(255,255,255,0.85); pointer-events: none;
+}
+
 </style>
 </head>
 <body>
 
-<div class="app">
+<!-- ?sim=standalone only: stand-ins for the iOS status bar and home
+     indicator, so a headless screenshot shows the real standalone fit. -->
+<div class="sim-bar" aria-hidden="true"><span id="sim-clock"></span><span class="sim-ind"></span></div>
+<div class="sim-home" aria-hidden="true"></div>
 
-        <!-- ALERT — now the top card. Standalone status pill, replaces
-             the old topbar as the first thing the user sees. -->
-        <!-- ALERT-BANNER — the forecast's own thunder / heavy rain / gust
-             heads-up for the next 12 h (checkAlerts() → renderAlertBanner()),
-             separate from the official warnings below. -->
-        <div class="alert-banner" id="alert-banner" style="display:none"></div>
+<!-- ═══ PAGER ══════════════════════════════════════════════════════════
+     Five full-screen pages swiped sideways (native scroll-snap), with the
+     tab bar below in the thumb zone: Nüüd · Radar · 24 h · Nädal · Hind.
+     Each page is one screen; vertical scroll inside a page is only the
+     fallback for a short phone. The day sheet sits outside the pager.
+     (pagerInit() in the main script; #hash per page.)                    -->
+<main class="pager" id="pager">
 
-        <!-- WARNING-BAR — official MeteoAlarm warnings for Lääne maakond,
-             from the EMHI bundle (renderWarnings() → renderWarningBar()).
-             Starts neutral: '✓ Hoiatused puuduvad' only once a recent bundle
-             vouches for it, '? Hoiatused teadmata' when none can. A warning
-             is coloured by its MeteoAlarm level: 1 yellow, 2 orange, 3 red. -->
-        <div class="alert wb-neutral" id="warning-bar">
-          <span class="alert-icon">…</span>
-          <span>Hoiatused: laadin</span>
-        </div>
+<!-- ─── 1 · NÜÜD — warnings, now, the three stations ─── -->
+<section class="page" id="p-nuud" data-slug="nuud" aria-label="Nüüd">
+  <!-- ALERT — now the top card. Standalone status pill, replaces
+       the old topbar as the first thing the user sees. -->
+  <!-- ALERT-BANNER — the forecast's own thunder / heavy rain / gust
+       heads-up for the next 12 h (checkAlerts() → renderAlertBanner()),
+       separate from the official warnings below. -->
+  <div class="alert-banner" id="alert-banner" style="display:none"></div>
 
-        <!-- HERO -->
-        <div class="glass hero no-data">
-          <!-- Hero-bar: date · time · sync. Folded in from the old topbar.
-               Sits at the top of the hero card as a subtle context strip
-               so the date/time travels with "now" weather visually. -->
-          <div class="hero-bar">
-            <div class="hero-bar-date">
-              <span class="weekday" id="weekday">—</span>
-              <span class="dot-sep">·</span>
-              <span class="datestamp" id="datestamp">—</span>
-              <span class="dot-sep">·</span>
-              <span class="hero-clock mono" id="clock">—</span>
-              <span class="hero-bar-break" aria-hidden="true"></span>
-              <!-- How old the weather below is (updateWeatherAge()): quiet
-                   while fresh, amber with the age spelled out past
-                   WX_AGE_WARN_MIN. Then the build stamp (APP_VERSION). -->
-              <span class="wx-age" id="wx-age">ilm —</span>
-              <span class="build-stamp mono" id="build-stamp"></span>
-            </div>
-            <!-- ⟲ takes two taps (hardRefreshTap): the first shows
-                 'Kinnita?', the second within 3 s clears the caches. -->
-            <div class="hero-bar-sync">
-              <button class="hero-refresh-btn" id="refresh-btn" title="Uuenda" onclick="manualRefresh()">↻</button>
-              <button class="hero-refresh-btn hero-refresh-btn-hard" id="hard-refresh-btn" title="Tühjenda vahemälu" aria-label="Tühjenda vahemälu" onclick="hardRefreshTap()">⟲<span class="confirm-label" aria-hidden="true">Kinnita?</span></button>
-            </div>
-          </div>
-
-          <div class="hero-title">
-            <h2>Hetkeilm madisel</h2>
-            <span class="hero-condition" id="wx-cond">—</span>
-          </div>
-
-          <div class="hero-main">
-            <!-- Dashes and an empty icon slot until renderWeather() has real
-                 data. These used to be mock-up values (14°, a partly sunny
-                 icon, 'Pilves selgimistega'), which a failed fetch or an
-                 offline first open left on screen as if they were live. -->
-            <div class="temp-big mono" id="wx-temp">—<span class="deg">°</span></div>
-            <div class="hero-icon" id="wx-cond-icon-big"></div>
-          </div>
-
-          <div class="hero-meta">
-            <!-- Comfort indicators row — 3 pills:
-                   Tundub      derived "feels like" from current temp/wind/humidity
-                   Öökülm      tonight's min — predictive, but the user thinks of it
-                               as "what to expect overnight from where we are now",
-                               so it sits with the comfort indicators rather than
-                               in the forecast card
-                   Kastepunkt  derived dew point from current temp/humidity         -->
-            <div class="pill">
-              <div class="pill-label">Tundub kui</div>
-              <div class="pill-value mono"><span id="wx-feels">—</span>°</div>
-            </div>
-            <div class="pill">
-              <div class="pill-label">Öökülm</div>
-              <div class="pill-value mono" id="frost-min">—</div>
-            </div>
-            <div class="pill">
-              <div class="pill-label">Kastepunkt</div>
-              <div class="pill-value mono"><span id="wx-dew">—</span>°</div>
-            </div>
-          </div>
-
-          <!-- Current readings grid — 6 measurement tiles in 2 rows × 3 cols.
-               Everything here is a "right now" sensor reading. Forecasts
-               (24h sparklines, öökülm) live in the next card. Layout uses
-               the same .metric tile recipe as the old Mõõtmised card but
-               with a tighter 3-col grid that fits the hero width. -->
-          <div class="hero-readings">
-            <div class="metric wind-tile">
-              <div class="wind-text">
-                <div class="metric-head"><span class="metric-icon">⌁</span>Tuul</div>
-                <div class="metric-value mono cold">
-                  <span id="wind-now">—</span><span class="unit">m/s</span>
-                </div>
-                <div class="metric-sub" id="wind-sub">puhanguti — m/s</div>
-              </div>
-              <span class="wind-arrow" id="wind-arrow">↑</span>
-            </div>
-            <div class="metric">
-              <div class="metric-head"><span class="metric-icon">◌</span>Sadu</div>
-              <div class="metric-value mono">
-                <span id="rain-now">—</span><span class="unit">mm/h</span>
-              </div>
-              <div class="metric-sub" id="rain-current-sub">—</div>
-            </div>
-            <div class="metric">
-              <div class="metric-head"><span class="metric-icon">◐</span>Õhurõhk</div>
-              <div class="metric-value mono"><span id="wx-pressure">—</span><span class="unit">hPa</span></div>
-              <div class="metric-sub" id="wx-pressure-trend">—</div>
-            </div>
-            <div class="metric">
-              <div class="metric-head"><span class="metric-icon">◔</span>Õhuniiskus</div>
-              <div class="metric-value mono"><span id="wx-humidity">—</span><span class="unit">%</span></div>
-            </div>
-            <div class="metric">
-              <div class="metric-head"><span class="metric-icon">☀</span>UV</div>
-              <div class="metric-value mono warn" id="wx-uv">—</div>
-              <div class="metric-sub warn" id="wx-uv-label">—</div>
-            </div>
-            <div class="metric">
-              <div class="metric-head"><span class="metric-icon">👁</span>Nähtavus</div>
-              <div class="metric-value mono"><span id="wx-vis">—</span><span class="unit">km</span></div>
-              <div class="metric-sub" id="wx-vis-sub">—</div>
-            </div>
-          </div>
-
-          <!-- NEARBY STATIONS — horizontal chips. Peer current readings
-               from sensors at other locations. Stays inside Hetkeilm
-               because they're all "right now" data, just elsewhere. -->
-          <div class="stations">
-            <div class="station" id="kv-block">
-              <div class="station-name">Kurevere</div>
-              <div class="station-temp mono"><span id="kv-temp">—</span>°</div>
-              <div class="station-sub mono"><span id="kv-wind">—</span> m/s · <span class="station-precip" id="kv-precip">—</span> mm</div>
-            </div>
-            <div class="station" id="ln-block">
-              <div class="station-name">Lääne-Nig.</div>
-              <div class="station-temp mono"><span id="ln-temp">—</span>°</div>
-              <div class="station-sub mono"><span id="ln-wind">—</span> m/s · <span class="station-precip" id="ln-precip">—</span> mm</div>
-            </div>
-            <div class="station" id="hp-block">
-              <div class="station-name">Haapsalu</div>
-              <div class="station-temp mono"><span id="hp-temp">—</span>°</div>
-              <div class="station-sub mono"><span id="hp-wind">—</span> m/s · <span class="station-precip" id="hp-precip">—</span> mm</div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- 24 H PROGNOOS — the forecast card. Two wide sparkline tiles
-             (Sadu + Tuul over the next 24h). Öökülm (tonight's min) moved
-             to the comfort pills in Hetkeilm — users think of it as a
-             comfort question ("how cold will it get"), not a forecast to
-             scrub through. Uses the same .metric.wide tile recipe with
-             inline CSS-bar sparklines. -->
-        <!-- TÄNA · 24H — unified forecast card.
-             Three stacked bar rows (temp / rain / wind) sharing one time
-             axis. No horizontal scrolling — all 24 bars fixed-width.
-             Öökülm moved up to the comfort-pills row in Hetkeilm. -->
-        <div class="glass card forecast-card no-data">
-          <div class="card-header">
-            <h2>Täna · 24h</h2>
-            <span class="meta"><span id="rain-start-label">Saju alguseni:</span> <strong id="rain-start" class="mono">—</strong></span>
-          </div>
-
-          <!-- ROW 1: TEMPERATUUR -->
-          <div class="forecast-row">
-            <div class="forecast-row-head">
-              <span class="forecast-row-label">Temperatuur</span>
-              <span class="forecast-row-sub" id="temp-spark-sub">—</span>
-            </div>
-            <div class="metric-spark" id="spark-temp" aria-hidden="true"></div>
-          </div>
-
-          <!-- ROW 2: TUNDUB KUI (apparent temperature) -->
-          <div class="forecast-row">
-            <div class="forecast-row-head">
-              <span class="forecast-row-label">Tundub kui</span>
-              <span class="forecast-row-sub" id="feels-spark-sub">—</span>
-            </div>
-            <div class="metric-spark" id="spark-feels" aria-hidden="true"></div>
-          </div>
-
-          <!-- ROW 3: SADU — with precip-type icon row above bars -->
-          <div class="forecast-row">
-            <div class="forecast-row-head">
-              <span class="forecast-row-label">Sadu</span>
-              <div class="rain-mode-toggle" role="group" aria-label="Sadu mood">
-                <button type="button" class="rain-mode-btn active" data-mode="prob">tõenäosus</button>
-                <button type="button" class="rain-mode-btn" data-mode="mm">hulk</button>
-              </div>
-              <span class="forecast-row-sub" id="rain-sub">—</span>
-            </div>
-            <!-- Precip type icons every 3h — populated by renderPrecipTypes() -->
-            <div class="precip-type-row" id="precip-types" aria-hidden="true"></div>
-            <div class="metric-spark" id="spark-rain" aria-hidden="true"></div>
-          </div>
-
-          <!-- ROW 4: TUUL + PUHANGUD -->
-          <div class="forecast-row">
-            <div class="forecast-row-head">
-              <span class="forecast-row-label">Tuul</span>
-              <span class="forecast-row-val mono cold">
-                <span id="wind-forecast-now">—</span><span class="unit"> m/s</span>
-                <span class="wind-arrow" id="wind-forecast-arrow">↑</span>
-              </span>
-              <span class="forecast-row-sub" id="wind-spark-sub">—</span>
-            </div>
-            <div class="metric-spark" id="spark-wind" aria-hidden="true"></div>
-            <!-- Gust sparkline — same color ramp, 40% opacity overlay feel -->
-            <div class="forecast-row-head" style="margin-top:4px">
-              <span class="forecast-row-label" style="opacity:0.6">Puhangud</span>
-              <span class="forecast-row-sub" id="gust-spark-sub">—</span>
-            </div>
-            <div class="metric-spark metric-spark-gusts" id="spark-gusts" aria-hidden="true"></div>
-          </div>
-
-          <!-- Shared time axis — rendered by the last renderSpark call
-               (wind), which appends the axis as a sibling of spark-wind.
-               The axis sits in the normal card flow below the three rows
-               and aligns with all three bar charts above it since they
-               all share the same width. -->
-        </div>
-
-        <!-- 7-DAY -->
-        <div class="glass card">
-          <div class="card-header">
-            <h2>7 päeva prognoos</h2>
-          </div>
-          <div class="daily" id="daily-strip"></div>
-        </div>
-
-        <!-- SUN / MOON -->
-        <div class="duo">
-          <div class="glass card">
-            <div class="card-header"><h2>Päike</h2></div>
-            <div class="celestial-hero">
-              <div class="celestial-icon"><span class="sun-disc" id="sun-hero-icon"></span></div>
-              <div class="celestial-main mono" id="sun-hero-length">—</div>
-              <div class="celestial-cap">päikesevalgust</div>
-            </div>
-            <div class="dl-row">
-              <span class="dl-label">Tõus</span>
-              <span class="dl-value rise mono"><span id="sunrise-time">—</span></span>
-              <span class="dl-az mono"><span id="sunrise-az">—</span></span>
-            </div>
-            <div class="dl-row">
-              <span class="dl-label">Loojang</span>
-              <span class="dl-value set mono"><span id="sunset-time">—</span></span>
-              <span class="dl-az mono"><span id="sunset-az">—</span></span>
-            </div>
-            <div class="dl-row">
-              <span class="dl-label" id="sun-countdown-label"></span>
-              <span class="dl-countdown mono"><span id="sun-countdown">—</span>
-              <span class="dl-az"></span>
-            </div>
-          </div>
-          <div class="glass card">
-            <div class="card-header"><h2>Kuu</h2></div>
-            <div class="celestial-hero">
-              <div class="celestial-icon" id="moon-icon"></div>
-              <div class="celestial-main" id="moon-phase">—</div>
-              <div class="celestial-cap mono" id="moon-illum">—</div>
-            </div>
-            <div class="dl-row">
-              <span class="dl-label">Tõus</span>
-              <span class="dl-value rise mono"><span id="moon-rise-time">—</span></span>
-              <span class="dl-az mono"><span id="moon-rise-az">—</span></span>
-            </div>
-            <div class="dl-row">
-              <span class="dl-label">Loojang</span>
-              <span class="dl-value set mono"><span id="moon-set-time">—</span></span>
-              <span class="dl-az mono"><span id="moon-set-az">—</span></span>
-            </div>
-            <div class="dl-row">
-              <span class="dl-label">Täiskuu</span>
-              <span class="dl-value mono"><span id="moon-full">—</span>
-              <span class="dl-az"></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- POLLEN / AURORA -->
-        <div class="duo">
-          <div class="glass card">
-            <div class="card-header"><h2>Õietolm</h2></div>
-            <div class="gauge-row">
-              <span class="gauge-label">Üldine</span>
-              <span class="gauge-text lo" id="pollen-overall">—</span>
-            </div>
-            <div class="gauge-row">
-              <span class="gauge-label">Kask</span>
-              <span class="gauge-text lo" id="pollen-birch">—</span>
-            </div>
-            <div class="gauge-row">
-              <span class="gauge-label">Hein</span>
-              <span class="gauge-text lo" id="pollen-grass">—</span>
-            </div>
-            <div class="gauge-row">
-              <span class="gauge-label">Lepp</span>
-              <span class="gauge-text lo" id="pollen-alder">—</span>
-            </div>
-          </div>
-          <div class="glass card">
-            <div class="card-header"><h2>Virmalised</h2></div>
-            <div class="gauge-row">
-              <span class="gauge-label">Kp 24h</span>
-              <span class="gauge-text num lo" id="kp-24h-max">—</span>
-            </div>
-            <div class="gauge-row">
-              <span class="gauge-label">Tõenäosus</span>
-              <span class="gauge-text num lo" id="aurora-prob">—</span>
-            </div>
-            <div class="gauge-row">
-              <span class="gauge-label">Bz</span>
-              <span class="gauge-text num lo" id="solar-bz">—</span>
-            </div>
-            <div class="kp-chart" id="kp-chart">
-              <!-- bars added by script -->
-            </div>
-            <!-- 'nüüd · +24h · +48h' at their real places on the bars —
-                 renderKpForecast() writes them from the slot times. -->
-            <div class="kp-label" id="kp-axis"></div>
-          </div>
-        </div>
-
-        <!-- RADAR / SATELLIIT MAP ─────────────────────────────────
-             RainViewer public API — past 2h radar + infrared satellite.
-             No API key required. CORS-open tile server. Leaflet from CDN. -->
-        <div class="glass card" id="radar-card">
-          <div class="card-header">
-            <h2 id="radar-card-title">Vihmaradar</h2>
-            <div class="radar-mode-toggle" role="group">
-              <button type="button" class="radar-mode-btn active" data-layer="radar">Radar</button>
-              <a class="radar-mode-btn radar-mode-ext"
-                 href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/satelliidipildid/infrapunane-pilt/"
-                 target="_blank" rel="noopener">Satelliit ↗</a>
-              <a class="radar-mode-btn radar-mode-ext"
-                 href="https://www.ilmateenistus.ee/ilm/prognoosid/mudelprognoosid/eesti/#layers/temp2mv2,temp2mtx,pilvMada,pilvKesk,pilvKorg"
-                 target="_blank" rel="noopener">Pilvisus ↗</a>
-            </div>
-          </div>
-          <!-- Map container — fixed height so it doesn't collapse.
-               The precip legend, zoom presets and the wind/sun SVG
-               overlays live INSIDE this div so they anchor to the map
-               area (Leaflet makes the container position:relative). -->
-          <div id="radar-map" style="height:260px;border-radius:12px;overflow:hidden;background:#0a0a0c;">
-            <!-- Precipitation colour legend — top-right corner. Rows are
-                 generated from the tiles' colour scheme by
-                 renderRadarLegend(); hidden while no radar frame is on
-                 the map (#radar-map.radar-none). -->
-            <div class="precip-legend" id="precip-legend">
-              <div class="precip-legend-title">Sadu</div>
-            </div>
-            <!-- Radar trouble, on the map where the eye already is:
-                 rate-limited, stalled, unavailable (radarSetStatus). -->
-            <div class="radar-badge" id="radar-badge" role="status" aria-live="polite"></div>
-            <!-- Zoom-preset + base-map row — bottom-center -->
-            <div class="zoom-presets" id="zoom-presets">
-              <button class="zoom-btn" onclick="rxZoom(14)">2km</button>
-              <button class="zoom-btn" onclick="rxZoom(10)">10km</button>
-              <button class="zoom-btn" onclick="rxZoom(8)">80km</button>
-              <button class="zoom-btn active" onclick="rxZoom(7)">EE</button>
-              <span class="zoom-sep"></span>
-              <button class="zoom-btn" onclick="rxBaseMap('light')" id="rx-base-light">MAP</button>
-              <button class="zoom-btn active" onclick="rxBaseMap('satellite')" id="rx-base-sat">SAT</button>
-            </div>
-            <!-- SVG overlays injected here by initRadarExtras() -->
-          </div>
-          <!-- Timeline bar -->
-          <div class="radar-timeline">
-            <button class="radar-ctrl-btn" id="radar-play" title="Mängi / Peata" disabled>▶</button>
-            <div class="radar-scrub-wrap">
-              <input type="range" class="radar-scrub" id="radar-scrub" min="0" value="0" step="1">
-              <div class="radar-time-label" id="radar-time-label">—</div>
-            </div>
-          </div>
-          <div class="radar-status" id="radar-status">Laen radaripilte…</div>
-        </div>
-
-        <!-- ELEKTRI HIND — Nord Pool day-ahead spot price (EE zone) via the
-             Elering bridge on the 'data' branch. Next-24h hourly bars reuse
-             the forecast sparkline system; current hour is highlighted. -->
-        <div class="glass card" id="price-card">
-          <div class="card-header">
-            <h2>Elektri hind</h2>
-            <div class="price-now-wrap">
-              <span class="price-now-label">Hetkel:</span>
-              <span class="price-now mono" id="price-now">—</span>
-              <span class="price-unit">s/kWh</span>
-            </div>
-          </div>
-          <!-- Chart: Y-axis gridlines layer behind, bars in front, hour
-               axis below. Built by renderNps() (today 00–24, snt/kWh). -->
-          <div class="price-chart">
-            <div class="price-grid" id="price-grid"></div>
-            <div class="price-bars" id="price-spark" aria-hidden="true"></div>
-          </div>
-          <div class="price-axis" id="price-axis"></div>
-          <div class="price-foot">
-            <span>Odavaim <b id="price-min">—</b></span>
-            <span>Kalleim <b id="price-max">—</b></span>
-          </div>
-          <div class="price-status" id="price-status">käibemaksuga · Nord Pool / Elering</div>
-        </div>
-
-        <div class="footer">
-          <div class="footer-updated" id="last-updated">Viimati uuendatud: —</div>
-          Ilmaradar · <span>Open-Meteo</span> · <span>NOAA</span> · <span>Ilmateenistus</span> · <span>RainViewer</span>
-          <div style="margin-top:4px;font-size:10px;opacity:0.4;" id="footer-version"></div>
-        </div>
+  <!-- WARNING-BAR — official MeteoAlarm warnings for Lääne maakond,
+       from the EMHI bundle (renderWarnings() → renderWarningBar()).
+       Starts neutral: '✓ Hoiatused puuduvad' only once a recent bundle
+       vouches for it, '? Hoiatused teadmata' when none can. A warning
+       is coloured by its MeteoAlarm level: 1 yellow, 2 orange, 3 red. -->
+  <div class="alert wb-neutral" id="warning-bar">
+    <span class="alert-icon">…</span>
+    <span>Hoiatused: laadin</span>
   </div>
+
+  <!-- HERO -->
+  <div class="glass hero no-data">
+    <!-- Hero-bar: date · time · sync. Folded in from the old topbar.
+         Sits at the top of the hero card as a subtle context strip
+         so the date/time travels with "now" weather visually. -->
+    <div class="hero-bar">
+      <div class="hero-bar-date">
+        <span class="weekday" id="weekday">—</span>
+        <span class="dot-sep">·</span>
+        <span class="datestamp" id="datestamp">—</span>
+        <span class="dot-sep">·</span>
+        <span class="hero-clock mono" id="clock">—</span>
+        <span class="hero-bar-break" aria-hidden="true"></span>
+        <!-- How old the weather below is (updateWeatherAge()): quiet
+             while fresh, amber with the age spelled out past
+             WX_AGE_WARN_MIN. Then the build stamp (APP_VERSION). -->
+        <span class="wx-age" id="wx-age">ilm —</span>
+        <span class="build-stamp mono" id="build-stamp"></span>
+      </div>
+      <!-- ⟲ takes two taps (hardRefreshTap): the first shows
+           'Kinnita?', the second within 3 s clears the caches. -->
+      <div class="hero-bar-sync">
+        <button class="hero-refresh-btn" id="refresh-btn" title="Uuenda" onclick="manualRefresh()">↻</button>
+        <button class="hero-refresh-btn hero-refresh-btn-hard" id="hard-refresh-btn" title="Tühjenda vahemälu" aria-label="Tühjenda vahemälu" onclick="hardRefreshTap()">⟲<span class="confirm-label" aria-hidden="true">Kinnita?</span></button>
+      </div>
+    </div>
+
+    <div class="hero-title">
+      <h2>Hetkeilm madisel</h2>
+      <span class="hero-condition" id="wx-cond">—</span>
+    </div>
+
+    <div class="hero-main">
+      <!-- Dashes and an empty icon slot until renderWeather() has real
+           data. These used to be mock-up values (14°, a partly sunny
+           icon, 'Pilves selgimistega'), which a failed fetch or an
+           offline first open left on screen as if they were live. -->
+      <div class="temp-big mono" id="wx-temp">—<span class="deg">°</span></div>
+      <div class="hero-icon" id="wx-cond-icon-big"></div>
+    </div>
+
+    <div class="hero-meta">
+      <!-- Comfort indicators row — 3 pills:
+             Tundub      derived "feels like" from current temp/wind/humidity
+             Öökülm      tonight's min — predictive, but the user thinks of it
+                         as "what to expect overnight from where we are now",
+                         so it sits with the comfort indicators rather than
+                         in the forecast card
+             Kastepunkt  derived dew point from current temp/humidity         -->
+      <div class="pill">
+        <div class="pill-label">Tundub kui</div>
+        <div class="pill-value mono"><span id="wx-feels">—</span>°</div>
+      </div>
+      <div class="pill">
+        <div class="pill-label">Öökülm</div>
+        <div class="pill-value mono" id="frost-min">—</div>
+      </div>
+      <div class="pill">
+        <div class="pill-label">Kastepunkt</div>
+        <div class="pill-value mono"><span id="wx-dew">—</span>°</div>
+      </div>
+    </div>
+
+    <!-- Current readings grid — 6 measurement tiles in 2 rows × 3 cols.
+         Everything here is a "right now" sensor reading. Forecasts
+         (24h sparklines, öökülm) live in the next card. Layout uses
+         the same .metric tile recipe as the old Mõõtmised card but
+         with a tighter 3-col grid that fits the hero width. -->
+    <div class="hero-readings">
+      <div class="metric wind-tile">
+        <div class="wind-text">
+          <div class="metric-head"><span class="metric-icon">⌁</span>Tuul</div>
+          <div class="metric-value mono cold">
+            <span id="wind-now">—</span><span class="unit">m/s</span>
+          </div>
+          <div class="metric-sub" id="wind-sub">puhanguti — m/s</div>
+        </div>
+        <span class="wind-arrow" id="wind-arrow">↑</span>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="metric-icon">◌</span>Sadu</div>
+        <div class="metric-value mono">
+          <span id="rain-now">—</span><span class="unit">mm/h</span>
+        </div>
+        <div class="metric-sub" id="rain-current-sub">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="metric-icon">◐</span>Õhurõhk</div>
+        <div class="metric-value mono"><span id="wx-pressure">—</span><span class="unit">hPa</span></div>
+        <div class="metric-sub" id="wx-pressure-trend">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="metric-icon">◔</span>Õhuniiskus</div>
+        <div class="metric-value mono"><span id="wx-humidity">—</span><span class="unit">%</span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="metric-icon">☀</span>UV</div>
+        <div class="metric-value mono warn" id="wx-uv">—</div>
+        <div class="metric-sub warn" id="wx-uv-label">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="metric-icon">👁</span>Nähtavus</div>
+        <div class="metric-value mono"><span id="wx-vis">—</span><span class="unit">km</span></div>
+        <div class="metric-sub" id="wx-vis-sub">—</div>
+      </div>
+    </div>
+
+    <!-- NEARBY STATIONS — horizontal chips. Peer current readings
+         from sensors at other locations. Stays inside Hetkeilm
+         because they're all "right now" data, just elsewhere. -->
+    <div class="stations">
+      <div class="station" id="kv-block">
+        <div class="station-name">Kurevere</div>
+        <div class="station-temp mono"><span id="kv-temp">—</span>°</div>
+        <div class="station-sub mono"><span id="kv-wind">—</span> m/s · <span class="station-precip" id="kv-precip">—</span> mm</div>
+      </div>
+      <div class="station" id="ln-block">
+        <div class="station-name">Lääne-Nig.</div>
+        <div class="station-temp mono"><span id="ln-temp">—</span>°</div>
+        <div class="station-sub mono"><span id="ln-wind">—</span> m/s · <span class="station-precip" id="ln-precip">—</span> mm</div>
+      </div>
+      <div class="station" id="hp-block">
+        <div class="station-name">Haapsalu</div>
+        <div class="station-temp mono"><span id="hp-temp">—</span>°</div>
+        <div class="station-sub mono"><span id="hp-wind">—</span> m/s · <span class="station-precip" id="hp-precip">—</span> mm</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── 2 · RADAR — the map fills the page ─── -->
+<section class="page" id="p-radar" data-slug="radar" aria-label="Radar">
+  <!-- RADAR / SATELLIIT MAP ─────────────────────────────────
+       RainViewer public API — past 2h radar + infrared satellite.
+       No API key required. CORS-open tile server. Leaflet from CDN. -->
+  <div class="glass card" id="radar-card">
+    <div class="card-header">
+      <h2 id="radar-card-title">Vihmaradar</h2>
+      <div class="radar-mode-toggle" role="group">
+        <button type="button" class="radar-mode-btn active" data-layer="radar">Radar</button>
+        <a class="radar-mode-btn radar-mode-ext"
+           href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/satelliidipildid/infrapunane-pilt/"
+           target="_blank" rel="noopener">Satelliit ↗</a>
+        <a class="radar-mode-btn radar-mode-ext"
+           href="https://www.ilmateenistus.ee/ilm/prognoosid/mudelprognoosid/eesti/#layers/temp2mv2,temp2mtx,pilvMada,pilvKesk,pilvKorg"
+           target="_blank" rel="noopener">Pilvisus ↗</a>
+      </div>
+    </div>
+    <!-- Map container — fixed height so it doesn't collapse.
+         The precip legend, zoom presets and the wind/sun SVG
+         overlays live INSIDE this div so they anchor to the map
+         area (Leaflet makes the container position:relative). -->
+    <div id="radar-map">
+      <!-- Precipitation colour legend — top-right corner. Rows are
+           generated from the tiles' colour scheme by
+           renderRadarLegend(); hidden while no radar frame is on
+           the map (#radar-map.radar-none). -->
+      <div class="precip-legend" id="precip-legend">
+        <div class="precip-legend-title">Sadu</div>
+      </div>
+      <!-- Radar trouble, on the map where the eye already is:
+           rate-limited, stalled, unavailable (radarSetStatus). -->
+      <div class="radar-badge" id="radar-badge" role="status" aria-live="polite"></div>
+      <!-- One finger on the map turns the PAGE (map dragging is off);
+           pinch zooms around Madise; this unlocks panning. Locking it
+           again, leaving the page or 60 s without a touch puts the
+           map back on the Madise preset (mapLockSet).  -->
+      <button type="button" class="map-move" id="map-move" aria-pressed="false">
+        <svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>
+        <span id="map-move-text">Liiguta</span>
+      </button>
+      <!-- Zoom-preset + base-map row — bottom-center -->
+      <div class="zoom-presets" id="zoom-presets">
+        <button class="zoom-btn" onclick="rxZoom(14)">2km</button>
+        <button class="zoom-btn" onclick="rxZoom(10)">10km</button>
+        <button class="zoom-btn" onclick="rxZoom(8)">80km</button>
+        <button class="zoom-btn active" onclick="rxZoom(7)">EE</button>
+        <span class="zoom-sep"></span>
+        <button class="zoom-btn" onclick="rxBaseMap('light')" id="rx-base-light">MAP</button>
+        <button class="zoom-btn active" onclick="rxBaseMap('satellite')" id="rx-base-sat">SAT</button>
+      </div>
+      <!-- SVG overlays injected here by initRadarExtras() -->
+    </div>
+    <!-- Timeline bar -->
+    <div class="radar-timeline">
+      <button class="radar-ctrl-btn" id="radar-play" title="Mängi / Peata" disabled>▶</button>
+      <div class="radar-scrub-wrap">
+        <input type="range" class="radar-scrub" id="radar-scrub" min="0" value="0" step="1">
+        <div class="radar-time-label" id="radar-time-label">—</div>
+      </div>
+    </div>
+    <div class="radar-status" id="radar-status">Laen radaripilte…</div>
+  </div>
+</section>
+
+<!-- ─── 3 · 24 H — the next 24 hours ─── -->
+<section class="page" id="p-24h" data-slug="24h" aria-label="24 tundi">
+  <!-- 24 H PROGNOOS — the forecast card. Two wide sparkline tiles
+       (Sadu + Tuul over the next 24h). Öökülm (tonight's min) moved
+       to the comfort pills in Hetkeilm — users think of it as a
+       comfort question ("how cold will it get"), not a forecast to
+       scrub through. Uses the same .metric.wide tile recipe with
+       inline CSS-bar sparklines. -->
+  <!-- TÄNA · 24H — unified forecast card.
+       Three stacked bar rows (temp / rain / wind) sharing one time
+       axis. No horizontal scrolling — all 24 bars fixed-width.
+       Öökülm moved up to the comfort-pills row in Hetkeilm. -->
+  <div class="glass card forecast-card no-data">
+    <div class="card-header">
+      <h2>Täna · 24h</h2>
+      <span class="meta"><span id="rain-start-label">Saju alguseni:</span> <strong id="rain-start" class="mono">—</strong></span>
+    </div>
+
+    <!-- ROW 1: TEMPERATUUR -->
+    <div class="forecast-row">
+      <div class="forecast-row-head">
+        <span class="forecast-row-label">Temperatuur</span>
+        <span class="forecast-row-sub" id="temp-spark-sub">—</span>
+      </div>
+      <div class="metric-spark" id="spark-temp" aria-hidden="true"></div>
+    </div>
+
+    <!-- ROW 2: TUNDUB KUI (apparent temperature) -->
+    <div class="forecast-row">
+      <div class="forecast-row-head">
+        <span class="forecast-row-label">Tundub kui</span>
+        <span class="forecast-row-sub" id="feels-spark-sub">—</span>
+      </div>
+      <div class="metric-spark" id="spark-feels" aria-hidden="true"></div>
+    </div>
+
+    <!-- ROW 3: SADU — with precip-type icon row above bars -->
+    <div class="forecast-row">
+      <div class="forecast-row-head">
+        <span class="forecast-row-label">Sadu</span>
+        <div class="rain-mode-toggle" role="group" aria-label="Sadu mood">
+          <button type="button" class="rain-mode-btn active" data-mode="prob">tõenäosus</button>
+          <button type="button" class="rain-mode-btn" data-mode="mm">hulk</button>
+        </div>
+        <span class="forecast-row-sub" id="rain-sub">—</span>
+      </div>
+      <!-- Precip type icons every 3h — populated by renderPrecipTypes() -->
+      <div class="precip-type-row" id="precip-types" aria-hidden="true"></div>
+      <div class="metric-spark" id="spark-rain" aria-hidden="true"></div>
+    </div>
+
+    <!-- ROW 4: TUUL + PUHANGUD -->
+    <div class="forecast-row">
+      <div class="forecast-row-head">
+        <span class="forecast-row-label">Tuul</span>
+        <span class="forecast-row-val mono cold">
+          <span id="wind-forecast-now">—</span><span class="unit"> m/s</span>
+          <span class="wind-arrow" id="wind-forecast-arrow">↑</span>
+        </span>
+        <span class="forecast-row-sub" id="wind-spark-sub">—</span>
+      </div>
+      <div class="metric-spark" id="spark-wind" aria-hidden="true"></div>
+      <!-- Gust sparkline — same color ramp, 40% opacity overlay feel -->
+      <div class="forecast-row-head" style="margin-top:4px">
+        <span class="forecast-row-label" style="opacity:0.6">Puhangud</span>
+        <span class="forecast-row-sub" id="gust-spark-sub">—</span>
+      </div>
+      <div class="metric-spark metric-spark-gusts" id="spark-gusts" aria-hidden="true"></div>
+    </div>
+
+    <!-- Shared time axis — rendered by the last renderSpark call
+         (wind), which appends the axis as a sibling of spark-wind.
+         The axis sits in the normal card flow below the three rows
+         and aligns with all three bar charts above it since they
+         all share the same width. -->
+  </div>
+</section>
+
+<!-- ─── 4 · NÄDAL — 7 days, sun and moon ─── -->
+<section class="page" id="p-nadal" data-slug="nadal" aria-label="Nädal">
+  <!-- 7-DAY -->
+  <div class="glass card">
+    <div class="card-header">
+      <h2>7 päeva prognoos</h2>
+    </div>
+    <div class="daily" id="daily-strip"></div>
+  </div>
+
+  <!-- SUN / MOON -->
+  <div class="duo">
+    <div class="glass card">
+      <div class="card-header"><h2>Päike</h2></div>
+      <div class="celestial-hero">
+        <div class="celestial-icon"><span class="sun-disc" id="sun-hero-icon"></span></div>
+        <div class="celestial-main mono" id="sun-hero-length">—</div>
+        <div class="celestial-cap">päikesevalgust</div>
+      </div>
+      <div class="dl-row">
+        <span class="dl-label">Tõus</span>
+        <span class="dl-value rise mono"><span id="sunrise-time">—</span></span>
+        <span class="dl-az mono"><span id="sunrise-az">—</span></span>
+      </div>
+      <div class="dl-row">
+        <span class="dl-label">Loojang</span>
+        <span class="dl-value set mono"><span id="sunset-time">—</span></span>
+        <span class="dl-az mono"><span id="sunset-az">—</span></span>
+      </div>
+      <div class="dl-row">
+        <span class="dl-label" id="sun-countdown-label"></span>
+        <span class="dl-countdown mono"><span id="sun-countdown">—</span>
+        <span class="dl-az"></span>
+      </div>
+    </div>
+    <div class="glass card">
+      <div class="card-header"><h2>Kuu</h2></div>
+      <div class="celestial-hero">
+        <div class="celestial-icon" id="moon-icon"></div>
+        <div class="celestial-main" id="moon-phase">—</div>
+        <div class="celestial-cap mono" id="moon-illum">—</div>
+      </div>
+      <div class="dl-row">
+        <span class="dl-label">Tõus</span>
+        <span class="dl-value rise mono"><span id="moon-rise-time">—</span></span>
+        <span class="dl-az mono"><span id="moon-rise-az">—</span></span>
+      </div>
+      <div class="dl-row">
+        <span class="dl-label">Loojang</span>
+        <span class="dl-value set mono"><span id="moon-set-time">—</span></span>
+        <span class="dl-az mono"><span id="moon-set-az">—</span></span>
+      </div>
+      <div class="dl-row">
+        <span class="dl-label">Täiskuu</span>
+        <span class="dl-value mono"><span id="moon-full">—</span>
+        <span class="dl-az"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 5 · HIND — electricity price, pollen and aurora, data ─── -->
+<section class="page" id="p-hind" data-slug="hind" aria-label="Hind">
+  <!-- ELEKTRI HIND — Nord Pool day-ahead spot price (EE zone) via the
+       Elering bridge on the 'data' branch. Next-24h hourly bars reuse
+       the forecast sparkline system; current hour is highlighted. -->
+  <div class="glass card" id="price-card">
+    <div class="card-header">
+      <h2>Elektri hind</h2>
+      <div class="price-now-wrap">
+        <span class="price-now-label">Hetkel:</span>
+        <span class="price-now mono" id="price-now">—</span>
+        <span class="price-unit">s/kWh</span>
+      </div>
+    </div>
+    <!-- Chart: Y-axis gridlines layer behind, bars in front, hour
+         axis below. Built by renderNps() (today 00–24, snt/kWh). -->
+    <div class="price-chart">
+      <div class="price-grid" id="price-grid"></div>
+      <div class="price-bars" id="price-spark" aria-hidden="true"></div>
+    </div>
+    <div class="price-axis" id="price-axis"></div>
+    <div class="price-foot">
+      <span>Odavaim <b id="price-min">—</b></span>
+      <span>Kalleim <b id="price-max">—</b></span>
+    </div>
+    <div class="price-status" id="price-status">käibemaksuga · Nord Pool / Elering</div>
+  </div>
+
+  <!-- POLLEN / AURORA -->
+  <div class="duo">
+    <div class="glass card">
+      <div class="card-header"><h2>Õietolm</h2></div>
+      <div class="gauge-row">
+        <span class="gauge-label">Üldine</span>
+        <span class="gauge-text lo" id="pollen-overall">—</span>
+      </div>
+      <div class="gauge-row">
+        <span class="gauge-label">Kask</span>
+        <span class="gauge-text lo" id="pollen-birch">—</span>
+      </div>
+      <div class="gauge-row">
+        <span class="gauge-label">Hein</span>
+        <span class="gauge-text lo" id="pollen-grass">—</span>
+      </div>
+      <div class="gauge-row">
+        <span class="gauge-label">Lepp</span>
+        <span class="gauge-text lo" id="pollen-alder">—</span>
+      </div>
+    </div>
+    <div class="glass card">
+      <div class="card-header"><h2>Virmalised</h2></div>
+      <div class="gauge-row">
+        <span class="gauge-label">Kp 24h</span>
+        <span class="gauge-text num lo" id="kp-24h-max">—</span>
+      </div>
+      <div class="gauge-row">
+        <span class="gauge-label">Tõenäosus</span>
+        <span class="gauge-text num lo" id="aurora-prob">—</span>
+      </div>
+      <div class="gauge-row">
+        <span class="gauge-label">Bz</span>
+        <span class="gauge-text num lo" id="solar-bz">—</span>
+      </div>
+      <div class="kp-chart" id="kp-chart">
+        <!-- bars added by script -->
+      </div>
+      <!-- 'nüüd · +24h · +48h' at their real places on the bars —
+           renderKpForecast() writes them from the slot times. -->
+      <div class="kp-label" id="kp-axis"></div>
+    </div>
+  </div>
+
+  <!-- ANDMED — placeholder until the Andmed card lands (per-source ages,
+       ↻ Uuenda kõik, two-tap ⟲). For now: the old footer's last-update
+       line, the sources and the build. -->
+  <div class="glass card data-card" id="data-card">
+    <div class="card-header"><h2>Andmed</h2></div>
+    <div class="footer">
+      <div class="footer-updated" id="last-updated">Viimati uuendatud: —</div>
+      Ilmaradar · <span>Open-Meteo</span> · <span>NOAA</span> · <span>Ilmateenistus</span> · <span>RainViewer</span>
+      <div style="margin-top:4px;font-size:10px;opacity:0.4;" id="footer-version"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- Bottom tab bar — tap to jump; a swipe turns the page as well. The dot
+     on Nüüd shows an official warning from every page (renderWarningBar). -->
+<nav class="tabbar" id="tabbar" aria-label="Lehed">
+  <button type="button" class="tab active" aria-current="page" data-page="0"><span class="tab-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14.2V4.5a2 2 0 1 1 4 0v9.7a4.2 4.2 0 1 1-4 0z"/><path d="M12 11v5"/></svg></span><span class="tab-label">Nüüd</span><b class="tab-dot" id="tab-warn-dot" role="img" aria-label="hoiatus" hidden></b></button>
+  <button type="button" class="tab" data-page="1"><span class="tab-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><path d="M12 12l6-6"/></svg></span><span class="tab-label">Radar</span></button>
+  <button type="button" class="tab" data-page="2"><span class="tab-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span class="tab-label">24 h</span></button>
+  <button type="button" class="tab" data-page="3"><span class="tab-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><span class="tab-label">Nädal</span></button>
+  <button type="button" class="tab" data-page="4"><span class="tab-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 3 5.5 13.2h5.8L10.5 21l8-10.2h-5.8L13.5 3z"/></svg></span><span class="tab-label">Hind</span></button>
+</nav>
 <script>
 /* ═════════════════════════════════════════════════════════════════════
  * Madise Ilmaradar — data wiring
@@ -2620,6 +2811,10 @@ var STATION_OBS = {};          // chip prefix → { ms, force } — see setStati
 var WX_UV_FROM_EMHI = false;
 
 function byId(id){ return document.getElementById(id); }
+/* ?sim=standalone: the insets of an installed iPhone app (59 px top, 34 px
+   bottom) plus a stand-in status bar, for headless fit checks. Set before
+   the first paint, so the pager never shows the page without them. */
+if(/[?&]sim=standalone/.test(location.search)) document.documentElement.classList.add('sim-sa');
 function pad(n){ return n < 10 ? '0' + n : '' + n; }
 function round1(n){ return Math.round(n * 10) / 10; }
 function formatTime(d){ return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
@@ -2679,6 +2874,7 @@ function dayWord(ms){
   function tick(){
     var d = new Date();
     var clk = byId('clock'); if(clk) clk.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    var sc = byId('sim-clock'); if(sc) sc.textContent = d.getHours() + ':' + pad(d.getMinutes());
     var wd = byId('weekday'); if(wd) wd.textContent = ET_DAYS[d.getDay()];
     var ds = byId('datestamp'); if(ds) ds.textContent = d.getDate() + '. ' + ET_MONTHS[d.getMonth()];
     updateSunCountdown();
@@ -4905,6 +5101,15 @@ function officialCovers(a){
   return false;
 }
 
+/* The dot on the Nüüd tab, in the official colour of the top warning:
+   whatever the bar shows (in effect or upcoming) is seen from every page. */
+function tabWarnDot(level){
+  var dot = byId('tab-warn-dot');
+  if(!dot) return;
+  dot.hidden = !(level > 0);
+  dot.className = 'tab-dot' + (level > 1 ? ' l' + Math.min(level, 3) : '');
+}
+
 /* The bar above the hero, from WARN_LIST + WARN_FEED. Runs on every fetch
  * and on the 30-s tick, so 'kuni …' stays right, expired warnings drop off
  * and an ageing bundle turns 'teadmata' on time. The DOM is only rewritten
@@ -4933,6 +5138,7 @@ function renderWarningBar(){
     cls = 'alert wb-neutral'; icon = '?';
     text = 'Hoiatused teadmata · ' + (WARN_FEED.ms !== null ? 'andmed ' + stampText(WARN_FEED.ms) : 'andmeid pole');
   }
+  tabWarnDot(list.length ? list[0].level : 0);
   var key = cls + '|' + icon + '|' + text + '|' + more;
   if(key === WARN_BAR_KEY) return;
   WARN_BAR_KEY = key;
