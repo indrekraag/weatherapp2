@@ -1143,6 +1143,14 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   position: absolute; top: 0; bottom: 0; width: 1px;
   background: rgba(255,255,255,0.42); pointer-events: none;
 }
+/* 'homme' on the rule when tomorrow is only the last bar: just above the
+   chart (the 16-px gap under 'Odavaim 3 h' — value tags never go above
+   the chart's top, bars never reach it), ending at the rule. The n12
+   grid's day word: 9 px, uppercase. */
+.price-dayword {
+  position: absolute; top: -13px; right: 3px; font-size: 9px; line-height: 1; letter-spacing: 0.4px;
+  text-transform: uppercase; color: rgba(255,255,255,0.8); white-space: nowrap;
+}
 /* Hour labels: one per bar, flex row aligned under the bars. */
 .price-axis { display: flex; gap: 3px; margin-left: 30px; margin-top: 4px; }
 .price-axis > span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 9px; color: rgba(255,255,255,0.45); }
@@ -5630,8 +5638,11 @@ function renderNps(data){
     // nothing said which was which.
     // Every midnight in the window gets its rule (the one just past in the
     // small hours, tomorrow's once it is published); 'homme' goes on the
-    // first one ahead of now, unless tomorrow is only its last bar.
-    var midIdx = -1;
+    // first one ahead of now — under it on the axis, or, where tomorrow is
+    // only the last bar (every morning until ~14:00 the day-ahead prices
+    // end at tomorrow's 00), over the rule's top on its left (prototype
+    // C's word): the axis has no room there, and the rule stood unlabelled.
+    var midIdx = -1, midSplit = null, dayTag = null;
     for(var mi = 1; mi < n; mi++){
       if(items[mi].date.getHours() !== 0) continue;
       var split = document.createElement('div');
@@ -5639,9 +5650,15 @@ function renderNps(data){
       // Bar i starts at i·(W + gap)/n; the rule sits in the 3px gap before it.
       split.style.left = 'calc((100% + 3px) * ' + (mi / n).toFixed(5) + ' - 2px)';
       barsEl.insertBefore(split, barsEl.firstChild);   // under the value tags
-      if(midIdx < 0 && nowIdx >= 0 && mi > nowIdx) midIdx = mi;
+      if(midIdx < 0 && nowIdx >= 0 && mi > nowIdx){ midIdx = mi; midSplit = split; }
     }
     var homme = midIdx > 0 && midIdx <= n - 2;
+    if(midSplit && !homme){
+      dayTag = document.createElement('span');
+      dayTag.className = 'price-dayword';
+      dayTag.textContent = 'homme';
+      midSplit.appendChild(dayTag);
+    }
 
     // Hour labels: every other one past 22 bars, counted from the current
     // hour, so 'now' is always a labelled slot. It used to be forced in
@@ -5729,6 +5746,7 @@ function renderNps(data){
         }
       }
     }
+
 
     // Current price (big).
     var nowEl = byId('price-now');
