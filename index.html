@@ -548,8 +548,8 @@ button.chip:active { background: rgba(255,255,255,0.10); }
    a reading. Failed with nothing to show: the condition line says so. */
 .hero.no-data .temp-big,
 .hero.no-data .tile-val { color: var(--fg-3); }
-.hero.no-data .tile-arrow,
-.forecast-card.no-data .wind-arrow { visibility: hidden; }
+.hero.no-data .tile-arrow { visibility: hidden; }
+.d24-card.no-data .d24-hint { color: var(--fg-3); }
 .hero.wx-failed .hero-condition { color: var(--warn); text-transform: none; letter-spacing: 0; }
 /* Cached weather past WX_AGE_DIM_MIN: dimmed like a stale station chip,
    so an old headline can't pass for the current one; the freshness chip
@@ -1458,122 +1458,6 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .legend-labels span:first-child { transform: translateX(0); }
 .legend-labels span:last-child  { transform: translateX(-100%); }
 
-/* ─── UNIFIED FORECAST CARD ─────────────────────────────────
- * Three stacked bar rows (Temperatuur / Sadu / Tuul) in one card.
- * Each row has a header line (label + current value / toggle / sub)
- * and a .metric-spark bar chart below it. The three charts share
- * the same horizontal extent so the single time axis at the bottom
- * aligns with all three.
- *
- * No .metric wrapper needed — bars sit directly in the card flow. */
-.forecast-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  margin-bottom: 10px;
-}
-.forecast-row:last-of-type {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-/* Header line — label on left, toggle or value in middle, sub right */
-.forecast-row-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 22px;
-}
-.forecast-row-label {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.92);
-  flex-shrink: 0;
-}
-/* Current value (Tuul row) */
-.forecast-row-val {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-}
-.forecast-row-val .unit {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.55);
-}
-/* Wind arrow in the forecast-row header — smaller than hero tile */
-.forecast-row-val .wind-arrow {
-  font-size: 16px;
-  display: inline-block;
-  line-height: 1;
-  color: var(--cold);
-  transition: transform 0.4s ease;
-}
-/* Sub caption — peak info (temp range, max wind, max rain).
- * Right-aligned via margin-left: auto. Larger than before so the
- * key values (e.g. "8° → 16°C", "max 9.3 m/s · kl 14") are
- * readable at arm's length without squinting. */
-.forecast-row-sub {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.80);
-  margin-left: auto;
-  text-align: right;
-  white-space: nowrap;
-  letter-spacing: 0;
-}
-/* Rain toggle sits in the head row; margin-left: auto pushes sub
- * to the far right only when no toggle is present. When toggle IS
- * present it takes the middle position and sub follows. */
-.forecast-row-head .rain-mode-toggle {
-  flex-shrink: 0;
-}
-/* Forecast card bar — same as .metric-spark but no top margin
- * (the row-head already provides visual separation). */
-.forecast-card .metric-spark {
-  margin-top: 4px;
-}
-/* Gust sparkline — same structure as wind bars but visually lighter */
-.metric-spark-gusts > span {
-  flex: 1 1 0;
-  min-width: 0;
-  border-radius: 1.5px;
-  min-height: 2px;
-  opacity: 0.45;
-  transition: background 0.3s ease;
-}
-
-/* Precipitation type icon row — 8 small SVG icons every 3h above
- * the rain bars. Same absolute-positioning pattern as wind arrows. */
-.precip-type-row {
-  position: relative;
-  height: 20px;
-  margin-top: 4px;
-  width: 100%;
-}
-.precip-type-icon {
-  position: absolute;
-  top: 0;
-  width: 18px;
-  height: 18px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-
 /* ─── RADAR / SATELLIIT CARD ─────────────────────────────────
  * Leaflet map + timeline controls. The map div has a fixed height so
  * it doesn't collapse before Leaflet initialises. Controls sit below
@@ -2069,6 +1953,100 @@ body { padding: 0; }
 .radar-link::after { content: ''; position: absolute; inset: -8px -3px; }   /* ≥ 44 px to tap */
 .radar-link:active { background: rgba(255,255,255,0.12); }
 
+/* ─── 3 · 24 H — prototype A's page 2 (render24): the readout, then
+   temperature, rain and wind over one hour axis; B's collapse of a dry
+   rain row. No type above main's forecast card (values 13 px, names
+   11 px, captions 12 ≤ 13, axis 10 px). ─── */
+#p-24h .d24-card { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 12px 14px 10px; }
+#p-24h .card-header { margin-bottom: 8px; gap: 10px; padding: 0 2px; }
+#p-24h .card-header h2 { flex-shrink: 0; }
+#p-24h .card-header .meta { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#p-24h .card-header .meta strong { color: var(--rain); }
+#p-24h .card-header .meta strong.rain-none { color: var(--fg-2); }
+#p-24h .card-header.short .h2-long { display: none; }     /* d24FitHeader */
+.d24-readout {
+  flex: none; display: grid; grid-template-columns: 0.75fr 1.1fr 0.9fr 1.25fr; gap: 6px;
+  padding: 7px 8px; margin-bottom: 8px; border-radius: 14px;
+  background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07);
+}
+.ro-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-left: 7px; border-left: 1px solid rgba(255,255,255,0.07); }
+.ro-cell:first-child { border-left: 0; padding-left: 2px; }
+.ro-lab { font: 700 9px/1.2 -apple-system, "SF Pro Display", sans-serif; letter-spacing: 0.7px; text-transform: uppercase; color: var(--fg-3); white-space: nowrap; }
+.ro-cell b { font-size: 13px; font-weight: 600; line-height: 1.25; color: rgba(255,255,255,0.95); white-space: nowrap; }
+.ro-cell b.cold { color: var(--cold); } .ro-cell b.hot { color: var(--warm); }
+.ro-cell b.wet { color: var(--rain); } .ro-cell b.strong { color: var(--warn); }
+.ro-sub { min-height: 12px; font-size: 10px; line-height: 1.2; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ro-sub .bad { color: var(--bad); font-weight: 700; }
+.d24-readout.sel .ro-time .ro-lab { color: rgba(255,255,255,0.9); }
+
+.d24-plot { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.d24-sec { display: flex; flex-direction: column; min-height: 0; }
+.d24-sec-t { flex: 3 1 0; min-height: 96px; }
+.d24-sec-r { flex: 1.7 1 0; min-height: 80px; margin-top: 8px; }
+.d24-sec-w { flex: 2 1 0; min-height: 84px; margin-top: 8px; }
+/* No real rain in the 24 h (and none falling): the row is its label and
+   the sky icons; the height goes to the other two. */
+.d24-sec-r.dry { flex: 0 0 auto; min-height: 0; }
+.d24-sec-r.dry .d24-bars, .d24-sec-r.dry .rain-mode-toggle { display: none; }
+.d24-lab { flex: none; display: flex; align-items: center; gap: 8px; min-height: 22px; margin-bottom: 3px; }
+.d24-name { font: 700 11px -apple-system, "SF Pro Display", sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.92); flex-shrink: 0; }
+.d24-key { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; font-size: 10px; color: var(--fg-3); white-space: nowrap; }
+.d24-key i { display: inline-block; flex-shrink: 0; }
+.d24-key .k-bar { width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(160,200,70,.9), rgba(160,200,70,.25)); }
+.d24-key .k-bar.k-wind { background: linear-gradient(180deg, rgba(90,190,190,.9), rgba(90,190,190,.25)); }
+.d24-key .k-line { width: 14px; height: 0; border-top: 1.5px dashed rgba(255,255,255,0.85); margin-left: 4px; }
+.d24-key .k-tick { width: 8px; height: 6px; border-top: 2px solid rgba(255,255,255,0.85); margin-left: 4px;
+  background: linear-gradient(90deg, transparent 3.5px, rgba(255,255,255,0.45) 3.5px, rgba(255,255,255,0.45) 4.5px, transparent 4.5px); }
+.d24-sub { margin-left: auto; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--fg-2); white-space: nowrap; }
+.d24-sub.wet { color: var(--rain); }
+.d24-lab .rain-mode-toggle { margin-left: 0; }
+.d24-lab .rain-mode-btn { position: relative; }
+.d24-lab .rain-mode-btn::after { content: ''; position: absolute; inset: -10px -2px; }   /* ≥ 44 px to tap */
+.d24-icons { flex: none; position: relative; height: 22px; margin-bottom: 2px; }
+.d24-icons .pt { position: absolute; top: 1px; width: 20px; height: 20px; transform: translateX(-50%); }
+.d24-icons .pt svg { width: 20px; height: 20px; display: block; }
+.d24-bars {
+  position: relative; flex: 1 1 auto; min-height: 36px;
+  display: flex; align-items: flex-end; gap: 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+.d24-bars > .col { position: relative; flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
+.d24-bars > .col > .b { width: 100%; min-height: 2px; border-radius: 2px 2px 0 0; }
+.d24-bars > .col > .b.nil { background: rgba(255,255,255,0.10); }
+.d24-bars > .col.now > .b { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55); }
+.d24-bars > .col.sel::before {
+  content: ''; position: absolute; inset: -3px -1px -1px; border-radius: 3px;
+  background: rgba(255,255,255,0.10); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45);
+}
+/* Gust whisker: a thin stem from the bar to the gust, a cap at the gust. */
+.d24-bars > .col > .g {
+  position: absolute; left: 0; right: 0; pointer-events: none;
+  border-top: 2px solid rgba(255,255,255,0.85);
+  background: linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(255,255,255,0.40) calc(50% - 0.5px), rgba(255,255,255,0.40) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+.d24-bars > .col > .g.bad { border-top-color: var(--bad); }
+.d24-bars .grid { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(255,255,255,0.09); pointer-events: none; }
+.d24-bars .grid::after { content: attr(data-v); position: absolute; right: 0; top: -12px; font: 500 9px ui-monospace, "SF Mono", Menlo, monospace; color: rgba(255,255,255,0.45); }
+.d24-bars .zero { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(142,197,255,0.55); pointer-events: none; }
+.d24-bars .tlab { position: absolute; transform: translate(-50%, -100%); margin-top: -3px; font: 600 10px ui-monospace, "SF Mono", Menlo, monospace; color: rgba(255,255,255,0.92); white-space: nowrap; pointer-events: none; }
+.d24-line { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.d24-mid { position: absolute; top: -3px; bottom: -1px; width: 0; border-left: 1px dashed rgba(255,255,255,0.40); pointer-events: none; }
+.d24-dirs { flex: none; position: relative; height: 16px; margin-top: 4px; color: var(--fg-2); }
+.d24-dirs .ar { position: absolute; top: 0; width: 10px; height: 16px; margin-left: -5px; }
+.d24-dirs .ar svg { display: block; width: 10px; height: 16px; }
+.d24-axis { flex: none; position: relative; height: 25px; margin-top: 3px; font-size: 10px; color: var(--fg-3); }
+.d24-axis span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.d24-axis span.mid { color: rgba(255,255,255,0.95); font-weight: 700; }
+.d24-axis em { position: absolute; top: 13px; font: 600 9px/1.2 -apple-system, "SF Pro Display", sans-serif; font-style: normal; letter-spacing: 0.5px; text-transform: uppercase; color: var(--fg-3); white-space: nowrap; }
+.d24-axis em.tom { color: rgba(255,255,255,0.85); padding-left: 4px; border-left: 1px dashed rgba(255,255,255,0.40); }
+.d24-hint { flex: none; margin-top: 5px; min-height: 12px; font-size: 10px; color: var(--fg-3); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d24-hint.on { color: rgba(255,255,255,0.85); }
+@media (max-height: 720px) {
+  .d24-sec-t { min-height: 84px; }
+  .d24-sec-r { min-height: 70px; }
+  .d24-sec-w { min-height: 72px; }
+  .d24-hint:not(.on) { display: none; }
+}
 
 /* ─── 7 days: a wrapped grid for now, so it no longer scrolls sideways
    and fights the pager (it becomes a vertical list later). ─── */
@@ -2342,79 +2320,52 @@ html.sim-sa .sim-home {
 
 <!-- ─── 3 · 24 H — the next 24 hours ─── -->
 <section class="page" id="p-24h" data-slug="24h" aria-label="24 tundi">
-  <!-- 24 H PROGNOOS — the forecast card. Two wide sparkline tiles
-       (Sadu + Tuul over the next 24h). Öökülm (tonight's min) moved
-       to the comfort pills in Hetkeilm — users think of it as a
-       comfort question ("how cold will it get"), not a forecast to
-       scrub through. Uses the same .metric.wide tile recipe with
-       inline CSS-bar sparklines. -->
-  <!-- TÄNA · 24H — unified forecast card.
-       Three stacked bar rows (temp / rain / wind) sharing one time
-       axis. No horizontal scrolling — all 24 bars fixed-width.
-       Öökülm moved up to the comfort-pills row in Hetkeilm. -->
-  <div class="glass card forecast-card no-data">
+  <!-- One card, one hour axis (render24). The readout at the top holds
+       the tapped hour ('Praegu' until a bar is tapped; a tap, never a
+       drag, so a swipe on the chart still turns the page). Temperature
+       with 'tundub kui' as a dashed line, rain (collapsed to its line of
+       sky icons while the 24 h has no real rain — rainOutlook's rule),
+       wind with gust whiskers and where it blows to. A dashed line at
+       midnight, 'homme' under it. -->
+  <div class="glass card forecast-card d24-card no-data" id="d24-card">
     <div class="card-header">
-      <h2>Täna · 24h</h2>
+      <h2><span class="h2-long">Järgmised </span>24 h</h2>
       <span class="meta"><span id="rain-start-label">Saju alguseni:</span> <strong id="rain-start" class="mono">—</strong></span>
     </div>
-
-    <!-- ROW 1: TEMPERATUUR -->
-    <div class="forecast-row">
-      <div class="forecast-row-head">
-        <span class="forecast-row-label">Temperatuur</span>
-        <span class="forecast-row-sub" id="temp-spark-sub">—</span>
-      </div>
-      <div class="metric-spark" id="spark-temp" aria-hidden="true"></div>
+    <div class="d24-readout" id="d24-readout">
+      <div class="ro-cell ro-time"><span class="ro-lab" id="ro-when">Praegu</span><b class="mono" id="ro-hour">—</b></div>
+      <div class="ro-cell"><span class="ro-lab">Temp.</span><b class="mono" id="ro-temp">—</b><span class="ro-sub" id="ro-feels"></span></div>
+      <div class="ro-cell"><span class="ro-lab">Sadu</span><b class="mono" id="ro-rain">—</b><span class="ro-sub" id="ro-mm"></span></div>
+      <div class="ro-cell"><span class="ro-lab">Tuul</span><b class="mono" id="ro-wind">—</b><span class="ro-sub" id="ro-gust"></span></div>
     </div>
-
-    <!-- ROW 2: TUNDUB KUI (apparent temperature) -->
-    <div class="forecast-row">
-      <div class="forecast-row-head">
-        <span class="forecast-row-label">Tundub kui</span>
-        <span class="forecast-row-sub" id="feels-spark-sub">—</span>
+    <div class="d24-plot" id="d24-plot">
+      <div class="d24-sec d24-sec-t">
+        <div class="d24-lab"><span class="d24-name">Temperatuur</span>
+          <span class="d24-key"><i class="k-bar"></i>õhk <i class="k-line"></i>tundub kui</span>
+          <span class="d24-sub mono" id="temp-spark-sub">—</span></div>
+        <div class="d24-bars" id="d24-temp"></div>
       </div>
-      <div class="metric-spark" id="spark-feels" aria-hidden="true"></div>
+      <div class="d24-sec d24-sec-r" id="d24-sec-r">
+        <div class="d24-lab"><span class="d24-name">Sadu</span>
+          <div class="rain-mode-toggle" role="group" aria-label="Sadu: tõenäosus või hulk">
+            <button type="button" class="rain-mode-btn active" data-mode="prob">%</button>
+            <button type="button" class="rain-mode-btn" data-mode="mm">mm</button>
+          </div>
+          <span class="d24-sub mono" id="rain-sub">—</span></div>
+        <!-- the sky every 3 h, from the same slots as the rain bars -->
+        <div class="d24-icons" id="precip-types" aria-hidden="true"></div>
+        <div class="d24-bars" id="d24-rain"></div>
+      </div>
+      <div class="d24-sec d24-sec-w">
+        <div class="d24-lab"><span class="d24-name">Tuul</span>
+          <span class="d24-key"><i class="k-bar k-wind"></i>keskm. <i class="k-tick"></i>puhang</span>
+          <span class="d24-sub mono" id="wind-spark-sub">—</span></div>
+        <div class="d24-bars" id="d24-wind"></div>
+        <div class="d24-dirs" id="d24-dirs" aria-hidden="true"></div>
+      </div>
+      <div class="d24-axis mono" id="d24-axis" aria-hidden="true"></div>
+      <div class="d24-hint" id="d24-hint">Laen prognoosi…</div>
     </div>
-
-    <!-- ROW 3: SADU — with precip-type icon row above bars -->
-    <div class="forecast-row">
-      <div class="forecast-row-head">
-        <span class="forecast-row-label">Sadu</span>
-        <div class="rain-mode-toggle" role="group" aria-label="Sadu mood">
-          <button type="button" class="rain-mode-btn active" data-mode="prob">tõenäosus</button>
-          <button type="button" class="rain-mode-btn" data-mode="mm">hulk</button>
-        </div>
-        <span class="forecast-row-sub" id="rain-sub">—</span>
-      </div>
-      <!-- Precip type icons every 3h — populated by renderPrecipTypes() -->
-      <div class="precip-type-row" id="precip-types" aria-hidden="true"></div>
-      <div class="metric-spark" id="spark-rain" aria-hidden="true"></div>
-    </div>
-
-    <!-- ROW 4: TUUL + PUHANGUD -->
-    <div class="forecast-row">
-      <div class="forecast-row-head">
-        <span class="forecast-row-label">Tuul</span>
-        <span class="forecast-row-val mono cold">
-          <span id="wind-forecast-now">—</span><span class="unit"> m/s</span>
-          <span class="wind-arrow" id="wind-forecast-arrow">↑</span>
-        </span>
-        <span class="forecast-row-sub" id="wind-spark-sub">—</span>
-      </div>
-      <div class="metric-spark" id="spark-wind" aria-hidden="true"></div>
-      <!-- Gust sparkline — same color ramp, 40% opacity overlay feel -->
-      <div class="forecast-row-head" style="margin-top:4px">
-        <span class="forecast-row-label" style="opacity:0.6">Puhangud</span>
-        <span class="forecast-row-sub" id="gust-spark-sub">—</span>
-      </div>
-      <div class="metric-spark metric-spark-gusts" id="spark-gusts" aria-hidden="true"></div>
-    </div>
-
-    <!-- Shared time axis — rendered by the last renderSpark call
-         (wind), which appends the axis as a sibling of spark-wind.
-         The axis sits in the normal card flow below the three rows
-         and aligns with all three bar charts above it since they
-         all share the same width. -->
   </div>
 </section>
 
@@ -3181,28 +3132,6 @@ function weatherCodeToIcon(code, isDay){
   return '•';
 }
 
-/* ─── Precipitation type icon row ────────────────────────────────
- * Places SVG weather icons every 3h above the rain sparkline.
- * Same absolute-position math as the wind arrow row:
- *   left = ((barIdx + 0.5) / 24) * 100%   translateX(-50%) to centre */
-function renderPrecipTypes(codes, isDayArr, precipArr){
-  var el = byId('precip-types');
-  if(!el || !codes || !codes.length) return;
-  el.innerHTML = '';
-  var HOURS = [0, 3, 6, 9, 12, 15, 18, 21];
-  HOURS.forEach(function(barIdx){
-    var code = codes[barIdx];
-    var isDay = isDayArr ? isDayArr[barIdx] === 1 : true;
-    var cell = document.createElement('span');
-    cell.className = 'precip-type-icon';
-    cell.style.left = ((barIdx + 0.5) / 24 * 100) + '%';
-    if(typeof code === 'number' && !isNaN(code)){
-      cell.innerHTML = skyIconSVG(code, (precipArr ? (precipArr[barIdx] || 0) : 99), isDay);
-    }
-    el.appendChild(cell);
-  });
-}
-
 /* ─── UV severity ─────────────────────────────────────────────── */
 /* UV in Nüüd's secondary row: value and word, or '—' for null (never an
    invented 0). */
@@ -3583,15 +3512,12 @@ function renderWeather(data, savedAt){
       windEl.textContent = wind.toFixed(1);
       windEl.style.color = wind >= 7 && typeof windBarColor === 'function' ? solidColor(windBarColor(wind)) : '';
     }
-    if(byId('wind-forecast-now')) byId('wind-forecast-now').textContent = wind.toFixed(1);
     var windSubEl = byId('wind-sub');
     if(windSubEl){
       windSubEl.innerHTML = 'puh. <b' + (gust !== null && gust >= 15 ? ' class="warn"' : '') + '>'
         + (gust === null ? '—' : gust.toFixed(1)) + '</b>' + (isNum(dir) ? ' · ' + windFromWord(dir) : '');
     }
-    var arrowRotation = 'rotate(' + (dir + 180) + 'deg)';
-    var wa = byId('wind-arrow'); if(wa) wa.style.transform = arrowRotation;
-    var wfa = byId('wind-forecast-arrow'); if(wfa) wfa.style.transform = arrowRotation;
+    var wa = byId('wind-arrow'); if(wa) wa.style.transform = 'rotate(' + (dir + 180) + 'deg)';
 
     // Pressure — 3 h tendency from the hourly series, ±1 hPa either side
     // counts as steady. Only the arrow is shown in the secondary row; the
@@ -3650,51 +3576,9 @@ function renderWeather(data, savedAt){
     nuudFit();
     checkAlerts(data.hourly, cur);
 
-    // Sparklines (replace mock data with real)
-    if(typeof renderSpark === 'function'){
-      var next24Wind = data.hourly.wind_speed_10m.slice(curIdx, curIdx + 24);
-      var next24Gusts = data.hourly.wind_gusts_10m
-        ? data.hourly.wind_gusts_10m.slice(curIdx, curIdx + 24) : null;
-      var next24WindDir = data.hourly.wind_direction_10m
-        ? data.hourly.wind_direction_10m.slice(curIdx, curIdx + 24) : null;
-      // Rain row: Open-Meteo's hourly precipitation, its probability and
-      // the weather code describe the hour ENDING at time[i] — rain stamped
-      // 20:00 falls from 19:00. Read them from curIdx + 1 so bar i sits
-      // under the hour it rains in (bar 0 = the hour we're in, not the one
-      // that just ended), and the 'max … · kl HH' caption names that hour.
-      // The icon row's codes and day flags take the same shift. Temperature
-      // and wind are instants at time[i] and stay on curIdx.
-      var rIdx = curIdx + 1;
-      var next24Prob = data.hourly.precipitation_probability
-        ? data.hourly.precipitation_probability.slice(rIdx, rIdx + 24) : null;
-      var next24Mm = data.hourly.precipitation.slice(rIdx, rIdx + 24);
-      var next24Temp = data.hourly.temperature_2m.slice(curIdx, curIdx + 24);
-      var next24Feels = data.hourly.apparent_temperature
-        ? data.hourly.apparent_temperature.slice(curIdx, curIdx + 24) : null;
-      var next24Code = data.hourly.weathercode
-        ? data.hourly.weathercode.slice(rIdx, rIdx + 24) : null;
-      var next24IsDay = data.hourly.is_day
-        ? data.hourly.is_day.slice(rIdx, rIdx + 24) : null;
-
-      if(next24Wind.length) renderSpark('spark-wind', next24Wind,
-        {unit:'m/s', directions: next24WindDir,
-         colorFn: windBarColor, legend: WIND_LEGEND});
-      if(next24Gusts && next24Gusts.length) renderSpark('spark-gusts', next24Gusts,
-        {unit:'m/s', colorFn: windBarColor, subId: 'gust-spark-sub'});
-      if(next24Temp.length) renderSpark('spark-temp', next24Temp,
-        {unit:'°C', colorFn: tempBarColor, legend: TEMP_LEGEND,
-         relativeBase: true, subId: 'temp-spark-sub'});
-      if(next24Feels && next24Feels.length) renderSpark('spark-feels', next24Feels,
-        {unit:'°C', colorFn: tempBarColor, legend: TEMP_LEGEND,
-         relativeBase: true, subId: 'feels-spark-sub'});
-      SPARK_RAIN_DATA = { prob: next24Prob || next24Mm.map(function(v){ return v > 0 ? 50 : 0; }), mm: next24Mm };
-      var mode = (typeof getRainMode === 'function') ? getRainMode() : 'prob';
-      renderSpark('spark-rain', mode === 'prob' ? SPARK_RAIN_DATA.prob : SPARK_RAIN_DATA.mm,
-                  {unit: mode === 'prob' ? '%' : 'mm/h',
-                   colorFn: rainBarColor,
-                   legend: mode === 'prob' ? RAIN_LEGEND_PROB : RAIN_LEGEND_MM});
-      if(next24Code) renderPrecipTypes(next24Code, next24IsDay, next24Mm);
-    }
+    // The 24 h page — on its own, so a fault there cannot keep the age
+    // bookkeeping below from running.
+    try{ render24(data); }catch(e24){ console.error('render24 error:', e24); }
 
     LAST_FETCH_MS = savedAt || Date.now();
     WX_RENDERED = true;
@@ -4403,6 +4287,295 @@ function n12Select(k){
   }, 8000);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+ * RENDER — 24 h page (prototype A's page 2, on this build's data rules)
+ *
+ * One column per hour for the next 24, the hour under way first; three
+ * rows over ONE hour axis. Temperature, 'tundub kui' and the wind are
+ * instants at time[i]; the rain, its chance, the sky icon and the gusts
+ * belong to the slot ENDING an hour later (time[i + 1]) — the rule of
+ * renderN12() and rainOutlook() — so column k describes the hour that
+ * starts at its label. Real rain is isRealRainSlot()'s (≥ 0.3 mm or
+ * ≥ 50 %): while none of the 24 slots has it and nothing is falling, the
+ * rain row folds to its line of sky icons and 'kuiv · kuni 14 %' (B).
+ * The header's 'Saju alguseni' is updateRainStart() — the same outlook
+ * as the Nüüd verdict. Tap a column (no drag: a swipe still turns the
+ * page) and the readout at the top shows that hour; tap it again, or
+ * leave the page, and it is 'Praegu' again.
+ * ═══════════════════════════════════════════════════════════════ */
+var D24 = null, D24_SEL = 0, D24_SEL_KEY = null, D24_WIRED = false;
+var D24_HINT = 'Puuduta tulpa — selle tunni näidud on üleval';
+function render24(data){
+  var H = data && data.hourly;
+  if(!H || !H.time || !H.temperature_2m) return;
+  var idx = findCurrentHourIdx(H.time), n = Math.min(24, H.time.length - idx - 1);
+  if(n < 2) return;
+  var d = { n: n, key: [], hr: [], t: [], f: [], w: [], dir: [], g: [], prob: [], mm: [], wet: [], code: [], day: [], mid: -1 };
+  for(var k = 0; k < n; k++){
+    var i = idx + k, j = i + 1, tm = parseLocalIsoFlexible(H.time[i]);
+    d.key.push(H.time[i]);
+    d.hr.push(tm ? tm.getHours() : null);
+    d.t.push(H.temperature_2m[i]);
+    d.f.push(H.apparent_temperature ? H.apparent_temperature[i] : null);
+    d.w.push(H.wind_speed_10m ? H.wind_speed_10m[i] : null);
+    d.dir.push(H.wind_direction_10m ? H.wind_direction_10m[i] : null);
+    d.g.push(H.wind_gusts_10m ? H.wind_gusts_10m[j] : null);
+    d.prob.push(H.precipitation_probability ? H.precipitation_probability[j] : null);
+    d.mm.push(H.precipitation && isNum(H.precipitation[j]) ? H.precipitation[j] : null);
+    d.wet.push(isRealRainSlot(H, j));
+    d.code.push(H.weathercode ? H.weathercode[j] : null);
+    d.day.push(H.is_day ? H.is_day[j] === 1 : true);
+    if(k > 0 && d.hr[k] === 0 && d.mid < 0) d.mid = k;
+  }
+  // Dry: no real-rain slot in the window, and nothing falling now.
+  d.dry = d.wet.indexOf(true) < 0 && rainOutlook(H, data.current).state !== 'raining';
+  D24 = d;
+  // The tapped hour stays tapped across a refresh — by its time, not by
+  // its column, which shifts when the hour turns.
+  D24_SEL = D24_SEL_KEY ? Math.max(0, d.key.indexOf(D24_SEL_KEY)) : 0;
+  if(!D24_SEL) D24_SEL_KEY = null;
+  d24Temp(); d24Rain(); d24Wind(); d24Axis();
+  d24Select(D24_SEL);
+  d24FitHeader();
+  var card = byId('d24-card');
+  if(card) card.classList.remove('no-data');
+  if(!D24_WIRED){ D24_WIRED = true; d24Wire(); }
+}
+function d24Render(){ if(WX_LAST) render24(WX_LAST); }
+/* Positions on the shared axis. The bars sit in a flex row with 2 px gaps,
+   so column k's centre is at (100% + 2px)·(k + ½)/n − 1px and the edge
+   before it at (100% + 2px)·k/n − 1px. */
+function d24Centre(k){ return 'calc((100% + 2px) * ' + ((k + 0.5) / D24.n).toFixed(5) + ' - 1px)'; }
+function d24Edge(k){ return 'calc((100% + 2px) * ' + (k / D24.n).toFixed(5) + ' - 1px)'; }
+function d24MidLine(el){
+  if(D24.mid > 0) el.insertAdjacentHTML('beforeend', '<i class="d24-mid" style="left:' + d24Edge(D24.mid) + '"></i>');
+}
+function d24Fade(rgba, f){
+  return rgba.replace(/[\d.]+\)$/, function(m){ return (parseFloat(m) * f).toFixed(2) + ')'; });
+}
+/* The temperature scale, shared by the bars, the 'tundub' line and the
+   two value tags: at least 8° tall, room below the lowest bar and above
+   the highest for its tag. */
+function d24TempScale(){
+  var d = D24, vals = d.t.concat(d.f).filter(isNum);
+  if(!vals.length) return null;
+  var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  if(hi - lo < 8){ var c = (hi + lo) / 2; lo = c - 4; hi = c + 4; }
+  var base = lo - (hi - lo) * 0.12, top = hi + (hi - lo) * 0.28;
+  return { base: base, top: top, pct: function(v){ return Math.max(2, (v - base) / (top - base) * 100); } };
+}
+function d24Temp(){
+  var el = byId('d24-temp'), d = D24;
+  if(!el) return;
+  var sc = d24TempScale();
+  if(!sc){ el.innerHTML = ''; return; }
+  var html = '', tMax = -1, tMin = -1;
+  for(var k = 0; k < d.n; k++){
+    var v = d.t[k];
+    html += '<div class="col' + (k === 0 ? ' now' : '') + '">';
+    if(isNum(v)){
+      var tc = tempBarColor(v);
+      html += '<div class="b" style="height:' + sc.pct(v).toFixed(1) + '%;background:linear-gradient(180deg,' + tc + ' 0%,' + d24Fade(tc, 0.25) + ' 100%)"></div>';
+      if(tMax < 0 || v > d.t[tMax]) tMax = k;
+      if(tMin < 0 || v < d.t[tMin]) tMin = k;
+    }
+    html += '</div>';
+  }
+  if(sc.base < 0 && sc.top > 0) html += '<i class="zero" style="bottom:' + sc.pct(0).toFixed(1) + '%"></i>';
+  [tMax, tMin].forEach(function(k, which){
+    if(k < 0 || (which === 1 && (k === tMax || d.t[k] === d.t[tMax]))) return;
+    var up = Math.max(d.t[k], isNum(d.f[k]) ? d.f[k] : -99);
+    html += '<span class="tlab" style="left:' + d24Centre(k) + ';top:' + (100 - sc.pct(up)).toFixed(1) + '%">' + fmtT(d.t[k], 0, true) + '°</span>';
+  });
+  html += '<svg class="d24-line" id="d24-line" aria-hidden="true"></svg>';
+  el.innerHTML = html;
+  d24MidLine(el);
+  d24Layout();
+  var sub = byId('temp-spark-sub'), tv = d.t.filter(isNum);
+  if(sub) sub.textContent = tv.length ? fmtT(Math.min.apply(null, tv), 0, true) + '° … ' + fmtT(Math.max.apply(null, tv), 0, true) + '°' : '—';
+}
+/* The 'tundub kui' line needs the real box (the bars are in %), so it is
+   drawn after layout and again on a resize — dashed, as on Nüüd. */
+function d24Layout(){
+  var d = D24, box = byId('d24-temp'), svg = byId('d24-line');
+  if(!d || !box || !svg) return;
+  var W = box.clientWidth, Hh = box.clientHeight, sc = d24TempScale();
+  if(W <= 0 || Hh <= 0 || !sc) return;
+  var pts = [], dots = '', colW = (W + 2) / d.n;
+  for(var k = 0; k < d.n; k++){
+    if(!isNum(d.f[k])) continue;
+    var x = colW * (k + 0.5) - 1, y = Hh * (1 - sc.pct(d.f[k]) / 100);
+    pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+    if(k % 3 === 0) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="1.8" fill="rgba(255,255,255,0.92)"/>';
+  }
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Hh);
+  svg.innerHTML = pts.length < 2 ? '' :
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="rgba(10,12,16,0.7)" stroke-width="3.5" stroke-linejoin="round"/>'
+    + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="1.5" stroke-dasharray="3 3" stroke-linejoin="round"/>' + dots;
+}
+function d24Rain(){
+  var el = byId('d24-rain'), d = D24, sec = byId('d24-sec-r'), sub = byId('rain-sub');
+  if(!el) return;
+  var mode = getRainMode(), useProb = mode === 'prob' && d.prob.some(isNum);
+  var series = useProb ? d.prob : d.mm;
+  var pv = d.prob.filter(isNum), pmax = pv.length ? Math.max.apply(null, pv) : null;
+  var tot = 0, mmMax = 0;
+  d.mm.forEach(function(v){ if(isNum(v)){ tot += v; mmMax = Math.max(mmMax, v); } });
+  var top = useProb ? 100 : niceMax(Math.max(mmMax, 0.5), 'mm/h');
+  var html = '', pk = -1;
+  for(var k = 0; k < d.n; k++){
+    var v = series[k];
+    html += '<div class="col' + (k === 0 ? ' now' : '') + '">';
+    if(isNum(v) && v > 0){
+      var c = rainBarColor(v, useProb ? '%' : 'mm/h').replace(/[\d.]+\)$/, function(m){ return Math.max(0.55, parseFloat(m)).toFixed(2) + ')'; });
+      html += '<div class="b" style="height:' + Math.max(4, Math.min(100, v / top * 100)).toFixed(1) + '%;background:' + c + '"></div>';
+      if(pk < 0 || v > series[pk]) pk = k;
+    } else html += '<div class="b nil" style="height:2px"></div>';
+    html += '</div>';
+  }
+  // One gridline, at half the scale: 50 % (the real-rain chance), or half
+  // the mm ceiling. The top of the box is the full scale.
+  html += '<i class="grid" style="bottom:50%" data-v="' + (useProb ? '50 %' : (top / 2 < 1 ? (top / 2).toFixed(2).replace(/0$/, '') : Math.round(top / 2)) + ' mm') + '"></i>';
+  el.innerHTML = html;
+  d24MidLine(el);
+  // The sky every 3 h over the same columns (the rain's slots).
+  var ic = byId('precip-types');
+  if(ic){
+    var ih = '';
+    for(var j = 0; j < d.n; j++){
+      if(d.hr[j] === null || d.hr[j] % 3 !== 0 || d.code[j] == null) continue;
+      ih += '<span class="pt" style="left:' + d24Centre(j) + '">' + skyIconSVG(d.code[j], isNum(d.mm[j]) ? d.mm[j] : 0, d.day[j]) + '</span>';
+    }
+    ic.innerHTML = ih;
+    d24MidLine(ic);
+  }
+  if(sec) sec.classList.toggle('dry', d.dry);
+  if(!sub) return;
+  sub.classList.toggle('wet', !d.dry);
+  if(d.dry) sub.textContent = 'kuiv' + (isNum(pmax) && pmax >= 5 ? ' · kuni ' + Math.round(pmax) + ' %' : '');
+  else if(useProb) sub.textContent = pk >= 0 ? 'max ' + Math.round(series[pk]) + ' % · kl ' + pad(d.hr[pk]) : '—';
+  else sub.textContent = 'kokku ' + round1(tot).toFixed(1) + ' mm';
+}
+function d24Wind(){
+  var el = byId('d24-wind'), d = D24;
+  if(!el) return;
+  var all = d.w.concat(d.g).filter(isNum);
+  var top = niceMax(Math.max.apply(null, all.concat([4])) * 1.12, 'm/s');
+  var html = '', wm = null, gm = null;
+  for(var k = 0; k < d.n; k++){
+    var v = d.w[k], g = d.g[k];
+    html += '<div class="col' + (k === 0 ? ' now' : '') + '">';
+    if(isNum(v)){
+      var c = windBarColor(v), hb = Math.max(3, v / top * 100);
+      html += '<div class="b" style="height:' + hb.toFixed(1) + '%;background:linear-gradient(180deg,' + c + ' 0%,' + d24Fade(c, 0.3) + ' 100%)"></div>';
+      if(isNum(g) && g > v){
+        var hg = Math.min(100, g / top * 100);
+        html += '<i class="g' + (g >= 15 ? ' bad' : '') + '" style="bottom:' + hb.toFixed(1) + '%;height:' + Math.max(0, hg - hb).toFixed(1) + '%"></i>';
+      }
+      wm = wm === null ? v : Math.max(wm, v);
+    }
+    if(isNum(g)) gm = gm === null ? g : Math.max(gm, g);
+    html += '</div>';
+  }
+  el.innerHTML = html;
+  d24MidLine(el);
+  var sub = byId('wind-spark-sub');
+  if(sub) sub.textContent = wm === null ? '—' : 'kuni ' + Math.round(wm) + (gm !== null ? ' · puh. ' + Math.round(gm) : '') + ' m/s';
+  // Where it blows TO, every 3 h (the hero arrow's convention).
+  var dirs = byId('d24-dirs');
+  if(dirs){
+    var ah = '';
+    for(var j = 0; j < d.n; j++){
+      if(d.hr[j] === null || d.hr[j] % 3 !== 0 || !isNum(d.dir[j])) continue;
+      ah += '<span class="ar" style="left:' + d24Centre(j) + ';transform:rotate(' + Math.round(d.dir[j] + 180) + 'deg)">'
+          + '<svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 15V6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M5 1.5L1.6 7.5h6.8z" fill="currentColor"/></svg></span>';
+    }
+    dirs.innerHTML = ah;
+    d24MidLine(dirs);
+  }
+}
+function d24Axis(){
+  var el = byId('d24-axis'), d = D24;
+  if(!el) return;
+  var html = '';
+  for(var k = 0; k < d.n; k++){
+    if(d.hr[k] === null || d.hr[k] % 3 !== 0) continue;
+    html += '<span' + (k === d.mid ? ' class="mid"' : '') + ' style="left:' + d24Centre(k) + '">' + pad(d.hr[k]) + '</span>';
+  }
+  // 'täna' under the first hours unless midnight is right there; 'homme'
+  // from the midnight line when three columns follow it (it may run into
+  // the card's padding). Nearer the edge (01–03 o'clock) there is no room:
+  // the bold 00 and the line say it.
+  if(d.mid < 0 || d.mid >= 3) html += '<em style="left:0">täna</em>';
+  if(d.mid > 0 && d.n - d.mid >= 3) html += '<em class="tom" style="left:' + d24Edge(d.mid) + '">homme ›</em>';
+  el.innerHTML = html;
+}
+function d24Select(k){
+  var d = D24;
+  if(!d || k < 0 || k >= d.n) return;
+  D24_SEL = k;
+  D24_SEL_KEY = k ? d.key[k] : null;
+  ['d24-temp', 'd24-rain', 'd24-wind'].forEach(function(id){
+    var el = byId(id);
+    if(!el) return;
+    var cols = el.querySelectorAll('.col');
+    for(var c = 0; c < cols.length; c++) cols[c].classList.toggle('sel', c === k && k !== 0);
+  });
+  var set = function(id, txt, cls){
+    var e = byId(id);
+    if(!e) return;
+    if(e.textContent !== txt) e.textContent = txt;
+    if(cls !== undefined) e.className = 'mono' + (cls ? ' ' + cls : '');
+  };
+  set('ro-when', k === 0 ? 'Praegu' : (d.mid > 0 && k >= d.mid ? 'Homme' : 'Täna'));
+  set('ro-hour', d.hr[k] === null ? '—' : 'kl ' + pad(d.hr[k]), '');
+  var t = d.t[k];
+  set('ro-temp', isNum(t) ? fmtT(t, 0, true) + '°' : '—', isNum(t) && t < 0 ? 'cold' : isNum(t) && t >= 25 ? 'hot' : '');
+  set('ro-feels', isNum(d.f[k]) ? 'tundub ' + fmtT(d.f[k], 0, true) + '°' : '');
+  var pr = d.prob[k], mm = d.mm[k];
+  set('ro-rain', isNum(pr) ? Math.round(pr) + ' %' : isNum(mm) ? round1(mm).toFixed(1) : '—', d.wet[k] ? 'wet' : '');
+  set('ro-mm', !isNum(mm) ? '' : (mm >= 0.05 || d.wet[k] || (isNum(pr) && pr >= 20)) ? round1(mm).toFixed(1) + ' mm' : 'kuiv');
+  var w = d.w[k], g = d.g[k];
+  set('ro-wind', isNum(w) ? Math.round(w) + ' m/s' : '—', isNum(w) && w >= 7 ? 'strong' : '');
+  var gEl = byId('ro-gust');
+  if(gEl){
+    var gh = (isNum(g) ? 'puh. ' + (g >= 15 ? '<span class="bad">' + Math.round(g) + '</span>' : Math.round(g)) : '')
+           + (isNum(d.dir[k]) ? (isNum(g) ? ' · ' : '') + windFromWord(d.dir[k]) : '');
+    if(gEl.innerHTML !== gh) gEl.innerHTML = gh;
+  }
+  var ro = byId('d24-readout');
+  if(ro) ro.classList.toggle('sel', k !== 0);
+  var hint = byId('d24-hint');
+  if(hint){
+    hint.textContent = k ? 'Puuduta uuesti — tagasi praegusele' : D24_HINT;
+    hint.classList.toggle('on', k !== 0);
+  }
+}
+function d24Wire(){
+  var plot = byId('d24-plot');
+  if(!plot) return;
+  plot.addEventListener('click', function(e){
+    if(e.target.closest && e.target.closest('.rain-mode-toggle')) return;
+    var ref = byId('d24-temp');
+    if(!ref || !D24) return;
+    var r = ref.getBoundingClientRect(), k = Math.floor((e.clientX - r.left) / ((r.width + 2) / D24.n));
+    if(k >= 0 && k < D24.n) d24Select(k === D24_SEL ? 0 : k);
+  });
+  var box = byId('d24-temp');
+  if(box && typeof ResizeObserver === 'function') new ResizeObserver(function(){ d24Layout(); }).observe(box);
+  else window.addEventListener('resize', d24Layout);
+}
+/* Leaving the page: back to 'Praegu' (pagerSettle). */
+function d24Reset(){ if(D24 && D24_SEL) d24Select(0); }
+/* The header: 'Järgmised 24 h' gives way to '24 h' when the rain line
+   beside it ('Sajab praegu · lõpp homme ~kl 02') would not fit. */
+function d24FitHeader(){
+  var m = byId('rain-start'), head = m && m.closest('.card-header'), meta = m && m.parentNode;
+  if(!head || !meta) return;
+  head.classList.remove('short');
+  if(meta.scrollWidth > meta.clientWidth + 1) head.classList.add('short');
+}
+
 /* Nüüd is one screen: when what it has to say today (a warning bar, the
    storm banner, age tags) would push it past the tab bar, it tightens
    (.tight) instead of scrolling; only a phone too short even then (SE)
@@ -4421,12 +4594,20 @@ function nuudFit(){
 }
 
 /* The rain texts again from the payload on screen: the verdict, the Sadu
-   tile and the countdown count on while a feed is down (30-s tick). */
+   tile and the countdown count on while a feed is down (30-s tick). When
+   the hour has turned since the last render, the hourly charts (the 12 h
+   grid, the 24 h page) move on to start at the new hour too. */
 function refreshRainTexts(){
   if(!WX_LAST || !WX_LAST.hourly) return;
   renderVerdict();
   renderRainTile(WX_LAST.hourly, WX_LAST.current);
   updateRainStart(WX_LAST.hourly, WX_LAST.current);
+  d24FitHeader();
+  var T = WX_LAST.hourly.time;
+  if(D24 && T && T[findCurrentHourIdx(T)] !== D24.key[0]){
+    renderN12();
+    render24(WX_LAST);
+  }
 }
 
 function fetchWeatherAndForecast(){
@@ -4506,6 +4687,8 @@ function showWeatherEmpty(failed){
   if(v){ v.textContent = 'Prognoos puudub — proovin uuesti'; v.className = 'verdict none'; }
   var n = byId('n12');
   if(n && !N12) n.innerHTML = '<div class="empty-note">Tunniprognoos puudub</div>';
+  var h24 = byId('d24-hint');
+  if(h24 && !D24) h24.textContent = 'Prognoos puudub — proovin uuesti';
   updateWeatherAge();
 }
 function clearWeatherEmpty(){
@@ -6172,7 +6355,6 @@ var RAIN_LEGEND_MM = {
   ]
 };
 
-var SPARK_RAIN_DATA = { prob: [], mm: [] };
 
 /* niceMax — round a data maximum UP to a clean scale ceiling.
  * Used by the sparkline y-axis so labels read "8 m/s" not "7.3 m/s".
@@ -6413,16 +6595,10 @@ function renderSpark(elId, data, opts){
     legendEl.style.display = 'none';
   }
 
-  // Peak caption — opts.subId overrides the map lookup for custom IDs.
-  var subIdMap = {
-    'spark-temp':   'temp-spark-sub',
-    'spark-feels':  'feels-spark-sub',
-    'spark-wind':   'wind-spark-sub',
-    'spark-gusts':  'gust-spark-sub',
-    'spark-rain':   'rain-sub'
-  };
-  var subId = opts.subId || subIdMap[elId];
-  var sub = subId ? byId(subId) : null;
+  // Peak caption, when the caller names an element for it (opts.subId).
+  // (The 24 h card's sparklines, which had fixed ones, are render24's now;
+  // the day sheet passes none.)
+  var sub = opts.subId ? byId(opts.subId) : null;
   if(sub){
     var peakIdx = data.indexOf(dataMax);
     var peakHour = (startHour + peakIdx) % 24;
@@ -6443,19 +6619,14 @@ function renderSpark(elId, data, opts){
       sub.textContent = peakIdx === 0
         ? prefix + 'max ' + peakValStr + ' ' + unit
         : prefix + 'max ' + peakValStr + ' ' + unit + ' · ' + timeStr;
-    } else if(elId === 'spark-rain'){
-      sub.textContent = 'kuiv järgmised 24h';
     } else {
       sub.textContent = '—';
     }
   }
 }
 
-/* Rain-mode segmented toggle — two buttons (tõenäosus / kogus). The
- * one with .active sets which array drives the sparkline. Also
- * exposed as a module-level helper so renderWeather can call it after
- * each Open-Meteo refresh to keep the sparkline + the active button
- * in sync without depending on a stale select element. */
+/* Rain-mode segmented toggle on the 24 h page (% / mm): the button with
+ * .active says which series the rain bars show (d24Rain). */
 function getRainMode(){
   var active = document.querySelector('.rain-mode-btn.active');
   return active ? active.getAttribute('data-mode') : 'prob';
@@ -6466,16 +6637,13 @@ function setRainMode(mode){
     if(b.getAttribute('data-mode') === mode) b.classList.add('active');
     else b.classList.remove('active');
   });
-  renderSpark('spark-rain',
-              mode === 'prob' ? SPARK_RAIN_DATA.prob : SPARK_RAIN_DATA.mm,
-              {unit: mode === 'prob' ? '%' : 'mm/h',
-               colorFn: rainBarColor,
-               legend: mode === 'prob' ? RAIN_LEGEND_PROB : RAIN_LEGEND_MM});
+  if(D24) d24Rain();
 }
 (function(){
   var btns = document.querySelectorAll('.rain-mode-btn');
   btns.forEach(function(btn){
-    btn.addEventListener('click', function(){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();          // not a tap on the chart
       setRainMode(btn.getAttribute('data-mode'));
     });
   });
@@ -6560,6 +6728,7 @@ function pagerSettle(){
   pagerSyncHash();
   var radarI = PAGER.slugs.indexOf('radar');
   if((i === radarI || prev === radarI) && typeof radarPageShown === 'function') radarPageShown(i === radarI);
+  if(prev === PAGER.slugs.indexOf('24h')) d24Reset();      // the tapped hour goes back to 'Praegu'
 }
 /* The #hash names the page on screen. history.state is kept: an open day
  * sheet's entry must survive this. Also run on popstate — a Back that
@@ -6655,7 +6824,7 @@ pagerInit();
   if(n12 && typeof ResizeObserver === 'function'){
     new ResizeObserver(function(){ n12Layout(); }).observe(n12);
   }
-  window.addEventListener('resize', function(){ fitHeader(); nuudFit(); });
+  window.addEventListener('resize', function(){ fitHeader(); nuudFit(); d24FitHeader(); });
 })();
 
 // Sun times BEFORE the cache paint: heroIsDay() falls back to the cached
