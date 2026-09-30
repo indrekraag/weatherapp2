@@ -3867,8 +3867,11 @@ function renderRainTile(H, current){
   if(!sub) return;
   if(o.state === 'slot') sub.innerHTML = '<span class="rain">alla tunni</span>';
   else if(soon) sub.innerHTML = '<span class="rain">algab ~kl ' + pad(new Date(o.startMs).getHours()) + '</span>';
-  else if(mm >= 0.1) sub.textContent = round1(mm).toFixed(1) + ' mm, nõrk';
-  else sub.textContent = pmax !== null && pmax >= 20 ? 'pigem kuiv' : 'kuiv';
+  // Neither slot is real rain here (either one would have made it 'slot'
+  // or 'soon'): a trace or a 45 % drizzle is 'pigem kuiv', never
+  // '0.3 mm, nõrk' under a green 'Kuiv …' verdict (0.29 mm rounded to
+  // the very threshold it is below).
+  else sub.textContent = mm >= 0.1 || (pmax !== null && pmax >= 20) ? 'pigem kuiv' : 'kuiv';
 }
 
 /* ─── Next 12 hours ───────────────────────────────────────────────────
