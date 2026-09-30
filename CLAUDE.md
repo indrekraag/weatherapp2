@@ -34,18 +34,16 @@ This file is the project bible. **Read it in full at the start of every session 
 
 ## What the app shows
 
-All in Estonian. Top-down stack:
+All in Estonian. Since v3.0.0 (2026-09-30) the app is **five full-screen pages swiped sideways**, with a tab bar at the bottom (native scroll-snap pager, `main#pager` > `section.page`; the app opens on Nüüd, returns there after > 10 min in the background, `#hash` per page). No page scrolls vertically on 360/390/430-wide phones; short phones (iPhone SE) fall back to scrolling inside a page.
 
-- **Topbar** — pulse-dot, location (Madise), live clock, "uuendatud" timestamp with stale-after-10min amber indicator, **soft refresh** (↻) and **hard refresh** (⟲ — clears localStorage + SW caches, force-reloads) buttons
-- **Meteo warning row** — slim 1-line strip: "Hoiatusi pole" muted when no active CAP warnings for Lääne county; coloured by severity (minor=yellow, moderate=amber, severe/extreme=red) when active. Translated to Estonian.
-- **Storm/heavy-rain alert banner** — transient banner from Open-Meteo forecast for next 12 h (separate from the persistent meteo warning row above)
-- **Hetkeilm** (current weather): big temp hero + condition; rows for tundub-nagu, kastepunkt; then *two inline weather-station sub-blocks* showing Kurevere (tarktee road station) and Lääne-Nigula + Haapsalu (EMHI) with temp · precip · wind ↑ each; then full data rows (tuul, sadu, rõhk, niiskus, UV, nähtavus, öökülm + frost warning)
-- **Täna tunniti** — horizontal hourly strip (4 tiles always fit, scroll for more), "Võimaliku saju alguseni: …" caption
-- **7 päeva** — horizontal daily strip (4 tiles fit, scroll for more)
-- **Päike** — shared **card-hero** at top (sun disc with day/night toggle + day length + "päikest" caption), then Tõus / Loojang / Loojanguni rows with azimuth in degrees beside each rise/set time
-- **Kuu** — shared **card-hero** at top (moon phase emoji + phase name + illumination %), then Tõus / Loojang / Järgmine täiskuu rows with azimuth in degrees beside each rise/set time
-- **Õietolm** (pollen): Üldine, Kask, Hein, Lepp
-- **Virmalised** (aurora): 24h max Kp (with G-scale label), Tõenäosus (Ovation visibility % at Madise), Bz (solar wind), 72h mini bar-chart (24 cells × 3 h, colour-coded by storm tier)
+1. **Nüüd** (`#p-nuud`) — clock + date, freshness chip ('uuendatud 3 min', amber when old), the warning state (calm day: small '✓ hoiatusi pole' chip; active: full-width bar with time window, '+N', official yellow/orange/red; unknown: '? Hoiatused teadmata'); the hero temperature + condition + today's hi/lo; the **verdict line** ('Kuiv kuni pühapäeva ööni · tuul nõrk · öösel +10°'); 3 main tiles (Tuul + direction + gusts, Sadu next 2 h, Öösel/Öökülm) and a compact row (rõhk + trend, niiskus, nähtavus, UV); the three stations (Kurevere with road state, Lääne-Nigula, Haapsalu, each with age tags); the **next 12 h** grid (temp bars + 'tundub' line, rain %, wind per hour; tap an hour).
+2. **Radar** (`#p-radar`) — Leaflet map filling the page (satellite / MAP), sun and moon arcs + wind arrow overlay, legend, presets 10 km / 80 km / EE inside the map. **One-finger drag is off until 'Liiguta'** (so page swipes never pan the map); 'Valmis', leaving the page or 60 s idle snaps it back to Madise. Plays only while this page is shown. Play/scrubber/status + Satelliit ↗ / Pilvisus ↗ at the bottom.
+3. **24 h** (`#p-24h`) — readout panel for the tapped hour ('Praegu' by default), temperature bars + 'tundub kui' line, rain row (% / mm toggle; always shows its bars), wind with gust whiskers and arrows, one shared hour axis, a midnight divider with 'homme'.
+4. **Nädal** (`#p-nadal`) — the 7 days as rows (weekday + date, icon, rain mm and %, a min–max range bar on a weekly scale, wind); tap a row → the **day sheet** (bottom sheet, swipe between days; Android Back closes it). Päike and Kuu below.
+5. **Hind** (`#p-hind`) — electricity price chart (3 past hours + everything ahead, cheapest 3 h window, today/tomorrow min–max, midnight divider, value tags, negatives below zero); Õietolm + Virmalised as one line each while quiet, expanding when something happens; **Andmed**: per-source ages, '↻ Uuenda kõik', two-tap '⟲ Tühjenda vahemälu' (refuses offline), build stamp.
+
+**Rain rule (owner, 2026-09-30):** "real rain" = an hour with ≥ 0.3 mm/h or ≥ 50 % probability. One shared outlook (`rainOutlook`/`isRealRainSlot`) feeds the verdict line, the 'Sadu:' countdown and the 24 h header, so they can't disagree. `RAIN_MIN_MM = 0.5` still governs icons and the 7-day amounts.
+**Colours:** figures are neutral, blue ≤ 0°, warm ≥ 25° (`tempTone`); temperature BARS keep the TEMP_STOPS ramp (blue → green → amber → red); amber is not used for good news. **No bigger fonts** than before the redesign (owner's rule — check before any change).
 
 ## Data sources
 
@@ -128,7 +126,7 @@ If you ever want raw EMHI station readings without going through our bridge, you
 - **Storage keys** are prefixed `wa2.` (STORE_PREFIX, one-time migration from `wx.*`): wa1 and wa2 share the indrekraag.github.io origin and used to overwrite each other's caches; ⟲ now clears only wa2's own keys, caches and worker
 - **Pair-card alignment:** Päike and Kuu share `.card-hero` class so their first data row (Tõus) lines up across both cards
 - **Pair-card alignment:** Õietolm and Virmalised share the icon-as-left-rail row layout for consistency
-- **Forecast tiles:** `flex: 0 0 calc((100% - 24px) / 4)` — exactly 4 tiles always visible regardless of viewport, scroll for more, slim 4 px scrollbar, scroll-snap
+- **No sideways scrolling inside a page** (it would fight the pager): the 7-day is a vertical list, charts read a value on TAP (no drag), the map is locked until 'Liiguta', the radar scrubber has touch-action:none.
 
 ## Local development
 
@@ -203,7 +201,7 @@ It force-pushes to the `data` branch. The data branch is **never merged** back t
 
 Since 2026-09-30 the worker is network-first, so a push shows up on the next open — no more remove-and-re-add. The "⟲" button (two taps: the first shows "Kinnita?") still clears wa2's localStorage, caches and worker in place.
 
-**Undo points (git tags):** `pre-audit-fixes` = wa2 before the 2026-09-29/30 audit work. Roll back with `git checkout pre-audit-fixes -- index.html sw.js manifest.json && git commit -m "Undo audit fixes" && git push` (the network-first worker then serves the old page on the next open).
+**Undo points (git tags):** `pre-redesign` = v2.0.0 (audit fixes, the old single long page). Roll back the redesign with `git checkout pre-redesign -- index.html && git commit -m "Undo the redesign" && git push`. `pre-audit-fixes` = wa2 before the 2026-09-29/30 audit work. Roll back with `git checkout pre-audit-fixes -- index.html sw.js manifest.json && git commit -m "Undo audit fixes" && git push` (the network-first worker then serves the old page on the next open).
 
 ## What NOT to do
 
@@ -230,11 +228,31 @@ print('orphans:', sorted(refs - ids))"
 
 ## Current state
 
-**2026-09-30:** v2.0.0 — the audit fixes are live (see Recent changes); the horizontal-paging redesign is next (TODO). Older status follows.
+**2026-09-30:** v3.0.0 — the five-page swipe redesign is live on top of the v2.0.0 audit fixes (see What the app shows and Recent changes). Everything below this paragraph describes the pre-redesign history.
 
 **Status:** `index.html` is now a fully-external redesign (`redesign_90`, `6a67369`) replacing the prior in-repo Preset 11 build. The visual system, CSS architecture, and likely much of the JS has been rewritten by Indrek outside this repo (filename pattern `~/Downloads/madise-redesign{N}.html` or `~/Downloads/madise-redesign_{N}.html` — both numbering styles in use). As of 2026-05-31 the JS render layer **has** been read/edited (icon + rain-threshold work, see below) — confirmed the file is a fully functional app (~4150 lines, single main `<script>` block). Key render fns: `currentSkyText`, `weatherCodeToSVG`, `skyIconSVG`, `renderPrecipTypes`, `renderDaily`. `renderHourly` is an **empty stub** ("hourly-strip removed — now bar charts in forecast-card"), so the hourly weather-symbol surface is the 3-hourly **precip-type row** (`renderPrecipTypes`). **2026-05-31/06-01:** added a tappable **7-day → day-detail bottom sheet** (`openDaySheet`/`_buildDayPanel`/`_hourSliceForDay`/`_wireSparkTap`, `WX_LAST` global) — see Recent changes — plus precip-aware icons (`skyIconSVG` + `RAIN_MIN_MM`) and the Erik Flowers glyph set. HEAD `fb0fc0e`. The old CSS-class conventions (`.wx-cond-line`, `.wx-meta`, `.card-hero`, `--label-col`) are stale; the CSS layer is still un-audited. The prior in-repo build is preserved at `indexvana.html` on remote (created via the GitHub web UI as a backup before the swap to `redesign3`). Live: https://indrekraag.github.io/weatherapp2/
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
+
+## Recent changes (2026-09-30b — five-page swipe redesign, v3.0.0)
+
+The owner asked for the phone app as full-screen pages swiped sideways
+instead of one long vertical page, with options to review first. Three
+working prototypes were built on live data and judged (A one question per
+page, B three dense pages, C by task); the owner chose the judge's hybrid —
+C's Nüüd, Nädal and Hind pages with A's Radar and 24 h pages — in the order
+Nüüd · Radar · 24 h · Nädal · Hind (review page: claude.ai artifact
+"Madise Swipe Layouts"). See **What the app shows** for the result. Built
+on branch `redesign` in 25 commits (merged fast-forward), verified by two
+independent passes (function/data and design/fit/gestures); ten findings
+fixed. After trying it on the phone the owner had two changes: the
+temperature bars had gone grey (a neutral colour for 0–25° from the colour
+pass) — the colour ramp is back; and the 24 h rain row folded away on dry
+days — it now always shows its bars.
+
+Checked only in desktop Chrome with simulated touch; the swipe feel was
+tried by the owner on the iPhone over the LAN preview. Undo tag:
+`pre-redesign`.
 
 ## Recent changes (2026-09-30 — design review + audit fixes, v2.0.0)
 
@@ -723,7 +741,7 @@ The Hetkeilm card has three vertical contexts that all line up at x=105:
 
 ## TODO / open questions
 
-- [ ] **Horizontal-paging redesign (chosen 2026-09-30):** five full-screen pages swiped sideways with a bottom tab bar — Nüüd · Radar · 24 h · Nädal · Hind. Nüüd/Nädal/Hind from prototype C, Radar and 24 h from prototype A (review page: claude.ai artifact "Madise Swipe Layouts"). Plus the chosen upgrades: verdict line, freshness chip, 3-tile hero, road chip, warnings with time window, cleaner 24 h card, better 7-day list, price upgrades, quiet seasonal cards, semantic colours + one icon family, honest empty states. **No bigger fonts.** Rain for "Kuiv kuni …" = only real rain (≥ 0.3 mm/h or ≥ 50 %), one shared function with the countdown.
+- [x] **Horizontal-paging redesign (chosen and shipped 2026-09-30, v3.0.0):** five full-screen pages swiped sideways with a bottom tab bar — Nüüd · Radar · 24 h · Nädal · Hind. Nüüd/Nädal/Hind from prototype C, Radar and 24 h from prototype A (review page: claude.ai artifact "Madise Swipe Layouts"). Plus the chosen upgrades: verdict line, freshness chip, 3-tile hero, road chip, warnings with time window, cleaner 24 h card, better 7-day list, price upgrades, quiet seasonal cards, semantic colours + one icon family, honest empty states. **No bigger fonts.** Rain for "Kuiv kuni …" = only real rain (≥ 0.3 mm/h or ≥ 50 %), one shared function with the countdown.
 - [x] Render road state on the Kurevere chip (2026-09-30; `grip_factor` doesn't exist on the tram layer)
 - [x] Age check on the EMHI chips (2026-09-30)
 - [ ] Verify the new home-screen icon on the actual iPhone after re-installing as a web app
