@@ -1553,7 +1553,7 @@ body { padding: 0; }
 .sky-card #aurora-line { border-top: 1px solid rgba(255,255,255,0.06); }
 .q-ic { width: 18px; height: 18px; flex-shrink: 0; color: var(--fg-2); }
 .q-t { flex-shrink: 0; font: 700 11px/1 -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.92); }
-.q-sum { margin-left: auto; min-width: 0; font-size: 12px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-sum { margin-left: auto; min-width: 0; font-size: 12px; color: var(--fg-2); text-align: right; line-height: 1.25; }   /* wraps at a ' · ', never '…' (Kp 6.3 at 360 px) */
 .q-sum .mid { color: var(--warn); }
 .q-sum .hi { color: var(--bad); }
 .q-sum .go, .q-sum .okc { color: var(--ok); }
@@ -1692,7 +1692,6 @@ body { padding: 0; }
 @media (max-width: 340px) {
   .tile { padding-left: 7px; padding-right: 7px; }
   .tile-sub { white-space: normal; overflow: visible; line-height: 1.2; }
-  .q-sum { white-space: normal; text-align: right; line-height: 1.25; }
   .d24-lab { flex-wrap: wrap; row-gap: 1px; }
   .d24-key { order: 3; flex: 0 0 100%; }
   .d24-readout { grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 4px; padding: 7px 6px; }
@@ -6037,7 +6036,9 @@ function renderSkyCard(){
     else {
       aOpen = (kp !== null && kp >= 4) || (pr !== null && pr >= 10);
       var strong = (kp !== null && kp >= 6) || (pr !== null && pr >= 30);
-      var nums = (kp !== null ? 'Kp ' + kp.toFixed(1) : '') + (pr !== null ? (kp !== null ? ' · ' : '') + Math.round(pr) + ' %' : '');
+      // The figures stay together: a narrow line wraps between the words
+      // and 'Kp 6.3 · 35 %' (no-break spaces), not inside them.
+      var nums = (kp !== null ? 'Kp\u00a0' + kp.toFixed(1) : '') + (pr !== null ? (kp !== null ? '\u00a0·\u00a0' : '') + Math.round(pr) + '\u00a0%' : '');
       ah = (aOpen ? '<span class="go">' + (strong ? 'tõenäoliselt näha' : 'võimalik näha') + '</span> · ' : 'vaikne · ') + nums;
     }
     if(as.innerHTML !== ah) as.innerHTML = ah;
