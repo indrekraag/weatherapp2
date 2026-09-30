@@ -234,6 +234,16 @@ print('orphans:', sorted(refs - ids))"
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
 
+## Recent changes (2026-09-30e — no double-tap zoom, v3.0.3)
+
+- **Double-tap zoom off** (owner's request): `touch-action: manipulation` on
+  `*` (zero specificity, so the scrubber's `none` and Leaflet's own rules
+  still win), and the map's `doubleClickZoom: false` whether locked or
+  not. Pinch zoom on the map stays.
+- The `.top-cap` fade is 8 px (`--top-fade`) and every page starts 2 px below
+  it — in v3.0.2 the fade overlapped the top of the Nüüd header row, which
+  still looked slightly blurred on the owner's phone.
+
 ## Recent changes (2026-09-30d — no iOS 26 blur over the header, v3.0.2)
 
 v3.0.1's status-bar change did not show on the owner's phone: iOS keeps

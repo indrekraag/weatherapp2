@@ -250,7 +250,7 @@ body {
 #p-nuud {
   gap: 8px;
   gap: clamp(6px, calc((100vh - 760px) / 6), 14px);   /* a taller phone gets air, not bigger type */
-  padding-top: calc(var(--sat) + var(--top-cap) + 2px);   /* below the .top-cap strip */
+  padding-top: calc(var(--sat) + var(--top-cap) + var(--top-fade) + 2px);   /* below the .top-cap strip and its fade */
 }
 #p-nuud > .grow { flex: 1 0 auto; }
 /* Line icons (LIC / lic()): the tab bar's family — 24-grid, round caps
@@ -1251,7 +1251,13 @@ html.sim-sa { --sat: 59px; --sab: 34px; }
    background covers the top edge (≥ ~10 px tall, ≥ 90 % of the width) and
    uses the box's colour instead — so this box, in the page's own top
    colour. It must stay opaque and full-width. Pages start below it. */
-:root { --top-cap: 12px; }
+:root { --top-cap: 12px; --top-fade: 8px; }
+
+/* No double-tap zoom (owner, 2026-09-30): 'manipulation' keeps taps, pans
+   and pinch but drops the double-tap gesture, and with it the 300 ms tap
+   delay. On '*' so every element gets it with zero specificity: the
+   scrubber's and Leaflet's own touch-action rules still win. */
+*, html, body { touch-action: manipulation; }
 .top-cap {
   position: fixed; top: 0; left: 0; right: 0; z-index: 850;
   height: calc(var(--sat) + var(--top-cap));
@@ -1261,7 +1267,7 @@ html.sim-sa { --sat: 59px; --sab: 34px; }
 /* A short fade below the flat strip, so the body's warm glow doesn't start
    at a hard line. (The strip itself stays flat: that is what WebKit reads.) */
 .top-cap::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px;
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: var(--top-fade);
   background: linear-gradient(180deg, #0a0a0c, rgba(10,10,12,0));
 }
 
@@ -1300,7 +1306,7 @@ body { padding: 0; }
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: calc(var(--sat) + var(--top-cap) + 6px) var(--gut) calc(var(--sab) + var(--tabbar-h) + 10px);
+  padding: calc(var(--sat) + var(--top-cap) + var(--top-fade) + 2px) var(--gut) calc(var(--sab) + var(--tabbar-h) + 10px);
 }
 .page > * { flex-shrink: 0; width: 100%; max-width: 480px; }
 /* No backdrop blur inside a sideways scroller: behind the cards is the
@@ -2231,8 +2237,8 @@ html.sim-sa .sim-home {
  *     redesign; APP_BUILT — 'DD.MM HH:MM' Tallinn time of the commit. A
  *     stale stamp makes a successful deploy look like it never landed.
  *     Bump SHELL_CACHE in sw.js only when sw.js itself changes. */
-var APP_VERSION = 'v3.0.2';
-var APP_BUILT   = '30.09 15:51';
+var APP_VERSION = 'v3.0.3';
+var APP_BUILT   = '30.09 16:00';
 
 var CONFIG = { lat:58.81627, lng:23.74447, label:'Madise', weatherRefreshMs:5*60*1000 };
 var TODAY_SUNRISE_MS = null, TODAY_SUNSET_MS = null;
@@ -7146,7 +7152,7 @@ function initRadar(){
     attributionControl: true,
     dragging: false,
     touchZoom: 'center',
-    doubleClickZoom: 'center',
+    doubleClickZoom: false,          // no double-tap zoom anywhere (owner, 2026-09-30); pinch stays
     scrollWheelZoom: 'center',
     tap: true
   });
@@ -7705,7 +7711,6 @@ function mapLockSet(lock){
   if(lock) m.dragging.disable(); else m.dragging.enable();
   var how = lock ? 'center' : true;     // Leaflet reads these per gesture
   m.options.touchZoom = how;
-  m.options.doubleClickZoom = how;
   m.options.scrollWheelZoom = how;
   var b = document.getElementById('map-move'), t = document.getElementById('map-move-text');
   if(b){ b.classList.toggle('on', !lock); b.setAttribute('aria-pressed', lock ? 'false' : 'true'); }
