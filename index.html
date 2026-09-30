@@ -2297,13 +2297,16 @@ function ageText(ageMin){
        : ageMin < 1440 ? Math.round(ageMin / 60) + ' t vana'
                        : Math.round(ageMin / 1440) + ' p vana';
 }
-/* 'täna' / 'homme' / 'neljapäeval' for a timestamp, relative to today. */
+/* 'täna' / 'homme' / 'neljapäeval' for a timestamp, relative to today —
+   and the date ('7.10') from a week on, where a weekday would name today's
+   ('kolmapäeval' on a Wednesday read as today, 7 days early). */
 var ET_ON_DAY = ['pühapäeval','esmaspäeval','teisipäeval','kolmapäeval','neljapäeval','reedel','laupäeval'];
 function dayWord(ms){
   var d = new Date(ms), today = new Date();
   today.setHours(0, 0, 0, 0);
   var diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - today) / 86400000);
-  return diff === 0 ? 'täna' : diff === 1 ? 'homme' : ET_ON_DAY[d.getDay()];
+  return diff === 0 ? 'täna' : diff === 1 ? 'homme'
+       : diff >= 7 ? d.getDate() + '.' + pad(d.getMonth() + 1) : ET_ON_DAY[d.getDay()];
 }
 
 /* ─── Nüüd header: clock · weekday · date ───────────────────────────
