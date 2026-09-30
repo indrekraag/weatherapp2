@@ -7883,8 +7883,9 @@ function drawOverlay(){
   // priority: wind, then sun, then moon (moon yields).
   // It must also clear what sits ON the map — 'Liiguta', the Sadu key,
   // the trouble badge, the presets, the attribution — and stay inside the
-  // box: outward first, then inward; only if neither finds room does the
-  // old rule (clear of the other labels) stand.
+  // box: outward first, then inward, then sideways (a label on the same
+  // bearing as the wind's fills the whole ray); only if none finds room
+  // does the old rule (clear of the other labels) stand.
   var placedLabels = [], blocked = mapObstacles(mapEl);
   function labelClash(ax, ay, w, h, strict){
     for(var i = 0; i < placedLabels.length; i++){
@@ -7908,6 +7909,12 @@ function drawOverlay(){
     }
     for(it = 1; it < 12 && !at; it++){
       if(!labelClash(x - ux * 7 * it, y - uy * 7 * it, approxW, approxH, true)) at = { x: x - ux * 7 * it, y: y - uy * 7 * it };
+    }
+    for(var side = 1; side <= 8 && !at; side++){
+      var sx = -uy * 8 * (side % 2 ? (side + 1) / 2 : -side / 2), sy = ux * 8 * (side % 2 ? (side + 1) / 2 : -side / 2);
+      for(it = -3; it < 6 && !at; it++){
+        if(!labelClash(x + sx + ux * 7 * it, y + sy + uy * 7 * it, approxW, approxH, true)) at = { x: x + sx + ux * 7 * it, y: y + sy + uy * 7 * it };
+      }
     }
     for(it = 0; it < 24 && !at; it++){
       if(!labelClash(x + ux * 7 * it, y + uy * 7 * it, approxW, approxH, false)) at = { x: x + ux * 7 * it, y: y + uy * 7 * it };
