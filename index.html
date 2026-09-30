@@ -6309,6 +6309,142 @@ function hydrateFromCache(){
   var np = loadCache('wx.nps');
   if(np) renderNps(np.data);
 }
+/* ═══════════════════════════════════════════════════════════════
+ * PAGER — five pages swiped sideways, the tab bar, #hash per page
+ *
+ * Native scroll-snap does the swiping (CSS .pager / .page); this keeps the
+ * tab bar, the #hash and the radar in step with the page on screen:
+ *   • the tab lights up as soon as a page is more than half in view; the
+ *     rest waits until the pager has come to rest on a page (pagerSettle)
+ *   • the #hash names the page (replaceState — no history entry per swipe),
+ *     so a reload, the hourly one included, stays on its page
+ *   • the radar learns when its page is shown or left (radarPageShown):
+ *     it plays only while seen, re-sizes on arrival, and re-locks the map
+ *   • back after more than PAGER_HOME_AFTER_MS away → Nüüd. The time of
+ *     leaving is also kept in localStorage, so a reload or relaunch while
+ *     away (iOS may kill a backgrounded app) comes back to Nüüd as well.
+ * Gesture conflicts are settled in CSS and at the widgets: the map does
+ * not drag until 'Liiguta', the scrubber has touch-action:none, charts only
+ * take taps, the 7-day no longer scrolls sideways, the day sheet is an
+ * overlay outside the pager.
+ * ═══════════════════════════════════════════════════════════════ */
+var PAGER = { el: null, idx: -1, shown: -1, slugs: ['nuud', 'radar', '24h', 'nadal', 'hind'],
+              raf: 0, settleT: null, hiddenAt: null };
+var PAGER_HOME_AFTER_MS = 10 * 60 * 1000;
+var PAGER_HIDDEN_KEY = STORE_PREFIX + 'pagerHiddenAt';
+
+function pagerW(){ return (PAGER.el && PAGER.el.clientWidth) || window.innerWidth || 1; }
+function pagerShowing(slug){ return PAGER.shown >= 0 && PAGER.slugs[PAGER.shown] === slug; }
+function pagerHighlight(i){
+  if(i === PAGER.idx) return;
+  PAGER.idx = i;
+  var tabs = document.querySelectorAll('#tabbar .tab');
+  for(var k = 0; k < tabs.length; k++){
+    var on = +tabs[k].getAttribute('data-page') === i;
+    tabs[k].classList.toggle('active', on);
+    if(on) tabs[k].setAttribute('aria-current', 'page'); else tabs[k].removeAttribute('aria-current');
+  }
+}
+/* The pager is at rest on page i: the hash, and what a page needs on
+ * arrival or departure. Runs once per change of page. */
+function pagerSettle(){
+  PAGER.settleT = null;
+  var i = Math.round(PAGER.el.scrollLeft / pagerW());
+  i = Math.max(0, Math.min(PAGER.slugs.length - 1, i));
+  pagerHighlight(i);
+  if(i === PAGER.shown) return;
+  var prev = PAGER.shown;
+  PAGER.shown = i;
+  pagerSyncHash();
+  var radarI = PAGER.slugs.indexOf('radar');
+  if((i === radarI || prev === radarI) && typeof radarPageShown === 'function') radarPageShown(i === radarI);
+}
+/* The #hash names the page on screen. history.state is kept: an open day
+ * sheet's entry must survive this. Also run on popstate — a Back that
+ * closes the sheet lands on the entry below it, whose hash is the page the
+ * sheet was opened on, which may no longer be the page on screen. */
+function pagerSyncHash(){
+  if(PAGER.shown < 0) return;
+  var h = PAGER.shown ? '#' + PAGER.slugs[PAGER.shown] : '';
+  if((location.hash || '') === h) return;
+  try{ history.replaceState(history.state, '', location.pathname + location.search + h); }catch(e){}
+}
+function goPage(i, smooth){
+  if(!PAGER.el) return;
+  i = Math.max(0, Math.min(PAGER.slugs.length - 1, i));
+  var left = i * pagerW();
+  if(smooth && PAGER.el.scrollTo && 'scrollBehavior' in document.documentElement.style){
+    PAGER.el.scrollTo({ left: left, behavior: 'smooth' });
+    pagerHighlight(i);          // the scroll events settle it on arrival
+  } else {
+    PAGER.el.scrollLeft = left;
+    pagerHighlight(i);
+    pagerSettle();
+  }
+}
+function pagerInit(){
+  var el = byId('pager');
+  if(!el) return;
+  PAGER.el = el;
+  el.addEventListener('scroll', function(){
+    if(!PAGER.raf){
+      PAGER.raf = requestAnimationFrame(function(){
+        PAGER.raf = 0;
+        var w = pagerW(), i = Math.round(el.scrollLeft / w);
+        if(Math.abs(el.scrollLeft - i * w) < w * 0.5) pagerHighlight(i);
+      });
+    }
+    clearTimeout(PAGER.settleT);
+    PAGER.settleT = setTimeout(pagerSettle, 120);
+  }, { passive: true });
+  var tabs = document.querySelectorAll('#tabbar .tab');
+  for(var k = 0; k < tabs.length; k++){
+    tabs[k].addEventListener('click', function(){
+      var i = +this.getAttribute('data-page');
+      // Next door: slide there. Further: jump, rather than sweep past pages.
+      goPage(i, Math.abs(i - PAGER.idx) === 1);
+    });
+  }
+  // A rotation or a resize keeps the page, not the pixel offset.
+  window.addEventListener('resize', function(){
+    if(PAGER.shown >= 0) el.scrollLeft = PAGER.shown * pagerW();
+  });
+  document.addEventListener('keydown', function(e){
+    var t = e.target && e.target.tagName;
+    if(t === 'INPUT' || t === 'TEXTAREA' || _sheetOpen) return;
+    if(e.key === 'ArrowRight') goPage(PAGER.idx + 1, true);
+    else if(e.key === 'ArrowLeft') goPage(PAGER.idx - 1, true);
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){
+      PAGER.hiddenAt = Date.now();
+      try{ localStorage.setItem(PAGER_HIDDEN_KEY, String(PAGER.hiddenAt)); }catch(e){}
+      return;
+    }
+    var away = PAGER.hiddenAt ? Date.now() - PAGER.hiddenAt : 0;
+    PAGER.hiddenAt = null;
+    try{ localStorage.removeItem(PAGER_HIDDEN_KEY); }catch(e){}
+    if(away > PAGER_HOME_AFTER_MS){
+      if(_sheetOpen) closeDaySheet();
+      goPage(0, false);
+    }
+  });
+  // The page to open on: the #hash (a reload keeps its page) — unless the
+  // app was left more than PAGER_HOME_AFTER_MS ago; a plain launch has no
+  // hash and opens on Nüüd.
+  var start = PAGER.slugs.indexOf((location.hash || '').replace('#', ''));
+  var leftAt = 0;
+  try{ leftAt = +localStorage.getItem(PAGER_HIDDEN_KEY) || 0; }catch(e){}
+  if(leftAt && Date.now() - leftAt > PAGER_HOME_AFTER_MS) start = 0;
+  if(!document.hidden){ try{ localStorage.removeItem(PAGER_HIDDEN_KEY); }catch(e){} }
+  else PAGER.hiddenAt = leftAt || Date.now();
+  goPage(start < 0 ? 0 : start, false);
+  // Once more after the first layout: a scroll offset set before it can be
+  // dropped (and the day sheet's own snap-scroller does the same dance).
+  requestAnimationFrame(function(){ if(PAGER.shown >= 0) el.scrollLeft = PAGER.shown * pagerW(); });
+}
+pagerInit();
+
 // Sun times BEFORE the cache paint: heroIsDay() falls back to the cached
 // payload's is_day only while they are missing, and currentSkyText used to
 // treat "no sun times yet" as daytime — an offline start at 23:00 said
@@ -6319,11 +6455,10 @@ setInterval(fetchSunTimes, 30*60*1000);
 hydrateFromCache();
 
 /* ─── Radar / Satelliit hero button helper ─────────────────────────
- * Scrolls to the radar card and switches to the requested mode. */
+ * Turns to the radar page and switches to the requested mode. */
 function radarScrollTo(mode){
-  var card = document.getElementById('radar-card');
-  if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
-  // Switch mode — defer slightly so scroll is underway
+  goPage(PAGER.slugs.indexOf('radar'), false);
+  // Switch mode — defer slightly so the page has settled
   setTimeout(function(){
     if(typeof RADAR === 'undefined' || !RADAR.map) return;
     if(RADAR.mode === mode) return;
