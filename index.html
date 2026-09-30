@@ -3889,8 +3889,8 @@ function _daySheetEnsure(){
     + '<button class="daysheet-close" aria-label="Sulge">✕</button>'
     + '<div class="daysheet-track"></div>';
   document.body.appendChild(bd); document.body.appendChild(sh);
-  bd.addEventListener('click', closeDaySheet);
-  sh.querySelector('.daysheet-close').addEventListener('click', closeDaySheet);
+  bd.addEventListener('click', function(){ closeDaySheet(); });
+  sh.querySelector('.daysheet-close').addEventListener('click', function(){ closeDaySheet(); });
   var grip = sh.querySelector('.daysheet-grip'), y0 = null;
   grip.addEventListener('touchstart', function(e){ y0 = e.touches[0].clientY; }, {passive:true});
   grip.addEventListener('touchmove', function(e){
@@ -4014,6 +4014,10 @@ function openDaySheet(di){
   for(var i=i0;i<i0+n;i++){ var pn = _buildDayPanel(i); E.track.appendChild(pn); panels.push(pn); }
   E.bd.style.display = 'block'; E.sh.style.display = 'flex'; _sheetOpen = true;
   document.body.style.overflow = 'hidden';
+  // A history entry for the open sheet: Android's Back (and a browser's
+  // back) then closes the sheet instead of leaving the app. Same URL — the
+  // page's #hash stays as it is.
+  try{ if(!(history.state && history.state.wa2sheet)) history.pushState({ wa2sheet: 1 }, '', location.href); }catch(e){}
   requestAnimationFrame(function(){
     E.bd.classList.add('open'); E.sh.classList.add('open');
     E.track.scrollLeft = (di - i0) * E.track.clientWidth;
@@ -4021,9 +4025,13 @@ function openDaySheet(di){
   });
 }
 
-function closeDaySheet(){
+/* fromHistory: the sheet's history entry is already gone (Back, popstate);
+ * any other close takes it off again, so a later Back leaves the app as
+ * expected rather than doing nothing. */
+function closeDaySheet(fromHistory){
   if(!_sheetEls || !_sheetOpen) return;
   _sheetOpen = false;
+  if(fromHistory !== true && history.state && history.state.wa2sheet){ try{ history.back(); }catch(e){} }
   _sheetEls.bd.classList.remove('open'); _sheetEls.sh.classList.remove('open');
   document.body.style.overflow = '';
   var E = _sheetEls;
@@ -4031,6 +4039,13 @@ function closeDaySheet(){
 }
 
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && _sheetOpen) closeDaySheet(); });
+window.addEventListener('popstate', function(){
+  if(_sheetOpen) closeDaySheet(true);
+  if(typeof pagerSyncHash === 'function') pagerSyncHash();
+});
+// history.state outlives a reload: an entry the sheet pushed before it is
+// not an open sheet now, and would stop the next open from pushing its own.
+try{ if(history.state && history.state.wa2sheet) history.replaceState(null, '', location.href); }catch(e){}
 
 function _wireDaySheet(){
   var strip = byId('daily-strip');
