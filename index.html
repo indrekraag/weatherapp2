@@ -3979,12 +3979,39 @@ function n12Layout(){
   function barPx(v){ return BAR_MIN + (v - lo) / (hi - lo) * BAR_RANGE; }
   var bbs = box.querySelectorAll('.bb');
   for(var k = 0; k < bbs.length; k++) bbs[k].style.height = (isNum(c.t[k]) ? barPx(c.t[k]) : 0).toFixed(1) + 'px';
-  var n = c.t.length, pts = [], dots = '';
+  var n = c.t.length, pts = [], dots = '', fy = [];
   for(k = 0; k < n; k++){
-    if(!isNum(c.f[k])) continue;
-    var x = 16 + (k + 0.5) / n * W, y = Hh - barPx(c.f[k]);
+    fy.push(isNum(c.f[k]) ? barPx(c.f[k]) : null);
+    if(fy[k] === null) continue;
+    var x = 16 + (k + 0.5) / n * W, y = Hh - fy[k];
     pts.push(x.toFixed(1) + ',' + y.toFixed(1));
     dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2" fill="rgba(255,255,255,0.92)"/>';
+  }
+  // The value labels sit on their bars; where 'tundub' is at or above the
+  // air temperature (a warm, humid or calm day) the dashed line and its
+  // dots ran straight through them ('29°' '30°' …). The line's height is
+  // taken across the label's width — at the column's dot and towards
+  // both neighbours — and a label it would cross goes up to sit just
+  // above it (the 24 h page's tags do the same). The scale keeps 18 px
+  // above the highest value, so a lifted label always fits.
+  var bts = box.querySelectorAll('.bt'), cw = W / n;
+  for(k = 0; k < bts.length && k < n; k++){
+    var bt = bts[k];
+    bt.style.marginBottom = '';
+    if(!isNum(c.t[k]) || fy[k] === null) continue;
+    var half = (bt.offsetWidth || 16) / 2 + 2, a = Math.min(1, half / cw), lineHi = fy[k], lineLo = fy[k];
+    for(var nb = k - 1; nb <= k + 1; nb += 2){
+      if(nb < 0 || nb >= n || fy[nb] === null) continue;
+      var e = fy[k] + (fy[nb] - fy[k]) * a;
+      lineHi = Math.max(lineHi, e); lineLo = Math.min(lineLo, e);
+    }
+    // The label's box, px above the bottom (its glyphs run ~1 px past
+    // the 10-px line box); the line is ±2 px with its halo and dots.
+    var lh = bt.offsetHeight || 10, bot = barPx(c.t[k]) + 3;
+    if(lineHi + 4 > bot && lineLo - 4 < bot + lh){
+      var mb = 3 + (lineHi + 4 - bot);
+      bt.style.marginBottom = Math.min(mb, Hh - barPx(c.t[k]) - lh).toFixed(1) + 'px';
+    }
   }
   svg.setAttribute('viewBox', '0 0 ' + (W + 16) + ' ' + Hh);
   svg.innerHTML = pts.length < 2 ? '' :
