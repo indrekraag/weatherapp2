@@ -813,6 +813,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   cursor: pointer;
 }
 .metric-spark > span:hover { opacity: 0.60; }
+.metric-spark > span.nd { background: none; min-height: 0; height: 0; }   /* an hour with no value */
 .metric-spark > span.now {
   outline: 1px solid rgba(255,255,255,0.50);
   outline-offset: -1px;
@@ -3320,7 +3321,10 @@ function _hourSliceForDay(di){
   // hour ENDING at time[k] (see renderWeather), so the hour that starts at
   // HH:00 is read from k + 1 — the same shift as the 24 h card, so bar i
   // and icon i describe the hour starting at hour[i].
-  function pickNext(a){ return a ? idx.map(function(k){ return a[k + 1]; }) : null; }
+  // The payload's last day has no k + 1 for its last hour (a cache from
+  // before midnight makes that day the sheet's 7th panel): null, which
+  // renderSpark draws as an empty bar, not undefined, which threw.
+  function pickNext(a){ return a ? idx.map(function(k){ return k + 1 < a.length ? a[k + 1] : null; }) : null; }
   return { temp: pick(H.temperature_2m), precip: pickNext(H.precipitation),
            prob: pickNext(H.precipitation_probability),
            code: pickNext(H.weathercode), isDay: pickNext(H.is_day),
@@ -6352,8 +6356,14 @@ function renderSpark(elId, data, opts){
   if(!el || !data || !data.length) return;
   opts = opts || {};
   var unit = opts.unit || '';
-  var dataMax = Math.max.apply(null, data);
-  var dataMin = Math.min.apply(null, data);
+  // A missing hour (null / undefined / NaN) keeps its slot as an empty bar
+  // so the axis still lines up; the scale comes from the real values. One
+  // undefined used to make the scale NaN and v.toFixed throw, which killed
+  // the rest of the panel (its rain and wind charts stayed blank).
+  var finite = data.filter(isNum);
+  if(!finite.length) return;
+  var dataMax = Math.max.apply(null, finite);
+  var dataMin = Math.min.apply(null, finite);
   // relativeBase: scale bars from dataMin rather than 0.
   // Used for temperature so a +8→+16° range fills the chart height
   // meaningfully instead of all bars being the same near-100% height.
@@ -6387,10 +6397,16 @@ function renderSpark(elId, data, opts){
    * reflect actual temperature/wind/rain regardless of chart scale. */
   for(var i = 0; i < data.length; i++){
     var v = data[i];
-    var pct = Math.max(10, ((v - base) / scaleRange) * 100);
     var hour = (startHour + i) % 24;
     var hourStr = String(hour).padStart(2,'0') + ':00';
     var bar = document.createElement('span');
+    if(!isNum(v)){
+      bar.className = 'nd' + (i === nowIdx ? ' now' : '');   // no bar, not a 3-px zero
+      bar.setAttribute('title', hourStr + ' · —');
+      el.appendChild(bar);
+      continue;
+    }
+    var pct = Math.max(10, ((v - base) / scaleRange) * 100);
     bar.style.height = pct + '%';
     var titleVal = unit === '°C' ? v.toFixed(1) + unit : (v).toFixed(unit === 'mm/h' ? 1 : 0) + ' ' + unit;
     bar.setAttribute('title', hourStr + ' · ' + titleVal);
