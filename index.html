@@ -48,19 +48,23 @@
    * tiers (--muted, --muted-strong, opacity overrides) — collapsed to 2. */
   --fg: #f2f7ff;
   --fg-2: rgba(228, 238, 250, 0.74);   /* secondary labels */
-  --fg-3: rgba(220, 220, 222, 0.65);   /* captions, units */
+  --fg-3: rgba(220, 224, 230, 0.72);   /* captions, units (alpha up for contrast) */
 
-  /* Accents — desaturated. The originals were neon; this is daylight. */
-  --accent: #e9a76b;
-  --warm:   #e9a76b;
-  --cold:   #e9a76b;
-  --ok:     #6db88a;   /* muted green — positive/safe states */
-  --warn:   #e9a76b;   /* amber — caution states */
-  --bad:    #d4766e;   /* muted coral-red — danger states */
-
-  /* Glow — softer, used sparingly */
-  --glow-warm: rgba(233, 167, 107, 0.20);
-  --glow-cold: rgba(255, 255, 255, 0.10);
+  /* Semantic colours — ONE meaning each, on every page and in the day
+   * sheet. Until 2026-09-30 --accent, --warm, --cold and --warn were all
+   * the same amber, so a frost warning, a warm afternoon, a selected
+   * button and 'data is old' looked alike. A colour now always says the
+   * same thing; everything else is neutral:
+   *   ordinary temperatures neutral · ≤ 0° --cold · ≥ 25° --warm
+   *   good news (dry, cheap, all clear, aurora in view) --ok, never amber */
+  --accent: #dfe8f3;   /* UI state only: selected preset, map unlocked, scrubber */
+  --warm:   #e9a76b;   /* temperatures ≥ 25°, the sun                          */
+  --cold:   #8ec5ff;   /* ≤ 0°, frost, ice                                     */
+  --ok:     #6dc08e;   /* all clear, cheapest, aurora in view                  */
+  --warn:   #f2c14e;   /* caution: rain soon, strong wind, old data            */
+  --bad:    #ec7b6e;   /* danger: slippery road, gale gusts, frost on plants   */
+  --rain:   #78b2f5;   /* precipitation                                        */
+  --wind-arrow: #cfd9e6;   /* every wind-direction arrow: tile, 24 h, map, sheet */
 
   /* Geometry */
   --r-lg: 24px;          /* card */
@@ -148,66 +152,8 @@ body {
   font-feature-settings: "tnum" 1, "ss01" 1;
 }
 
-/* ─── WEATHER-DRIVEN ATMOSPHERE ─────────────────────────────
- * The actual blob gradients live on body's background-image (see the
- * html, body / body rules above). The .weather-* classes on <body>
- * just swap the CSS variables that the body's gradients consume —
- * no separate animated element, no pseudo-elements, no fixed-position
- * children. This is intentional for iOS scroll compatibility.
- *
- * Each .weather-* class supplies:
- *   --blob1-color: warm-ish accent for primary/anchor blobs
- *   --blob2-color: cool/grey for secondary/balance blobs
- * Alpha 0.10-0.24 — readable through, not opaque.                  */
-
-/* Default = partly-cloudy fallback (used until JS sets a real class) */
-.weather-partly-cloudy {
-  --blob1-color: rgba(220, 200, 180, 0.16);     /* low warm sun */
-  --blob2-color: rgba(170, 170, 175, 0.14);     /* cool cloud */
-  --drift-speed: 30s;
-}
-
-.weather-clear-day {
-  --blob1-color: rgba(233, 167, 107, 0.20);     /* warm sun glow, upper right */
-  --blob2-color: rgba(180, 175, 170, 0.14);     /* faint sky blue tint */
-  --drift-speed: 38s;
-}
-
-.weather-clear-night {
-  --blob1-color: rgba(120, 125, 140, 0.18);      /* cold navy */
-  --blob2-color: rgba(140, 135, 145, 0.14);     /* faint violet (moon hint) */
-  --drift-speed: 42s;
-}
-
-.weather-cloudy {
-  --blob1-color: rgba(170, 170, 170, 0.14);     /* diffuse grey-blue */
-  --blob2-color: rgba(150, 150, 150, 0.14);     /* grey-violet */
-  --drift-speed: 22s;                            /* faster drift = active sky */
-}
-
-.weather-rain {
-  --blob1-color: rgba(120, 125, 135, 0.20);      /* cool deep teal */
-  --blob2-color: rgba(80, 80, 85, 0.22);       /* heavier dark patch */
-  --drift-speed: 18s;                            /* faster = stormier */
-}
-
-.weather-snow {
-  --blob1-color: rgba(195, 195, 198, 0.16);     /* cold white-blue */
-  --blob2-color: rgba(180, 180, 182, 0.14);     /* faded cool */
-  --drift-speed: 26s;
-}
-
-.weather-fog {
-  --blob1-color: rgba(185, 185, 185, 0.16);     /* lifted near-white centre */
-  --blob2-color: rgba(170, 170, 170, 0.14);     /* second layer for haze */
-  --drift-speed: 50s;                            /* very slow = stillness */
-}
-
-.weather-thunder {
-  --blob1-color: rgba(120, 120, 130, 0.22);     /* heavy charged blue */
-  --blob2-color: rgba(80, 75, 75, 0.24);       /* dark violet brewing */
-  --drift-speed: 14s;                            /* fastest = electric */
-}
+/* (The .weather-* body classes that tinted the blobs were never set by the
+ * JS any more — body keeps its default blob colours — and are gone.) */
 
 /* ─── GLASS — the one and only card recipe ──────────────────
  * Pure frosted glass. No bevels, no chamfered halos, no preset variants.
@@ -295,18 +241,7 @@ body {
  * exceed main's for the same element (hero condition 10 px, tile values
  * 17 px, station temperatures 17 px < 18); the new pieces (verdict, the
  * secondary row, the 12-hour grid) use the existing 13/12/11/10/9 steps.
- * Colours mean one thing each on this page — cold/frost blue, caution
- * yellow, all-clear green, danger coral, rain blue — on all five pages
- * (the day sheet, outside the pager, keeps main's). */
-#p-nuud, #p-radar, #p-24h, #p-nadal, #p-hind {
-  --warm: #e9a76b;          /* warm temps ≥ 25°                        */
-  --cold: #8ec5ff;          /* below zero, frost, ice                  */
-  --warn: #f2c14e;          /* caution: rain soon, old data            */
-  --ok:   #6dc08e;          /* all clear                               */
-  --bad:  #ec7b6e;          /* danger: slippery road, frost on plants  */
-  --rain: #78b2f5;          /* precipitation                           */
-  --fg-3: rgba(220,224,230,0.72);   /* captions: alpha up for contrast  */
-}
+ * Colours: the semantic tokens in :root (one meaning each). */
 #p-nuud {
   gap: 8px;
   gap: clamp(6px, calc((100vh - 760px) / 6), 14px);   /* a taller phone gets air, not bigger type */
@@ -429,8 +364,8 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 }
 .verdict.warn { border-left-color: var(--warn); background: rgba(242,193,78,0.07); }
 .verdict.none { border-left-color: rgba(255,255,255,0.25); color: var(--fg-2); }
+.verdict.plain { border-left-color: rgba(255,255,255,0.30); }   /* good news beside an official warning */
 .verdict .v-key  { color: var(--warn); }
-.verdict .v-rain { color: var(--rain); }
 .verdict .v-cold { color: var(--cold); }
 .verdict .v-sep  { color: rgba(255,255,255,0.40); margin: 0 1px; }
 .verdict .v-part { white-space: nowrap; }
@@ -459,7 +394,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .tile-val.frost { color: var(--cold); }
 .tile-arrow {
   margin-left: auto; align-self: center; flex-shrink: 0;
-  width: 18px; height: 18px; color: var(--cold);
+  width: 18px; height: 18px; color: var(--wind-arrow);
   transition: transform .4s ease;          /* rotate(dir + 180) from renderWeather */
 }
 .tile-arrow svg { width: 18px; height: 18px; display: block; fill: currentColor; }
@@ -542,7 +477,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .next12 .card-header { margin-bottom: 6px; }
 .next12 .n12 { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; position: relative; }
 .n12-legend { display: inline-flex; align-items: center; gap: 5px; text-transform: none; letter-spacing: 0.2px; }
-.n12-legend .lg-bar { display: inline-block; width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(160,200,70,.9), rgba(160,200,70,.25)); }
+.n12-legend .lg-bar { display: inline-block; width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(205,214,226,.62), rgba(205,214,226,.19)); }   /* = TEMP_NEUTRAL_C */
 .n12-legend .lg-line { display: inline-block; width: 14px; height: 0; border-top: 1.5px dashed rgba(255,255,255,0.85); margin-left: 6px; }
 .n12-row { display: grid; grid-template-columns: 16px repeat(12, minmax(0, 1fr)); align-items: center; }
 .n12-g { display: flex; align-items: center; color: var(--fg-3); }
@@ -612,65 +547,6 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   .next12 .tap-read:not(.on) { display: none; }
 }
 
-/* ─── METRIC GRID ──────────────────────────────────────────
- * Replaces the long list of label/value rows with a 2-col grid of small
- * tiles. Each tile = icon, label, value+unit. Easier to scan, easier to
- * extend, looks like a dashboard instead of a printout.
- * ─────────────────────────────────────────────────────────── */
-.metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-/* .metric — handled via .metric-card .metric, no global rule needed */
-.metric-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: var(--fg-3);
-}
-.metric-icon {
-  font-size: 12px;
-  opacity: 0.85;
-}
-.metric-value {
-  font-size: 19px;
-  font-weight: 600;
-  color: var(--fg);
-  line-height: 1.1;
-}
-.metric-value .unit {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--fg-2);
-  margin-left: 3px;
-  letter-spacing: 0.3px;
-}
-.metric-sub {
-  font-size: 10px;
-  color: var(--fg-3);
-  margin-top: 2px;
-  letter-spacing: 0.3px;
-}
-
-.metric.wind .metric-value { display: flex; align-items: center; gap: 4px; }
-.wind-arrow {
-  display: inline-block;
-  font-size: 16px;
-  color: var(--cold);
-  line-height: 1;
-}
-.metric-value.warm { color: var(--warm); }
-.metric-value.cold { color: var(--cold); }
-.metric-value.ok   { color: var(--ok); }
-.metric-value.warn { color: var(--warn); }
-.metric-value.bad  { color: var(--bad); }
-
-/* UV chip — adds a coloured dot to the otherwise plain number */
 /* ─── CARD HEADER (used by hourly, 7-day, etc.) ──────────── */
 .card-header {
   display: flex;
@@ -693,88 +569,9 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   color: var(--fg-3);
   text-transform: uppercase;
 }
-.card-header .meta strong { color: var(--cold); font-weight: 600; }
+.card-header .meta strong { color: var(--rain); font-weight: 600; }
 /* 'Saju alguseni: — pole oodata' — nothing to attend to, so no amber. */
 .card-header .meta strong.rain-none { color: var(--fg-2); }
-
-/* ─── HOURLY STRIP ────────────────────────────────────────
- * Horizontal scroll strip. NO scroll-snap (causes iOS capture bug
- * where vertical drags inside the strip get briefly stolen as
- * horizontal swipes, making the page bounce back). NO touch-action
- * override either — default behaviour ('auto') is correct here.
- * The strip scrolls horizontally because overflow-x: auto; vertical
- * drags inside it bubble up to the page normally. */
-.hour-strip {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  padding: 2px 2px 8px;
-  margin: 0 -4px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.30) transparent;
-}
-.hour-strip::-webkit-scrollbar { height: 3px; }
-.hour-strip::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.30); border-radius: 2px; }
-
-.hour {
-  /* ~5 tiles visible at once on a 480px parent, more on narrower phones.
-   * Bento-style soft gradient tile, friendly 16px radius.
-   * NO scroll-snap-align — see "Scroll capture bug" comment above on
-   * .hour-strip. Snap alignment is what creates the iOS capture bug. */
-  flex: 0 0 calc((100% - 24px) / 5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 4px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-}
-.hour.now {
-  background:
-    linear-gradient(180deg, rgba(233,167,107,0.16) 0%, rgba(233,167,107,0.05) 100%);
-  border-color: rgba(233,167,107,0.30);
-}
-.hour-time {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: rgba(255,255,255,0.70);
-  text-transform: uppercase;
-}
-.hour.now .hour-time { color: var(--accent); }
-.hour-ico { font-size: 22px; line-height: 1; }
-.hour-temp { font-size: 14px; color: rgba(255,255,255,0.95); font-weight: 600; }
-.hour-rain {
-  font-size: 11px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.70);
-  letter-spacing: 0.2px;
-}
-.hour-rain.dry { color: rgba(255,255,255,0.55); }
-
-.rain-bar {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background:
-    linear-gradient(180deg, rgba(233,167,107,0.12) 0%, rgba(233,167,107,0.04) 100%);
-  border: 1px solid rgba(233,167,107,0.22);
-  border-radius: 16px;
-  font-size: 11px;
-  color: rgba(255,255,255,0.70);
-  letter-spacing: 0.2px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.rain-bar strong { color: var(--cold); font-weight: 600; font-size: 12px; }
 
 /* ─── TWO CARDS SIDE BY SIDE (Nädal: Päike + Kuu) ─────── */
 .duo {
@@ -804,6 +601,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .gauge-text.lo  { color: rgba(255,255,255,0.70); }
 .gauge-text.mid { color: var(--warn); }
 .gauge-text.hi  { color: var(--bad); }
+.gauge-text.go  { color: var(--ok); }      /* aurora: good news */
 
 /* Kp 72h sparkline */
 .kp-chart {
@@ -840,66 +638,9 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 }
 .kp-label > span { position: absolute; top: 0; white-space: nowrap; }
 
-/* ─── METRIC CARD · Active Bento (Apple/MS/Spotify 2026) ────────
- * Asymmetric 4-col bento grid. Tuul and Sadu are priority metrics
- * (wind + rain matter most for the country house) so they get the wide
- * span and carry inline 24h sparklines built from stacked CSS gradient
- * bars — no charting library required. The other four (Õhurõhk, Niiskus,
- * UV, Öökülm) take 2 cols each.
- *
- * Subtle warm-to-cool gradient on the card surface (Apple product-page
- * treatment). Two-accent palette: cool blue for wind values, warm
- * orange for UV. Friendly 18px tile radius.                       */
-/* .glass.card.metric-card now inherits the base .glass surface — no override needed */
-/* .metric-card .card-header h2 — inherits from .card-header h2 (uppercase,
- * 11px, 700) — no override needed. Previous override removed. */
-.metric-card .card-header .meta strong { color: #e9a76b; }
-
-/* 4-col bento. Default metric = 2 cols (half row). .wide = full row. */
-.metric-card .metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 8px;
-}
-.metric-card .metric {
-  grid-column: span 2;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 18px;
-  padding: 14px 16px;
-  min-height: 78px;
-}
-.metric-card .metric.wide { grid-column: span 4; }
-.metric-card .metric-value { font-size: 22px; font-weight: 600; }
-/* UV / Öökülm severity color via metric-value/sub modifiers.
- * Keeps the standard metric tile structure across all six tiles; no
- * custom chips or inline styles needed. */
-.metric-card .metric-sub.warn { color: rgba(255, 200, 87, 0.85); }
-.metric-card .metric-sub.ok { color: rgba(255, 255, 255, 0.70); }
-
-.metric-card .metric.wide .metric-value {
-  font-size: 26px;
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-/* Inline "metric-sub" pinned to the right of the .wide metric-value row */
-.metric-sub-inline {
-  margin-left: auto !important;
-  font-size: 11px !important;
-}
-
-/* Sadu mode toggle — segmented control. Two small pill buttons
- * sitting in the metric-head row, right-aligned via margin-left: auto
- * on the container. Active state uses the same warm-amber accent as
- * other "now/today" affordances (hour-strip's .now tile, day-strip's
- * .today tile) for visual consistency. Inactive button is hairline
- * border + muted text so it reads as "available but not selected". */
+/* Sadu mode toggle (24 h page) — segmented control, two small pills.
+ * The active one in --accent, like the map's presets (UI state, not a
+ * signal); the other hairline + muted: available, not selected. */
 .rain-mode-toggle {
   display: inline-flex;
   gap: 4px;
@@ -929,16 +670,14 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .rain-mode-btn:hover {
   color: rgba(255,255,255,0.80);
 }
-.rain-mode-btn.active {
-  background: linear-gradient(180deg, rgba(80,130,220,0.28) 0%, rgba(80,130,220,0.14) 100%);
-  color: rgba(255,255,255,0.95);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.08) inset,
-    0 1px 2px rgba(0,0,0,0.20);
+.rain-mode-btn.active {                   /* UI state: --accent, as the map presets */
+  background: rgba(223,232,243,0.20);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(223,232,243,0.30);
 }
 .rain-mode-btn:focus { outline: none; }
 .rain-mode-btn:focus-visible {
-  outline: 1px solid rgba(80,130,220,0.55);
+  outline: 1px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -1049,6 +788,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   transition: transform 0.4s ease;
   transform-origin: 50% 50%;
   pointer-events: auto;
+  color: var(--wind-arrow);
 }
 /* ─── SPARKLINE BARS — color-coded ──────────────────────────
  * Bar background is set inline by JS (renderSpark) using windBarColor()
@@ -1160,7 +900,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: rgba(233,167,107,0.90);
+  background: var(--accent);
   cursor: pointer;
   border: 2px solid rgba(255,255,255,0.25);
 }
@@ -1168,7 +908,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: rgba(233,167,107,0.90);
+  background: var(--accent);
   cursor: pointer;
   border: 2px solid rgba(255,255,255,0.25);
 }
@@ -1212,7 +952,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   padding: 4px 10px;
   border-radius: 10px;
   background: rgba(10,10,14,0.86);
-  border: 1px solid rgba(233,167,107,0.45);
+  border: 1px solid rgba(242,193,78,0.45);
   color: var(--warn);
   font-family: -apple-system, "SF Pro Text", sans-serif;
   font-size: 10px;
@@ -1237,12 +977,6 @@ button.chip:active { background: rgba(255,255,255,0.10); }
   font-size: 8px !important;
 }
 .leaflet-control-attribution a { color: rgba(255,255,255,0.55) !important; }
-/* Leaflet zoom controls */
-.leaflet-control-zoom a {
-  background: rgba(10,10,14,0.82) !important;
-  color: rgba(255,255,255,0.80) !important;
-  border-color: rgba(255,255,255,0.10) !important;
-}
 
 /* ─── Radar map overlay (sun arc + moon arc + wind) ───────────────
  * Ported from the iPad kiosk (wa1). Two absolutely-positioned SVG
@@ -1322,7 +1056,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 }
 
 /* Zoom-preset + MAP/SAT row — floating pill over the bottom-center of
- * the map. Amber for the preset and the base map in use. */
+ * the map. The preset and the base map in use in --accent (UI state). */
 .zoom-presets {
   position: absolute;
   bottom: 8px; left: 50%; transform: translateX(-50%);
@@ -1357,8 +1091,9 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 }
 .zoom-btn:hover { color: rgba(255,255,255,0.92); }
 .zoom-btn.active {
-  background: linear-gradient(180deg, rgba(233,167,107,0.26) 0%, rgba(233,167,107,0.10) 100%);
-  color: rgba(255,255,255,0.96);
+  background: rgba(223,232,243,0.20);      /* --accent */
+  box-shadow: inset 0 0 0 1px rgba(223,232,243,0.30);
+  color: #fff;
 }
 .zoom-sep {
   align-self: center;
@@ -1449,8 +1184,8 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .dsheet-sum{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;
   color:rgba(255,255,255,0.78);margin:9px 0 4px;}
 .dsheet-sum b{font-weight:600;color:#fff;}
-.dsheet-sum .warm{color:var(--warm,#f0a868);}
-.dsheet-sum .cold{color:var(--cold,#7fb4e6);}
+.dsheet-sum .hot{color:var(--warm);}
+.dsheet-sum .cold{color:var(--cold);}
 .dsheet-row{margin:13px 0;}
 .dsheet-row-lab{font-size:11px;letter-spacing:.6px;text-transform:uppercase;
   color:rgba(255,255,255,0.5);margin-bottom:5px;
@@ -1541,7 +1276,7 @@ body { padding: 0; }
   background: #0a0a0c;
 }
 /* 'Liiguta' (top-left, where Leaflet's +/− used to be — pinch and the
-   presets do that job): amber while the map is unlocked. */
+   presets do that job): filled --accent while the map is unlocked. */
 .map-move {
   position: absolute; top: 8px; left: 8px; z-index: 500;
   -webkit-appearance: none; appearance: none;
@@ -1553,7 +1288,7 @@ body { padding: 0; }
   cursor: pointer;
 }
 .map-move .lic { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.map-move.on { background: rgba(233,167,107,0.88); color: #1a1208; border-color: rgba(255,255,255,0.3); }
+.map-move.on { background: var(--accent); color: #10151c; border-color: rgba(255,255,255,0.5); }
 #radar-map.radar-nolib .map-move { display: none; }
 /* Presets: 30 px tall buttons, clear of the attribution line. */
 #p-radar .zoom-presets { bottom: 16px; }
@@ -1624,7 +1359,7 @@ body { padding: 0; }
 .d24-name { font: 700 11px -apple-system, "SF Pro Display", sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.92); flex-shrink: 0; }
 .d24-key { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; font-size: 10px; color: var(--fg-3); white-space: nowrap; }
 .d24-key i { display: inline-block; flex-shrink: 0; }
-.d24-key .k-bar { width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(160,200,70,.9), rgba(160,200,70,.25)); }
+.d24-key .k-bar { width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(205,214,226,.62), rgba(205,214,226,.19)); }   /* = TEMP_NEUTRAL_C */
 .d24-key .k-bar.k-wind { background: linear-gradient(180deg, rgba(90,190,190,.9), rgba(90,190,190,.25)); }
 .d24-key .k-line { width: 14px; height: 0; border-top: 1.5px dashed rgba(255,255,255,0.85); margin-left: 4px; }
 .d24-key .k-tick { width: 8px; height: 6px; border-top: 2px solid rgba(255,255,255,0.85); margin-left: 4px;
@@ -1663,7 +1398,7 @@ body { padding: 0; }
 .d24-bars .tlab { position: absolute; transform: translate(-50%, -100%); margin-top: -3px; font: 600 10px ui-monospace, "SF Mono", Menlo, monospace; color: rgba(255,255,255,0.92); white-space: nowrap; pointer-events: none; }
 .d24-line { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .d24-mid { position: absolute; top: -3px; bottom: -1px; width: 0; border-left: 1px dashed rgba(255,255,255,0.40); pointer-events: none; }
-.d24-dirs { flex: none; position: relative; height: 16px; margin-top: 4px; color: var(--fg-2); }
+.d24-dirs { flex: none; position: relative; height: 16px; margin-top: 4px; color: var(--wind-arrow); }
 .d24-dirs .ar { position: absolute; top: 0; width: 10px; height: 16px; margin-left: -5px; }
 .d24-dirs .ar svg { display: block; width: 10px; height: 16px; }
 .d24-axis { flex: none; position: relative; height: 25px; margin-top: 3px; font-size: 10px; color: var(--fg-3); }
@@ -1725,6 +1460,8 @@ body { padding: 0; }
 .d-lo, .d-hi { flex-shrink: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .d-lo { width: 28px; text-align: right; font-size: 11px; font-weight: 500; color: var(--fg-2); }
 .d-hi { width: 32px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.95); }
+.d-lo.cold, .d-hi.cold { color: var(--cold); }      /* tempTone: ≤ 0° */
+.d-lo.hot, .d-hi.hot { color: var(--warm); }        /* ≥ 25° */
 .d-bar { position: relative; flex: 1 1 auto; min-width: 24px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.07); }
 .d-bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
 .d-bar em { position: absolute; top: -2px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #fff; border: 2px solid rgba(10,12,16,0.9); }
@@ -2347,6 +2084,19 @@ function pad(n){ return n < 10 ? '0' + n : '' + n; }
 function round1(n){ return Math.round(n * 10) / 10; }
 function formatTime(d){ return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 function isNum(v){ return typeof v === 'number' && isFinite(v); }
+/* A semantic colour token from :root (for SVG built in JS), or the fallback. */
+function cssVar(name, fallback){
+  try{ var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; }
+  catch(e){ return fallback; }
+}
+/* A temperature is coloured only when it means something: 'cold' at or
+ * below 0°, 'hot' from 25°, '' (neutral) between. Judged on the value as
+ * shown with dp decimals, so '0°' and '−0.2°' are both blue. */
+function tempTone(t, dp){
+  if(!isNum(t)) return '';
+  var f = Math.pow(10, dp || 0), v = Math.round(t * f) / f;
+  return v <= 0 ? 'cold' : v >= 25 ? 'hot' : '';
+}
 function localDayKey(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 /* First daily index that is today or later. Weather is cached for up to
    24 h, so a payload from before midnight still starts with yesterday —
@@ -2879,21 +2629,6 @@ function heroSkyCode(code, rate, cloud, isDay){
   return 3;
 }
 
-/* Keep old emoji function for any legacy references */
-function weatherCodeToIcon(code, isDay){
-  if(code === 0) return isDay ? '☀️' : '🌙';
-  if(code === 1) return isDay ? '🌤️' : '🌙';
-  if(code === 2) return '⛅';
-  if(code === 3) return '☁️';
-  if(code === 45 || code === 48) return '🌫️';
-  if(code >= 51 && code <= 67) return '🌦️';
-  if(code >= 71 && code <= 77) return '🌨️';
-  if(code >= 80 && code <= 82) return '🌧️';
-  if(code >= 85 && code <= 86) return '🌨️';
-  if(code >= 95) return '⛈️';
-  return '•';
-}
-
 /* ─── UV severity ─────────────────────────────────────────────── */
 /* UV in Nüüd's secondary row: value and word, or '—' for null (never an
    invented 0). */
@@ -3239,13 +2974,13 @@ function renderWeather(data, savedAt){
     // Feed the radar map's wind overlay (arrow + drifting particles)
     if(typeof updateWindOverlay === 'function') updateWindOverlay(dir, wind, gust);
 
-    // Big temp — white; blue below zero, warm from 25° (the page's
-    // semantic colours: a temperature is only coloured when it means
-    // something).
+    // Big temp — neutral; blue at or below zero, warm from 25° (tempTone:
+    // a temperature is only coloured when it means something).
     var tempEl = byId('wx-temp');
     if(tempEl){
       tempEl.innerHTML = fmtT(temp, 1) + '<span class="deg">°</span>';
-      tempEl.className = 'temp-big mono' + (temp < 0 ? ' cold' : temp >= 25 ? ' hot' : '');
+      var tone = tempTone(temp, 1);
+      tempEl.className = 'temp-big mono' + (tone ? ' ' + tone : '');
     }
 
     // Condition phrase and hero icon — one painter, which the 30-s tick
@@ -3267,16 +3002,19 @@ function renderWeather(data, savedAt){
         ? 'täna <b>' + fmtT(dMax, 0) + '°</b> / ' + fmtT(dMin, 0) + '°' : '';
     }
 
-    // Tuul: the value (coloured from 7 m/s up), the arrow pointing where
-    // it blows TO, then the gusts and where it comes FROM ('puh. 3.8 · kirre').
+    // Tuul: the value (caution yellow from 7 m/s, as in the 12 h grid and
+    // the 24 h readout — it was the bar ramp's green at 7, which reads as
+    // 'fine'), the arrow pointing where it blows TO, then the gusts (coral
+    // from 15 m/s, EMHI's line, as the grid and the whiskers) and where it
+    // comes FROM ('puh. 3.8 · kirre').
     var windEl = byId('wind-now');
     if(windEl){
       windEl.textContent = wind.toFixed(1);
-      windEl.style.color = wind >= 7 && typeof windBarColor === 'function' ? solidColor(windBarColor(wind)) : '';
+      windEl.style.color = wind >= 7 ? 'var(--warn)' : '';
     }
     var windSubEl = byId('wind-sub');
     if(windSubEl){
-      windSubEl.innerHTML = 'puh. <b' + (gust !== null && gust >= 15 ? ' class="warn"' : '') + '>'
+      windSubEl.innerHTML = 'puh. <b' + (gust !== null && gust >= 15 ? ' class="bad"' : '') + '>'
         + (gust === null ? '—' : gust.toFixed(1)) + '</b>' + (isNum(dir) ? ' · ' + windFromWord(dir) : '');
     }
     var wa = byId('wind-arrow'); if(wa) wa.style.transform = 'rotate(' + (dir + 180) + 'deg)';
@@ -3460,7 +3198,7 @@ function _buildDayPanel(di){
       '<div class="dsheet-h"><span class="dsheet-day">' + dayName + '</span>'
         + '<span class="dsheet-date">' + dateStr + '</span></div>'
     + '<div class="dsheet-sum">'
-        + '<span><b class="warm">' + hi + '°</b> / <b class="cold">' + lo + '°</b></span>'
+        + '<span><b class="' + tempTone(hi) + '">' + fmtT(hi, 0) + '°</b> / <b class="' + tempTone(lo) + '">' + fmtT(lo, 0) + '°</b></span>'
         + '<span>Sadu <b>' + (psum >= RAIN_MIN_MM ? psum.toFixed(1) + ' mm' : '—') + '</b></span>'
         + '<span>Tuul kuni <b>' + wmax + ' m/s</b></span>'
         + (sunStr ? '<span>' + sunStr + '</span>' : '')
@@ -3698,8 +3436,8 @@ function renderDaily(daily, hourly){
       + '<span class="d-name"><b>' + name + '</b><small>' + dateTxt + '</small></span>'
       + '<span class="d-ico">' + weatherCodeToSVG(dailyPrecipIcon(daily, i, hourly), true) + '</span>'
       + '<span class="d-rain' + (wet ? ' wet' : '') + '"><b>' + rainB + '</b><small>' + prTxt + '</small></span>'
-      + '<span class="d-rng"><span class="d-lo mono">' + fmtT(lo, 0) + '°</span><span class="d-bar">' + bar + '</span>'
-      + '<span class="d-hi mono">' + fmtT(hi, 0) + '°</span></span>'
+      + '<span class="d-rng"><span class="d-lo mono ' + tempTone(lo) + '">' + fmtT(lo, 0) + '°</span><span class="d-bar">' + bar + '</span>'
+      + '<span class="d-hi mono ' + tempTone(hi) + '">' + fmtT(hi, 0) + '°</span></span>'
       + '<span class="d-wind"><b' + (strong ? ' class="strong"' : '') + '>' + (isNum(w) ? Math.round(w) : '—') + '<small> m/s</small></b>'
       + '<small>' + (isNum(g) ? 'puh. ' + Math.round(g) : '') + '</small></span>'
       + '</button>';
@@ -3884,9 +3622,12 @@ function windFromWord(deg){ return isNum(deg) ? ET_WIND_FROM[Math.round((((deg %
 function solidColor(rgba){ return rgba.replace(/[\d.]+\)$/, '1)'); }
 
 /* One line under the hero: rain (rainOutlook), the wind of the next three
- * hours, the night's low. Caution-yellow while rain is near, gusts reach
- * EMHI's 15 m/s, or an official warning stands. Re-run on the 30-s tick,
- * so 'Vihm ~kl 14' turns into 'Sajab' without waiting for a fetch. */
+ * hours, the night's low. Caution-yellow only for its own news: rain near
+ * or gusts at EMHI's 15 m/s. Good news ('Kuiv kuni …') is never amber:
+ * the green all-clear rule, or — while an official warning stands (the
+ * bar above says it) — a neutral one, not amber beside a dry forecast.
+ * Re-run on the 30-s tick, so 'Vihm ~kl 14' turns into 'Sajab' without
+ * waiting for a fetch. */
 function renderVerdict(){
   var el = byId('verdict'), d = WX_LAST;
   if(!el || !d || !d.hourly || !d.hourly.time) return;
@@ -3918,10 +3659,10 @@ function renderVerdict(){
     else if(tn < 4) parts.push('<span class="v-cold">öösel ' + fmtT(tn, 0, true) + '°</span>');
     else parts.push('öösel ' + fmtT(tn, 0, true) + '°');
   }
-  if(typeof WARN_LIST !== 'undefined' && WARN_LIST && activeWarnings(now).length) warn = true;
+  var official = typeof WARN_LIST !== 'undefined' && WARN_LIST && activeWarnings(now).length > 0;
   var html = '<span class="v-part">' + parts.join(' <span class="v-sep">·</span></span> <span class="v-part">') + '</span>';
   if(el.innerHTML !== html) el.innerHTML = html;
-  el.className = 'verdict' + (warn ? ' warn' : '');
+  el.className = 'verdict' + (warn ? ' warn' : official ? ' plain' : '');
 }
 
 /* The Sadu tile: while it rains, the rate now; otherwise the best chance
@@ -4328,7 +4069,7 @@ function d24Select(k){
   set('ro-when', k === 0 ? 'Praegu' : (d.mid > 0 && k >= d.mid ? 'Homme' : 'Täna'));
   set('ro-hour', d.hr[k] === null ? '—' : 'kl ' + pad(d.hr[k]), '');
   var t = d.t[k];
-  set('ro-temp', isNum(t) ? fmtT(t, 0, true) + '°' : '—', isNum(t) && t < 0 ? 'cold' : isNum(t) && t >= 25 ? 'hot' : '');
+  set('ro-temp', isNum(t) ? fmtT(t, 0, true) + '°' : '—', tempTone(t, 0));
   set('ro-feels', isNum(d.f[k]) ? 'tundub ' + fmtT(d.f[k], 0, true) + '°' : '');
   var pr = d.prob[k], mm = d.mm[k];
   set('ro-rain', isNum(pr) ? Math.round(pr) + ' %' : isNum(mm) ? round1(mm).toFixed(1) : '—', d.wet[k] ? 'wet' : '');
@@ -4741,16 +4482,16 @@ function calcMoon(){
   var daysSinceNew = (now-knownNew)/(1000*60*60*24);
   var phase = ((daysSinceNew%synodicMonth)+synodicMonth)%synodicMonth;
   var illumination = Math.round((1-Math.cos(2*Math.PI*phase/synodicMonth))/2*100);
-  var phaseEmoji, phaseName;
-  if(phase<1.85){ phaseEmoji='🌑'; phaseName='Kuu loomine'; }
-  else if(phase<5.54){ phaseEmoji='🌒'; phaseName='Noorkuu'; }
-  else if(phase<9.22){ phaseEmoji='🌓'; phaseName='I veerand'; }
-  else if(phase<12.91){ phaseEmoji='🌔'; phaseName='Kasvav kuu'; }
-  else if(phase<16.61){ phaseEmoji='🌕'; phaseName='Täiskuu'; }
-  else if(phase<20.30){ phaseEmoji='🌖'; phaseName='Kahanev kuu'; }
-  else if(phase<23.99){ phaseEmoji='🌗'; phaseName='III veerand'; }
-  else if(phase<27.68){ phaseEmoji='🌘'; phaseName='Vanakuu'; }
-  else { phaseEmoji='🌑'; phaseName='Kuu loomine'; }
+  var phaseName;
+  if(phase<1.85) phaseName='Kuu loomine';
+  else if(phase<5.54) phaseName='Noorkuu';
+  else if(phase<9.22) phaseName='I veerand';
+  else if(phase<12.91) phaseName='Kasvav kuu';
+  else if(phase<16.61) phaseName='Täiskuu';
+  else if(phase<20.30) phaseName='Kahanev kuu';
+  else if(phase<23.99) phaseName='III veerand';
+  else if(phase<27.68) phaseName='Vanakuu';
+  else phaseName='Kuu loomine';
   // Drawn, not the emoji (whose look is the phone's font): moonSVG().
   var mi = byId('moon-icon');
   if(mi){ mi.innerHTML = moonSVG(phase / synodicMonth); mi.setAttribute('aria-label', phaseName); }
@@ -4872,8 +4613,9 @@ function renderStation(prefix, vals){
     if(ok(vals.temp)){
       var t = round1(vals.temp);
       el.textContent = fmtT(t, 1, true);          // '+3.2' / '−0.4', a real minus
-      // Coloured only when it means something: below zero, or 25° and up.
-      el.style.color = t < 0 ? 'var(--cold)' : t >= 25 ? 'var(--warm)' : '';
+      // Coloured only when it means something: 0° and below, or 25° and up.
+      var tone = tempTone(t, 1);
+      el.style.color = tone === 'cold' ? 'var(--cold)' : tone === 'hot' ? 'var(--warm)' : '';
     }else{
       el.textContent = '—';
       el.style.color = '';
@@ -4886,7 +4628,7 @@ function renderStation(prefix, vals){
       // the rain colour (the unit travels with the figure now).
       var p = round1(vals.precip);
       pe.textContent = p >= 0.05 ? p.toFixed(1) + ' mm' : 'kuiv';
-      pe.style.color = p >= 0.05 ? 'var(--rain, rgba(100, 160, 235, 0.95))' : '';
+      pe.style.color = p >= 0.05 ? 'var(--rain)' : '';
     }else{
       pe.textContent = '—';
       pe.style.color = '';
@@ -5357,7 +5099,7 @@ function renderWarningBar(){
     el.innerHTML = '';
   }
   fitHeader();
-  renderVerdict();          // its edge turns caution while a warning stands
+  renderVerdict();          // no green all-clear edge while a warning stands
   nuudFit();
 }
 
@@ -5815,11 +5557,13 @@ function fetchKurevere(){
 /* ═══════════════════════════════════════════════════════════════
  * AURORA — NOAA Kp + Ovation + Solar wind
  * ═══════════════════════════════════════════════════════════════ */
+/* Aurora figures: a high Kp, a real chance, a southward Bz are the good
+   news on this card — green ('go'), as the line's 'võimalik näha'; they
+   used to be amber / coral like a warning. */
 function kpSeverityClass(kp){
   if(isNaN(kp)) return 'lo';
   if(kp < 4) return 'lo';
-  if(kp < 6) return 'mid';
-  return 'hi';
+  return 'go';
 }
 /* The Kp card: 'Kp 24h' and the bar chart. NOAA's feed is past days
  * (observed), the current day's slots (estimated) and ~2 days ahead
@@ -5870,8 +5614,10 @@ function renderKpForecast(data){
         b.className = 'kp-bar' + (idx === 0 && r.t <= now ? ' now' : '');
         var h = Math.min(100, Math.max(8, (r.kp / max) * 100));
         b.style.height = h + '%';
-        if(r.kp >= 6) b.style.background = 'var(--bad)';
-        else if(r.kp >= 4) b.style.background = '#e9a76b';
+        // High Kp is the good news on an aurora card: green from Kp 4
+        // ('võimalik näha', as the line says), full green from 6.
+        if(r.kp >= 6) b.style.background = 'var(--ok)';
+        else if(r.kp >= 4) b.style.background = 'rgba(109,192,142,0.62)';
         else b.style.background = 'rgba(255,255,255,0.45)';
         var d = new Date(r.t);
         b.title = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + ' ' + formatTime(d) + ' — Kp ' + r.kp.toFixed(1);
@@ -5939,9 +5685,7 @@ function renderOvation(data){
     if(!el) return;
     if(prob === null){ el.textContent = '—'; return; }
     el.textContent = prob + '%';
-    if(prob < 10) el.className = 'gauge-text num lo';
-    else if(prob < 30) el.className = 'gauge-text num mid';
-    else el.className = 'gauge-text num hi';
+    el.className = 'gauge-text num ' + (prob < 10 ? 'lo' : 'go');
   }catch(e){}
 }
 function fetchOvation(){
@@ -5998,9 +5742,7 @@ function renderSolarWind(data){
   AUR.bz = last;
   if(last === null){ el.textContent = '—'; el.className = 'gauge-text num lo'; return; }
   el.textContent = (last >= 0 ? '+' : '\u2212') + Math.abs(last).toFixed(1);
-  if(last <= -5) el.className = 'gauge-text num hi';
-  else if(last <= -2) el.className = 'gauge-text num mid';
-  else el.className = 'gauge-text num lo';
+  el.className = 'gauge-text num ' + (last <= -2 ? 'go' : 'lo');
 }
 function fetchSolarWind(){
   var failed = function(){ renderSolarWind(SOLAR_LAST); };
@@ -6279,9 +6021,7 @@ var RAIN_STOPS_MM = [
  * tiers across the whole middle of the range.
  *
  * Evenly spaced stops, topping out at purple-red rather than the 20mm/h
- * extreme red — a certain drizzle is certain, not catastrophic.
- * RAIN_LEGEND_PROB is generated from this same array below, so the strip
- * under the chart can never again disagree with the bars above it. */
+ * extreme red — a certain drizzle is certain, not catastrophic. */
 var RAIN_STOPS_PROB = [
   { v:   0, c: [ 80, 140, 220, 0.18] }, /* no chance — near-transparent   */
   { v:  20, c: [ 70, 130, 215, 0.45] }, /* unlikely                       */
@@ -6305,110 +6045,24 @@ function rainBarColor(v, unit){
   return rgbaStr(stops[stops.length-1].c);
 }
 
-/* Temperature color stops — cold blues for below zero, teal for cool,
- * green for mild, amber for warm, orange-red for hot. Calibrated for
- * Estonia: +10°C is a pleasant spring day (green), +20°C is warm (amber),
- * negative is cold (blue). */
-var TEMP_STOPS = [
-  { v: -15, c: [ 50, 100, 200, 0.95] }, /* deep cold — navy blue    */
-  { v:  -5, c: [ 80, 150, 220, 0.90] }, /* cold — sky blue          */
-  { v:   0, c: [100, 190, 210, 0.85] }, /* freezing — cyan          */
-  { v:   5, c: [ 80, 185, 155, 0.82] }, /* cool — teal              */
-  { v:  10, c: [ 90, 195, 100, 0.82] }, /* mild — green             */
-  { v:  15, c: [160, 200,  70, 0.88] }, /* warm-ish — yellow-green  */
-  { v:  20, c: [230, 185,  50, 0.92] }, /* warm — amber             */
-  { v:  25, c: [220, 120,  40, 0.97] }, /* hot — orange             */
-  { v:  30, c: [205,  60,  50, 1.00] }, /* very hot — red           */
-];
+/* Temperature bars (12 h, 24 h, the week's ranges, the day sheet): the
+ * same rule as the figures (tempTone). An ordinary temperature is NEUTRAL
+ * — the bar's height already says warmer or colder; at or below 0° the
+ * bar turns blue (deeper as it gets colder, to −15°); from 25° warm,
+ * redder towards 30°. The old ramp painted +10° green and +20° amber, so
+ * a mild day looked like 'all clear' and a warm one like a caution. */
+var TEMP_NEUTRAL_C = [205, 214, 226, 0.62];
+var TEMP_COLD_C    = [[142, 197, 255, 0.90], [ 70, 120, 230, 0.95]];   // 0° → −15°
+var TEMP_HOT_C     = [[233, 167, 107, 0.95], [225, 100,  80, 1.00]];   // 25° → 30°
 function tempBarColor(v){
-  var stops = TEMP_STOPS;
-  if(v <= stops[0].v) return rgbaStr(stops[0].c);
-  if(v >= stops[stops.length-1].v) return rgbaStr(stops[stops.length-1].c);
-  for(var i = 1; i < stops.length; i++){
-    if(v <= stops[i].v){
-      var t = (v - stops[i-1].v) / (stops[i].v - stops[i-1].v);
-      return rgbaStr(lerpColor(stops[i-1].c, stops[i].c, t));
-    }
-  }
-  return rgbaStr(stops[stops.length-1].c);
+  var tone = tempTone(v, 0);
+  if(tone === 'cold') return rgbaStr(lerpColor(TEMP_COLD_C[0], TEMP_COLD_C[1], Math.min(1, -v / 15)));
+  if(tone === 'hot')  return rgbaStr(lerpColor(TEMP_HOT_C[0], TEMP_HOT_C[1], Math.min(1, (v - 25) / 5)));
+  return rgbaStr(TEMP_NEUTRAL_C);
 }
 
-var TEMP_LEGEND = {
-  gradient: 'linear-gradient(90deg,' +
-    'rgba(50,100,200,0.9)   0%,' +   /* −15 */
-    'rgba(100,190,210,0.85) 30%,' +  /*   0 */
-    'rgba(90,195,100,0.82)  50%,' +  /*  10 */
-    'rgba(230,185,50,0.92)  70%,' +  /*  20 */
-    'rgba(205,60,50,1)     100%)',    /*  30 */
-  ticks: [
-    {pct:  0, label:'−15°'},
-    {pct: 30, label:'0°'},
-    {pct: 50, label:'10°'},
-    {pct: 70, label:'20°'},
-    {pct:100, label:'30°C'}
-  ]
-};
-/* Wind tick positions are computed as (v / maxStop) * 100 so they
- * land exactly where that m/s value falls on the gradient, matching
- * the WIND_STOPS positions. Max stop = 25 m/s (the gradient's right end).
- *
- * Rain ticks are evenly spaced at the key perceptual breakpoints.
- * Fewer ticks = more readable on a narrow phone strip. */
-var WIND_LEGEND = {
-  /* Gradient positions: each stop at (v/25)*100 so 10 m/s is at 40% */
-  gradient: 'linear-gradient(90deg,' +
-    'rgba(110,175,230,0.7)  0%,' +   /*  0 m/s */
-    'rgba(70,195,175,0.75) 12%,' +   /*  3 m/s */
-    'rgba(90,200,100,0.82) 28%,' +   /*  7 m/s */
-    'rgba(230,210,60,0.9)  40%,' +   /* 10 m/s */
-    'rgba(230,140,40,0.95) 56%,' +   /* 14 m/s */
-    'rgba(215,80,50,1)     72%,' +   /* 18 m/s */
-    'rgba(200,40,60,1)    100%)',     /* 25 m/s */
-  ticks: [
-    {pct:  0, label:'0'},
-    {pct: 12, label:'3'},
-    {pct: 28, label:'7'},
-    {pct: 40, label:'10'},
-    {pct: 56, label:'14'},
-    {pct: 72, label:'18'},
-    {pct:100, label:'25+ m/s'}
-  ]
-};
-/* Built from RAIN_STOPS_PROB rather than hand-written, so the gradient
- * under the chart is by construction the same ramp the bars use. The old
- * hand-written version had drifted two to three tiers away from
- * rainBarColor(): it labelled 30% light blue while the bar painted it
- * heavy purple. This legend IS visible on the phone. */
-var RAIN_LEGEND_PROB = (function(){
-  var stops = RAIN_STOPS_PROB;
-  var maxV = stops[stops.length - 1].v;
-  return {
-    gradient: 'linear-gradient(90deg,' + stops.map(function(s){
-      return rgbaStr(s.c) + ' ' + (s.v / maxV * 100) + '%';
-    }).join(',') + ')',
-    ticks: [0, 25, 50, 75, 100].map(function(pct){
-      return { pct: pct, label: pct + '%' };
-    })
-  };
-})();
-var RAIN_LEGEND_MM = {
-  gradient: 'linear-gradient(90deg,' +
-    'rgba(80,140,220,0.25)  0%,' +
-    'rgba(55,105,210,0.8)  20%,' +
-    'rgba(90,65,195,0.9)   40%,' +
-    'rgba(140,45,175,0.97) 60%,' +
-    'rgba(185,35,100,1)    80%,' +
-    'rgba(200,35,50,1)    100%)',
-  ticks: [
-    {pct:  0, label:'0'},
-    {pct: 20, label:'0.5'},
-    {pct: 40, label:'2'},
-    {pct: 60, label:'5'},
-    {pct: 80, label:'10'},
-    {pct:100, label:'20+ mm/h'}
-  ]
-};
-
+/* (The sparkline legends — TEMP_/WIND_/RAIN_LEGEND_* — had no caller left
+ * and are gone.) */
 
 /* niceMax — round a data maximum UP to a clean scale ceiling.
  * Used by the sparkline y-axis so labels read "8 m/s" not "7.3 m/s".
@@ -6604,8 +6258,8 @@ function renderSpark(elId, data, opts){
         // Drawn pointing up; rotation applied via transform so the tip
         // always indicates wind direction (points where wind goes TO).
         cell.innerHTML = '<svg viewBox="0 0 10 18" xmlns="http://www.w3.org/2000/svg" style="width:10px;height:18px;display:block">' +
-          '<line x1="5" y1="17" x2="5" y2="7" stroke="rgba(126,200,255,0.90)" stroke-width="1.8" stroke-linecap="round"/>' +
-          '<polygon points="5,1 1.5,8 8.5,8" fill="rgba(126,200,255,0.90)"/>' +
+          '<line x1="5" y1="17" x2="5" y2="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
+          '<polygon points="5,1 1.5,8 8.5,8" fill="currentColor"/>' +
           '</svg>';
         cell.style.transform = 'translateX(-50%) rotate(' + (dir + 180) + 'deg)';
         var arrowHour = (startHour + barIdx) % 24;
@@ -7799,7 +7453,7 @@ function initRadarExtras(){
         r.setAttribute('width', '22');
         r.setAttribute('height', '1.8');
         r.setAttribute('rx', '0.9');
-        r.setAttribute('fill', 'rgba(180,222,255,0.95)');
+        r.setAttribute('fill', cssVar('--wind-arrow', '#cfd9e6'));
         r.setAttribute('x', '-11');
         var y = (Math.random() - 0.5) * 520;
         r.setAttribute('y', y.toFixed(1));
@@ -7926,7 +7580,7 @@ function drawOverlay(){
   svg.setAttribute('height', H);
   svg.setAttribute('viewBox', '0 0 ' + Math.round(W) + ' ' + Math.round(H));
 
-  var WIND_COLOR = 'rgba(150,210,250,0.95)';
+  var WIND_COLOR = cssVar('--wind-arrow', '#cfd9e6');   // the one wind-arrow colour
   var WIND_HALO  = 'rgba(0,0,0,0.55)';
   var SR_COLOR   = 'rgba(233,167,107,0.96)';
   var SS_COLOR   = 'rgba(218,132,110,0.96)';
