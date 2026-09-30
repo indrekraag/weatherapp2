@@ -1186,7 +1186,8 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .daysheet-track::-webkit-scrollbar{display:none;}
 .daysheet-panel{flex:0 0 100%;scroll-snap-align:center;box-sizing:border-box;
   padding:4px 20px 22px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-.dsheet-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.dsheet-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding-right:34px;}   /* the ✕ (right 12 px, 30 px wide) sits on this row: the date ended under it */
 .dsheet-day{font-size:19px;font-weight:600;color:#fff;}
 .dsheet-date{font-size:13px;color:rgba(255,255,255,0.55);}
 .dsheet-sum{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;
