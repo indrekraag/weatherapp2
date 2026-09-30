@@ -483,7 +483,7 @@ button.chip:active { background: rgba(255,255,255,0.10); }
 .next12 .card-header { margin-bottom: 6px; }
 .next12 .n12 { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; position: relative; }
 .n12-legend { display: inline-flex; align-items: center; gap: 5px; text-transform: none; letter-spacing: 0.2px; }
-.n12-legend .lg-bar { display: inline-block; width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(205,214,226,.62), rgba(205,214,226,.19)); }   /* = TEMP_NEUTRAL_C */
+.n12-legend .lg-bar { display: inline-block; width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(230,185,50,.92), rgba(90,195,100,.82) 55%, rgba(100,190,210,.85)); }   /* the TEMP_STOPS ramp, warm → mild → cold */
 .n12-legend .lg-line { display: inline-block; width: 14px; height: 0; border-top: 1.5px dashed rgba(255,255,255,0.85); margin-left: 6px; }
 .n12-row { display: grid; grid-template-columns: 16px repeat(12, minmax(0, 1fr)); align-items: center; }
 .n12-g { display: flex; align-items: center; color: var(--fg-3); }
@@ -1372,15 +1372,11 @@ body { padding: 0; }
 .d24-sec-t { flex: 3 1 0; min-height: 96px; }
 .d24-sec-r { flex: 1.7 1 0; min-height: 80px; margin-top: 8px; }
 .d24-sec-w { flex: 2 1 0; min-height: 84px; margin-top: 8px; }
-/* No real rain in the 24 h (and none falling): the row is its label and
-   the sky icons; the height goes to the other two. */
-.d24-sec-r.dry { flex: 0 0 auto; min-height: 0; }
-.d24-sec-r.dry .d24-bars, .d24-sec-r.dry .rain-mode-toggle { display: none; }
 .d24-lab { flex: none; display: flex; align-items: center; gap: 8px; min-height: 22px; margin-bottom: 3px; }
 .d24-name { font: 700 11px -apple-system, "SF Pro Display", sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.92); flex-shrink: 0; }
 .d24-key { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; font-size: 10px; color: var(--fg-3); white-space: nowrap; }
 .d24-key i { display: inline-block; flex-shrink: 0; }
-.d24-key .k-bar { width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(205,214,226,.62), rgba(205,214,226,.19)); }   /* = TEMP_NEUTRAL_C */
+.d24-key .k-bar { width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(230,185,50,.92), rgba(90,195,100,.82) 55%, rgba(100,190,210,.85)); }   /* the TEMP_STOPS ramp, warm → mild → cold */
 .d24-key .k-bar.k-wind { background: linear-gradient(180deg, rgba(90,190,190,.9), rgba(90,190,190,.25)); }
 .d24-key .k-line { width: 14px; height: 0; border-top: 1.5px dashed rgba(255,255,255,0.85); margin-left: 4px; }
 .d24-key .k-tick { width: 8px; height: 6px; border-top: 2px solid rgba(255,255,255,0.85); margin-left: 4px;
@@ -4057,7 +4053,8 @@ function n12Select(k){
  * renderN12() and rainOutlook() — so column k describes the hour that
  * starts at its label. Real rain is isRealRainSlot()'s (≥ 0.3 mm or
  * ≥ 50 %): while none of the 24 slots has it and nothing is falling, the
- * rain row folds to its line of sky icons and 'kuiv · kuni 14 %' (B).
+ * rain row's caption says 'kuiv · kuni 14 %' — its bars stay (the fold to
+ * icons only, from prototype B, hid the chances on most days).
  * The header's 'Saju alguseni' is updateRainStart() — the same outlook
  * as the Nüüd verdict. Tap a column (no drag: a swipe still turns the
  * page) and the readout at the top shows that hour; tap it again, or
@@ -4213,7 +4210,9 @@ function d24Rain(){
     ic.innerHTML = ih;
     d24MidLine(ic);
   }
-  if(sec) sec.classList.toggle('dry', d.dry);
+  // The row keeps its bars on dry days too: the owner wants to see the
+  // chances even when none is 'real rain' (the caption still says 'kuiv').
+  if(sec) sec.classList.remove('dry');
   if(!sub) return;
   sub.classList.toggle('wet', !d.dry);
   if(d.dry) sub.textContent = 'kuiv' + (isNum(pmax) && pmax >= 5 ? ' · kuni ' + Math.round(pmax) + ' %' : '');
@@ -6335,20 +6334,35 @@ function rainBarColor(v, unit){
   return rgbaStr(stops[stops.length-1].c);
 }
 
-/* Temperature bars (12 h, 24 h, the week's ranges, the day sheet): the
- * same rule as the figures (tempTone). An ordinary temperature is NEUTRAL
- * — the bar's height already says warmer or colder; at or below 0° the
- * bar turns blue (deeper as it gets colder, to −15°); from 25° warm,
- * redder towards 30°. The old ramp painted +10° green and +20° amber, so
- * a mild day looked like 'all clear' and a warm one like a caution. */
-var TEMP_NEUTRAL_C = [205, 214, 226, 0.62];
-var TEMP_COLD_C    = [[142, 197, 255, 0.90], [ 70, 120, 230, 0.95]];   // 0° → −15°
-var TEMP_HOT_C     = [[233, 167, 107, 0.95], [225, 100,  80, 1.00]];   // 25° → 30°
+/* Temperature bars (12 h, 24 h, the week's ranges, the day sheet) keep
+ * main's colour ramp: blue below zero, teal/green for cool-to-mild,
+ * yellow-green → amber → orange → red towards 30°. (A neutral grey for
+ * 0–25° was tried in the redesign and taken back: on a chart the colour
+ * is the reading, not an alarm.) The FIGURES follow tempTone instead:
+ * neutral, blue ≤ 0°, warm ≥ 25°. */
+var TEMP_STOPS = [
+  { v: -15, c: [ 50, 100, 200, 0.95] }, /* deep cold — navy blue    */
+  { v:  -5, c: [ 80, 150, 220, 0.90] }, /* cold — sky blue          */
+  { v:   0, c: [100, 190, 210, 0.85] }, /* freezing — cyan          */
+  { v:   5, c: [ 80, 185, 155, 0.82] }, /* cool — teal              */
+  { v:  10, c: [ 90, 195, 100, 0.82] }, /* mild — green             */
+  { v:  15, c: [160, 200,  70, 0.88] }, /* warm-ish — yellow-green  */
+  { v:  20, c: [230, 185,  50, 0.92] }, /* warm — amber             */
+  { v:  25, c: [220, 120,  40, 0.97] }, /* hot — orange             */
+  { v:  30, c: [205,  60,  50, 1.00] }, /* very hot — red           */
+];
 function tempBarColor(v){
-  var tone = tempTone(v, 0);
-  if(tone === 'cold') return rgbaStr(lerpColor(TEMP_COLD_C[0], TEMP_COLD_C[1], Math.min(1, -v / 15)));
-  if(tone === 'hot')  return rgbaStr(lerpColor(TEMP_HOT_C[0], TEMP_HOT_C[1], Math.min(1, (v - 25) / 5)));
-  return rgbaStr(TEMP_NEUTRAL_C);
+  var stops = TEMP_STOPS;
+  if(!isNum(v)) return rgbaStr(stops[4].c);
+  if(v <= stops[0].v) return rgbaStr(stops[0].c);
+  if(v >= stops[stops.length-1].v) return rgbaStr(stops[stops.length-1].c);
+  for(var i = 1; i < stops.length; i++){
+    if(v <= stops[i].v){
+      var t = (v - stops[i-1].v) / (stops[i].v - stops[i-1].v);
+      return rgbaStr(lerpColor(stops[i-1].c, stops[i].c, t));
+    }
+  }
+  return rgbaStr(stops[stops.length-1].c);
 }
 
 /* (The sparkline legends — TEMP_/WIND_/RAIN_LEGEND_* — had no caller left
