@@ -7883,59 +7883,150 @@ function drawOverlay(){
   var origin = latlngToPixel(CONFIG.lat, CONFIG.lng);
   var cx = origin.x, cy = origin.y;
 
-  // Anti-overlap: each text value is nudged radially outward from Madise
-  // until it clears every label already placed this frame — so the sun
-  // and moon values never sit on top of each other when their bearings
-  // (or rise/set azimuths) happen to coincide. Order of placement =
-  // priority: wind, then sun, then moon (moon yields).
+  // Anti-overlap: each text value is moved until it clears every label
+  // already placed this frame — so the sun and moon values never sit on
+  // top of each other when their bearings (or rise/set azimuths) happen
+  // to coincide. Order of placement = priority: wind, then sun, then moon
+  // (moon yields).
   // It must also clear what sits ON the map — 'Liiguta', the Sadu key,
-  // the trouble badge, the presets, the attribution — and stay inside the
-  // box: outward first, then inward, then sideways (a label on the same
-  // bearing as the wind's fills the whole ray); only if none finds room
-  // does the old rule (clear of the other labels) stand.
-  var placedLabels = [], blocked = mapObstacles(mapEl);
-  function labelClash(ax, ay, w, h, strict){
+  // the trouble badge, the presets, the attribution — the sun and moon
+  // arcs and their discs (the wind label used to be drawn across the
+  // dashed moon arc), and stay inside the box. The nearest spot that
+  // does wins: along its ray from Madise (outward 7-px steps; inward
+  // counts a little more) and sideways (8-px steps) — the arcs only
+  // within PLACE_ARC_PX, since a label far from its arrow or arc end is
+  // worse than one on a line. Then the same without the arcs; only if
+  // that finds no room either does the old rule (clear of the other
+  // labels) stand. level: 2 everything, 1 not the arcs, 0 labels only.
+  var placedLabels = [], blocked = mapObstacles(mapEl), arcPts = [], shaftPts = [];
+  var PLACE_ARC_PX = 64;
+  function labelClash(ax, ay, w, h, level){
     for(var i = 0; i < placedLabels.length; i++){
       var p = placedLabels[i];
       if(Math.abs(ax - p.x) < (w + p.w) / 2 + 2 &&
          Math.abs(ay - p.y) < (h + p.h) / 2 + 2) return true;
     }
-    if(!strict) return false;
+    if(!level) return false;
     if(ax - w / 2 < 3 || ax + w / 2 > W - 3 || ay - h / 2 < 3 || ay + h / 2 > H - 3) return true;
     for(var k = 0; k < blocked.length; k++){
       var b = blocked[k];
       if(ax + w / 2 > b.l && ax - w / 2 < b.r && ay + h / 2 > b.t && ay - h / 2 < b.b) return true;
     }
+    // The wind arrow's shaft (from 8 px inside its tail): an east or west
+    // wind's label was centred on the tail and the shaft ran through it.
+    for(var sa = 0; sa < shaftPts.length; sa++){
+      if(Math.abs(shaftPts[sa].x - ax) < w / 2 + 3 && Math.abs(shaftPts[sa].y - ay) < h / 2 + 3) return true;
+    }
+    if(level < 2) return false;
+    // An arc is a line of points (1.5–2.5 px apart); its halo is ≤ 2.3 px
+    // wide each side, the text's own halo 1.5.
+    for(var a = 0; a < arcPts.length; a++){
+      if(Math.abs(arcPts[a].x - ax) < w / 2 + 4 && Math.abs(arcPts[a].y - ay) < h / 2 + 4) return true;
+    }
     return false;
   }
+  var PLACE_STEPS = null;       // candidate offsets (ray, side), nearest first
   function placeText(x, y, approxW){
     var approxH = 14, dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1;
     var ux = dx / d, uy = dy / d, at = null, it;
-    for(it = 0; it < 24 && !at; it++){
-      if(!labelClash(x + ux * 7 * it, y + uy * 7 * it, approxW, approxH, true)) at = { x: x + ux * 7 * it, y: y + uy * 7 * it };
+    if(!PLACE_STEPS){
+      PLACE_STEPS = [];
+      for(var r = -11; r <= 24; r++) for(var sd = -8; sd <= 8; sd++){
+        PLACE_STEPS.push({ r: r, s: sd, c: Math.hypot(7 * r, 8 * sd) * (r < 0 ? 1.25 : 1) + (sd < 0 ? 0.01 : 0) });
+      }
+      PLACE_STEPS.sort(function(a, b){ return a.c - b.c; });
     }
-    for(it = 1; it < 12 && !at; it++){
-      if(!labelClash(x - ux * 7 * it, y - uy * 7 * it, approxW, approxH, true)) at = { x: x - ux * 7 * it, y: y - uy * 7 * it };
-    }
-    for(var side = 1; side <= 8 && !at; side++){
-      var sx = -uy * 8 * (side % 2 ? (side + 1) / 2 : -side / 2), sy = ux * 8 * (side % 2 ? (side + 1) / 2 : -side / 2);
-      for(it = -3; it < 6 && !at; it++){
-        if(!labelClash(x + sx + ux * 7 * it, y + sy + uy * 7 * it, approxW, approxH, true)) at = { x: x + sx + ux * 7 * it, y: y + sy + uy * 7 * it };
+    for(var level = 2; level >= 1 && !at; level--){
+      for(var q = 0; q < PLACE_STEPS.length && !at; q++){
+        var st = PLACE_STEPS[q];
+        if(level === 2 && st.c > PLACE_ARC_PX) break;
+        var px = x + ux * 7 * st.r - uy * 8 * st.s, py = y + uy * 7 * st.r + ux * 8 * st.s;
+        if(!labelClash(px, py, approxW, approxH, level)) at = { x: px, y: py };
       }
     }
     for(it = 0; it < 24 && !at; it++){
-      if(!labelClash(x + ux * 7 * it, y + uy * 7 * it, approxW, approxH, false)) at = { x: x + ux * 7 * it, y: y + uy * 7 * it };
+      if(!labelClash(x + ux * 7 * it, y + uy * 7 * it, approxW, approxH, 0)) at = { x: x + ux * 7 * it, y: y + uy * 7 * it };
     }
     if(!at) at = { x: x + ux * 7 * 24, y: y + uy * 7 * 24 };
     placedLabels.push({ x: at.x, y: at.y, w: approxW, h: approxH });
     return at;
   }
 
+  // ── Geometry first: the arcs and the two discs are obstacles for every
+  //    label, the wind's included, so they are known before any is placed.
+  //    Drawing below keeps its old order (wind, sun, moon). ──
+  var sunRingR = Math.min(W, H) * 0.276;
+  // Moon ring sits ~8% inside the sun ring so the two arcs don't overlap.
+  var moonRingR = Math.min(W, H) * 0.256;
+  var sunOk = typeof solarPosition === 'function' && TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null;
+  var samples = [], nowMs = Date.now(), curIdx = -1, nowPt = null;
+  if(sunOk){
+    for(var ts = TODAY_SUNRISE_MS; ts <= TODAY_SUNSET_MS; ts += 4 * 60 * 1000){
+      var sp = solarPosition(new Date(ts), CONFIG.lat, CONFIG.lng);
+      if(sp && typeof sp.azimuth === 'number' && sp.altitude > -1){
+        var pt = anglePx(sp.azimuth, sunRingR, cx, cy);
+        samples.push({ t: ts, x: pt.x, y: pt.y, az: sp.azimuth });
+      }
+    }
+    if(samples.length){
+      var srSp = solarPosition(new Date(TODAY_SUNRISE_MS), CONFIG.lat, CONFIG.lng);
+      var ssSp = solarPosition(new Date(TODAY_SUNSET_MS),  CONFIG.lat, CONFIG.lng);
+      var srPt = anglePx(srSp.azimuth, sunRingR, cx, cy);
+      var ssPt = anglePx(ssSp.azimuth, sunRingR, cx, cy);
+      samples.unshift({ t: TODAY_SUNRISE_MS, x: srPt.x, y: srPt.y, az: srSp.azimuth });
+      samples.push(   { t: TODAY_SUNSET_MS,  x: ssPt.x, y: ssPt.y, az: ssSp.azimuth });
+    }
+    for(var i = 0; i < samples.length; i++){
+      if(samples[i].t <= nowMs) curIdx = i; else break;
+    }
+    if(curIdx >= 0 && curIdx < samples.length - 1){
+      var a = samples[curIdx], b = samples[curIdx + 1];
+      var k = (nowMs - a.t) / (b.t - a.t);
+      nowPt = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
+    } else if(nowMs >= TODAY_SUNRISE_MS && nowMs <= TODAY_SUNSET_MS){
+      var sp2 = solarPosition(new Date(), CONFIG.lat, CONFIG.lng);
+      if(sp2 && sp2.altitude > 0){
+        var p2 = anglePx(sp2.azimuth, sunRingR, cx, cy);
+        nowPt = { x: p2.x, y: p2.y };
+      }
+    }
+  }
+  // The moon: the pass we're in now, else the next one (rise → following
+  // set) — moonPassNow(), the same pass the Kuu card lists.
+  var moonOk = typeof moonPosition === 'function' && typeof findMoonRiseSet === 'function';
+  var nowM = Date.now(), segStart = null, segEnd = null, msamp = [], mNow = null, mNowPt = null;
+  if(moonOk){
+    var mPass = (typeof moonPassNow === 'function') ? moonPassNow(nowM) : null;
+    if(mPass){ segStart = mPass.rise.getTime(); segEnd = mPass.set.getTime(); }
+    if(segStart !== null && segEnd !== null && segEnd > segStart){
+      // Sample the pass for the arc (~120 points max)
+      var mstep = Math.max(4 * 60 * 1000, Math.round((segEnd - segStart) / 120));
+      for(var mt = segStart; mt <= segEnd; mt += mstep){
+        var mp = moonPosition(new Date(mt), CONFIG.lat, CONFIG.lng);
+        if(mp && mp.altitude > 0){
+          var mPt = anglePx(mp.azimuth, moonRingR, cx, cy);
+          msamp.push({ x: mPt.x, y: mPt.y });
+        }
+      }
+      // Current moon position — only while it's actually up in this pass.
+      mNow = moonPosition(new Date(), CONFIG.lat, CONFIG.lng);
+      if(mNow && mNow.altitude > 0 && nowM >= segStart && nowM <= segEnd) mNowPt = anglePx(mNow.azimuth, moonRingR, cx, cy);
+    }
+  }
+  arcPts = samples.concat(msamp.length >= 2 ? msamp : []);
+  var windOn = RX.windDir !== null && RX.windSpeed !== null, arrowLen = 0, tail = null;
+  if(windOn){
+    arrowLen = Math.min(Math.max(W, H) * 0.25, 55 + RX.windSpeed * 7);
+    tail = anglePx(RX.windDir, arrowLen, cx, cy);
+    for(var sl = 8; sl <= arrowLen; sl += 2) shaftPts.push(anglePx(RX.windDir, arrowLen - sl, cx, cy));
+  }
+  [nowPt, mNowPt].forEach(function(dp){
+    if(dp) blocked.push({ l: dp.x - 8, r: dp.x + 8, t: dp.y - 8, b: dp.y + 8 });
+  });
+
   // ── WIND arrow — head points AT Madise from where the wind comes
   //    FROM; speed/gust label sits at the upwind tail. ──
-  if(RX.windDir !== null && RX.windSpeed !== null){
-    var arrowLen = Math.min(Math.max(W, H) * 0.25, 55 + RX.windSpeed * 7);
-    var tail = anglePx(RX.windDir, arrowLen, cx, cy);
+  if(windOn){
     var wx1 = tail.x.toFixed(1), wy1 = tail.y.toFixed(1),
         wx2 = cx.toFixed(1),     wy2 = cy.toFixed(1);
     parts.push('<line x1="'+wx1+'" y1="'+wy1+'" x2="'+wx2+'" y2="'+wy2+
@@ -7959,43 +8050,8 @@ function drawOverlay(){
   }
 
   // ── SUN — full-day arc projected at constant horizon-distance ──
-  var sunRingR = Math.min(W, H) * 0.276;
-  if(typeof solarPosition === 'function' &&
-     TODAY_SUNRISE_MS !== null && TODAY_SUNSET_MS !== null){
-    var samples = [];
-    var nowMs = Date.now();
-    for(var ts = TODAY_SUNRISE_MS; ts <= TODAY_SUNSET_MS; ts += 4 * 60 * 1000){
-      var sp = solarPosition(new Date(ts), CONFIG.lat, CONFIG.lng);
-      if(sp && typeof sp.azimuth === 'number' && sp.altitude > -1){
-        var pt = anglePx(sp.azimuth, sunRingR, cx, cy);
-        samples.push({ t: ts, x: pt.x, y: pt.y, az: sp.azimuth });
-      }
-    }
-    if(samples.length){
-      var srSp = solarPosition(new Date(TODAY_SUNRISE_MS), CONFIG.lat, CONFIG.lng);
-      var ssSp = solarPosition(new Date(TODAY_SUNSET_MS),  CONFIG.lat, CONFIG.lng);
-      var srPt = anglePx(srSp.azimuth, sunRingR, cx, cy);
-      var ssPt = anglePx(ssSp.azimuth, sunRingR, cx, cy);
-      samples.unshift({ t: TODAY_SUNRISE_MS, x: srPt.x, y: srPt.y, az: srSp.azimuth });
-      samples.push(   { t: TODAY_SUNSET_MS,  x: ssPt.x, y: ssPt.y, az: ssSp.azimuth });
-    }
+  if(sunOk){
     var pastD = '', futD = '';
-    var curIdx = -1;
-    for(var i = 0; i < samples.length; i++){
-      if(samples[i].t <= nowMs) curIdx = i; else break;
-    }
-    var nowPt = null;
-    if(curIdx >= 0 && curIdx < samples.length - 1){
-      var a = samples[curIdx], b = samples[curIdx + 1];
-      var k = (nowMs - a.t) / (b.t - a.t);
-      nowPt = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
-    } else if(nowMs >= TODAY_SUNRISE_MS && nowMs <= TODAY_SUNSET_MS){
-      var sp2 = solarPosition(new Date(), CONFIG.lat, CONFIG.lng);
-      if(sp2 && sp2.altitude > 0){
-        var p2 = anglePx(sp2.azimuth, sunRingR, cx, cy);
-        nowPt = { x: p2.x, y: p2.y };
-      }
-    }
     function ptStr(p, first){ return (first ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }
     if(curIdx >= 0){
       for(var i2 = 0; i2 <= curIdx; i2++) pastD += ptStr(samples[i2], i2 === 0) + ' ';
@@ -8074,30 +8130,12 @@ function drawOverlay(){
   //    from the REAL findMoonRiseSet() crossings, not the sampling-window
   //    edges (those land at the same clock time 24 h apart and produced a
   //    bogus duplicate "rise == set" label). ──
-  // Moon ring sits ~8% inside the sun ring so the two arcs don't overlap.
-  var moonRingR = Math.min(W, H) * 0.256;
-  if(typeof moonPosition === 'function' && typeof findMoonRiseSet === 'function'){
+  if(moonOk){
     var MOON_COLOR     = 'rgba(220,226,238,0.98)';
     var MOON_DIM_COLOR = 'rgba(216,223,236,0.88)';   // brighter so the arc reads clearly
     var MOON_HALO      = 'rgba(0,0,0,0.6)';
 
-    // The pass we're in now, else the next one (rise → following set) —
-    // moonPassNow(), the same pass the Kuu card lists.
-    var nowM = Date.now(), segStart = null, segEnd = null;
-    var mPass = (typeof moonPassNow === 'function') ? moonPassNow(nowM) : null;
-    if(mPass){ segStart = mPass.rise.getTime(); segEnd = mPass.set.getTime(); }
-
     if(segStart !== null && segEnd !== null && segEnd > segStart){
-      // Sample the pass for the arc (~120 points max)
-      var msamp = [];
-      var mstep = Math.max(4 * 60 * 1000, Math.round((segEnd - segStart) / 120));
-      for(var mt = segStart; mt <= segEnd; mt += mstep){
-        var mp = moonPosition(new Date(mt), CONFIG.lat, CONFIG.lng);
-        if(mp && mp.altitude > 0){
-          var mPt = anglePx(mp.azimuth, moonRingR, cx, cy);
-          msamp.push({ x: mPt.x, y: mPt.y });
-        }
-      }
       if(msamp.length >= 2){
         var mPath = msamp.map(function(p, i){
           return (i === 0 ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
@@ -8137,9 +8175,7 @@ function drawOverlay(){
       moonMarker(segEnd,   'set');
 
       // Current moon position — only while it's actually up in this pass.
-      var mNow = moonPosition(new Date(), CONFIG.lat, CONFIG.lng);
-      if(mNow && mNow.altitude > 0 && nowM >= segStart && nowM <= segEnd){
-        var mNowPt = anglePx(mNow.azimuth, moonRingR, cx, cy);
+      if(mNowPt){
         parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="13" fill="rgba(216,223,236,0.28)"/>');
         parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="6.5" fill="rgba(0,0,0,0.6)"/>');
         parts.push('<circle cx="'+mNowPt.x.toFixed(1)+'" cy="'+mNowPt.y.toFixed(1)+'" r="5" fill="'+MOON_COLOR+'"/>');
