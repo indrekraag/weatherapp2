@@ -265,120 +265,6 @@ body {
 
 .card { padding: 18px 18px; }
 
-/* ─── HERO BAR ─────────────────────────────────────────────
- * Thin date/time/sync strip at the top of the hero card. Replaces the
- * old standalone topbar card so the time travels visually with the
- * current weather rather than floating up top by itself.
- *
- * Layout: date pieces dot-separated on the left, sync chip on the right.
- * Tone: muted (so it doesn't compete with the 72px temp below), but
- * legible. Uses the same SF Pro Display sans-serif as the rest of the
- * dashboard for labels, SF Mono only for the clock and "2 min" values.
- *
- * A 1px hairline below the bar separates it from the hero content
- * without putting a visible card boundary in between.
- * ─────────────────────────────────────────────────────────── */
-.hero-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 0 12px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
-  font-size: 12px;
-  color: rgba(255,255,255,0.70);
-}
-.hero-bar-date {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  /* Wraps onto a second line for the data age + build stamp (after the
-     zero-height .hero-bar-break). Each item stays whole (nowrap below), so
-     a long age pushes the stamp down rather than splitting a date. */
-  flex-wrap: wrap;
-  row-gap: 2px;
-  min-width: 0;
-}
-.hero-bar-date > span { white-space: nowrap; }
-.hero-bar-date .weekday {
-  font-weight: 600;
-  color: rgba(255,255,255,0.92);
-  text-transform: capitalize;
-}
-.hero-bar-date .datestamp {
-  color: rgba(255,255,255,0.70);
-}
-.hero-bar-date .hero-clock {
-  font-weight: 600;
-  color: rgba(255,255,255,0.92);
-  letter-spacing: 0.3px;
-}
-.hero-bar-date .dot-sep {
-  color: rgba(255,255,255,0.50);
-}
-/* Line 2: the weather data's age, then the build stamp. The zero-height
-   break forces the new line, so the date line never reflows when the age
-   grows from 'ilm 09:00' to 'ilm 09:00 · 2 t vana'. */
-.hero-bar-date .hero-bar-break { flex-basis: 100%; height: 0; }
-/* When the hero's numbers were fetched (LAST_FETCH_MS) — quiet while fresh,
-   amber with the age spelled out past WX_AGE_WARN_MIN (updateWeatherAge). */
-.hero-bar-date .wx-age {
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255,255,255,0.55);
-}
-.hero-bar-date .wx-age.old { color: var(--warn); font-weight: 600; }
-/* Build stamp — which build is on screen. Dimmer and smaller than the
-   clock on purpose: a version marker, never to be misread as a time. */
-.hero-bar-date .build-stamp {
-  margin-left: 2px;
-  font-size: 0.8em;
-  font-weight: 500;
-  color: rgba(255,255,255,0.50);
-  letter-spacing: 0.2px;
-}
-
-.hero-bar-sync {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.hero-bar-sync .status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  color: rgba(255,255,255,0.85);
-  text-transform: none;
-  /* Neutral status pill — the green has been replaced with white.
-   * "Live" + the pulsing dot still communicate active-state without
-   * the colour shouting. */
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 99px;
-}
-.hero-bar-sync .status .dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  /* Soft white dot with a faint amber glow so "live" still has a hint
-   * of warmth — matches the single-accent rule. */
-  background: rgba(255,255,255,0.85);
-  box-shadow: 0 0 4px rgba(233,167,107,0.45);
-  display: inline-block;
-}
-.hero-bar-sync .sync-time {
-  font-size: 10px;
-  color: rgba(255,255,255,0.65);
-  letter-spacing: 0.3px;
-}
 /* Refresh buttons — small borderless icon buttons in the hero-bar.
  * Same glass recipe as the rest of the hero-bar; visually quiet so
  * they don't compete with the date/time reading. The hard-refresh
@@ -442,50 +328,6 @@ body {
   .hero-refresh-btn.spinning { animation: none; }
 }
 
-/* ─── ALERT BAR ─────────────────────────────────────────── */
-.alert {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  background:
-    linear-gradient(180deg, rgba(109,184,138,0.12) 0%, rgba(109,184,138,0.05) 100%);
-  border: 1px solid rgba(109,184,138,0.25);
-  color: #6db88a;
-  backdrop-filter: blur(12px);
-}
-.alert-icon { font-size: 14px; opacity: 0.9; }
-/* Warning-bar states (renderWarningBar). Neutral grey while loading, when
-   the feed can't vouch ('? Hoiatused teadmata'), and for 'no official
-   warnings' while the forecast's own storm banner is up — green is kept
-   for a quiet day the feed has confirmed. A warning takes the official
-   MeteoAlarm colour of its level; in effect = filled, upcoming = outlined. */
-.alert.wb-neutral {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.14);
-  color: var(--fg-2);
-}
-.alert.wb-lvl1 { --wb: #f2c94c; --wb-fg: #241c00; --wb-line: #f2c94c; }   /* yellow */
-.alert.wb-lvl2 { --wb: #ef8a30; --wb-fg: #231100; --wb-line: #ef8a30; }   /* orange */
-.alert.wb-lvl3 { --wb: #cc362c; --wb-fg: #ffffff; --wb-line: #ff7a6e; }   /* red    */
-.alert.wb-now {
-  background: var(--wb);
-  border-color: var(--wb);
-  color: var(--wb-fg);
-  font-weight: 600;
-}
-.alert.wb-soon {
-  background: rgba(255,255,255,0.03);
-  border-color: var(--wb-line);
-  color: var(--wb-line);
-}
-.alert .wb-text { text-align: center; }
-.alert .wb-more { font-weight: 700; opacity: 0.85; }
 /* The forecast's own alert (renderAlertBanner) — the .alert recipe, so it
    no longer sits as an unstyled 16 px box above the warning bar. */
 .alert-banner {
@@ -509,269 +351,325 @@ body {
   color: var(--bad);
 }
 
-/* ─── HERO CARD — the headline current-weather panel ─────── */
-.hero {
-  /* Hero card now contains a date/time strip (hero-bar) at the top.
-   * Top padding tightened to 14px since the bar has its own visual
-   * separation via the hairline; the bar itself has 4px top padding.
-   * Gap stays at 12px so hero-title sits comfortably below the bar
-   * without the bar feeling cramped against the temp. */
-  padding: 14px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* ─── PAGE 1 · NÜÜD — header, warnings, hero, stations, next 12 h ──────
+ * Prototype C's first page on this build's data layer. Type sizes never
+ * exceed main's for the same element (hero condition 10 px, tile values
+ * 17 px, station temperatures 17 px < 18); the new pieces (verdict, the
+ * secondary row, the 12-hour grid) use the existing 13/12/11/10/9 steps.
+ * Colours mean one thing each on this page — cold/frost blue, caution
+ * yellow, all-clear green, danger coral, rain blue — scoped here so the
+ * other pages keep theirs until they are ported. */
+#p-nuud {
+  --warm: #e9a76b;          /* warm temps ≥ 25°                        */
+  --cold: #8ec5ff;          /* below zero, frost, ice                  */
+  --warn: #f2c14e;          /* caution: rain soon, old data            */
+  --ok:   #6dc08e;          /* all clear                               */
+  --bad:  #ec7b6e;          /* danger: slippery road, frost on plants  */
+  --rain: #78b2f5;          /* precipitation                           */
+  --fg-3: rgba(220,224,230,0.72);   /* captions: alpha up for contrast  */
+  gap: 8px;
+  gap: clamp(6px, calc((100vh - 760px) / 6), 14px);   /* a taller phone gets air, not bigger type */
+  padding-top: calc(var(--sat) + 4px);
 }
+#p-nuud > .grow { flex: 1 0 auto; }
+/* Line icons: the tab bar's family (24-grid, round caps). */
+#p-nuud .lic { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
-.hero-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0;
+/* Header: one slim line */
+.ph {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; min-height: 30px; padding: 0 2px;
 }
-.hero-title h2 {
+.ph-date {
+  display: flex; align-items: baseline; gap: 6px; min-width: 0;
+  overflow: hidden; white-space: nowrap;
   font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.92);
+  font-size: 12px;
 }
-.hero-condition {
+.ph-clock { font-weight: 600; color: rgba(255,255,255,0.95); letter-spacing: 0.3px; }
+.ph-day { font-weight: 600; color: rgba(255,255,255,0.92); }
+.ph-dstamp { color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.ph-chips { display: flex; gap: 6px; flex-shrink: 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 24px; padding: 0 9px;
   font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-2);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.chip[hidden] { display: none; }
+button.chip {
+  position: relative; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  touch-action: manipulation;
+}
+button.chip::after { content: ''; position: absolute; inset: -10px -4px; }   /* ≥ 44 px to tap */
+button.chip:active { background: rgba(255,255,255,0.10); }
+.chip-ico { font-size: 12px; line-height: 1; }
+.chip.ok  { color: var(--ok); border-color: rgba(109,192,142,0.30); background: rgba(109,192,142,0.08); }
+.chip.old { color: var(--warn); border-color: rgba(242,193,78,0.40); background: rgba(242,193,78,0.10); }
+.chip-fresh.spinning .chip-ico { display: inline-block; animation: spin 0.6s linear; }
+@media (prefers-reduced-motion: reduce) { .chip-fresh.spinning .chip-ico { animation: none; } }
+
+/* Official warning bar — only while there is a warning, or while the
+   feed can't vouch for a quiet day. Official colours: in effect = tinted,
+   upcoming = outlined (renderWarningBar). */
+.warn-bar {
+  --wl: #f2c94c;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 34px; padding: 6px 12px;
+  border-radius: 14px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.2px;
+  color: var(--wl);
+  background: rgba(242,201,76,0.13);
+  border: 1px solid var(--wl);
+}
+.warn-bar[hidden] { display: none; }
+.warn-bar.l2 { --wl: #ef8a30; background: rgba(239,138,48,0.15); }
+.warn-bar.l3 { --wl: #ff7a6e; background: rgba(204,54,44,0.22); }
+.warn-bar.soon { background: transparent; }
+.warn-bar .wb-lvl { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.warn-bar.soon .wb-lvl { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
+.warn-bar .wb-body { min-width: 0; display: flex; flex-wrap: wrap; column-gap: 8px; align-items: baseline; }
+.warn-bar .wb-ev { color: rgba(255,255,255,0.95); }
+.warn-bar .wb-when { font-weight: 500; color: rgba(255,255,255,0.72); white-space: nowrap; }
+.warn-bar .wb-more {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid currentColor;
+}
+.warn-bar.unk {
+  color: var(--fg-2); background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(255,255,255,0.28);
+}
+.warn-bar.unk .wb-ev { color: rgba(255,255,255,0.88); }
+.warn-bar .wb-q { font-weight: 700; flex-shrink: 0; }
+#p-nuud .alert-banner { padding: 7px 12px; border-radius: 14px; }
+
+/* Hero */
+.hero { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.hero-main {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 0 2px;
+}
+.hero-temp-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.temp-big {
+  font-size: 72px; font-weight: 200; letter-spacing: -3px; line-height: 0.9;
+  color: var(--fg);
+}
+.temp-big.cold { color: var(--cold); }
+.temp-big.hot  { color: var(--warm); }
+.temp-big .deg { font-size: 36px; font-weight: 300; opacity: 0.7; vertical-align: top; margin-left: 2px; }
+.hero-feels { font-size: 12px; color: var(--fg-2); white-space: nowrap; }
+.hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.hero-icon { width: 56px; height: 56px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); }
+.hero-icon svg { width: 100%; height: 100%; display: block; }
+.hero-condition {
+  max-width: 150px;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.6px;
+  text-transform: uppercase; text-align: right;
+  color: rgba(255,255,255,0.88);
+}
+.hero-hilo { font-size: 12px; color: var(--fg-2); white-space: nowrap; }
+.hero-hilo b { font-weight: 600; color: rgba(255,255,255,0.92); }
+
+.verdict {
+  font-size: 13px; line-height: 1.4; font-weight: 500;
+  color: rgba(255,255,255,0.92);
+  padding: 6px 10px 6px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.035);
+  border-left: 2px solid var(--ok);
+}
+.verdict.warn { border-left-color: var(--warn); background: rgba(242,193,78,0.07); }
+.verdict.none { border-left-color: rgba(255,255,255,0.25); color: var(--fg-2); }
+.verdict .v-key  { color: var(--warn); }
+.verdict .v-rain { color: var(--rain); }
+.verdict .v-cold { color: var(--cold); }
+.verdict .v-sep  { color: rgba(255,255,255,0.40); margin: 0 1px; }
+.verdict .v-part { white-space: nowrap; }
+
+.tiles3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.tile {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0;
+  padding: 8px 9px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%), rgba(255,255,255,0.020);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.tile-head {
+  display: flex; align-items: center; gap: 4px;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+  color: rgba(255,255,255,0.72); white-space: nowrap;
+}
+.tile-head .lic { width: 13px; height: 13px; flex-shrink: 0; }
+.tile-val {
+  display: flex; align-items: baseline; gap: 3px;
+  font-size: 17px; font-weight: 600; color: rgba(255,255,255,0.95);
+  white-space: nowrap;
+}
+.tile-val .unit { font-size: 10px; font-weight: 500; color: var(--fg-2); }
+.tile-val.frost { color: var(--cold); }
+.tile-arrow {
+  margin-left: auto; align-self: center; flex-shrink: 0;
+  width: 18px; height: 18px; color: var(--cold);
+  transition: transform .4s ease;          /* rotate(dir + 180) from renderWeather */
+}
+.tile-arrow svg { width: 18px; height: 18px; display: block; fill: currentColor; }
+.tile-sub { font-size: 10px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-sub b { font-weight: 600; color: rgba(255,255,255,0.9); }
+.tile-sub .warn { color: var(--warn); }
+.tile-sub .cold { color: var(--cold); }
+.tile-sub .rain { color: var(--rain); }
+.tile-sub .bad  { color: var(--bad); }
+
+.sec-row {
+  display: flex; justify-content: space-between; gap: 4px;
+  padding: 7px 2px 0;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.sec { display: inline-flex; align-items: baseline; gap: 3px; min-width: 0; white-space: nowrap; font-size: 10px; color: var(--fg-3); }
+.sec[hidden] { display: none; }
+.sec .lic { width: 14px; height: 14px; align-self: center; flex-shrink: 0; margin-right: 1px; color: var(--fg-2); }
+.sec b { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); }
+.sec b.ok { color: var(--ok); } .sec b.warn, .sec em.warn { color: var(--warn); } .sec b.bad, .sec em.bad { color: var(--bad); }
+.sec em { font-style: normal; font-size: 10px; color: var(--fg-2); }
+.sec em:empty { display: none; }
+
+/* No weather yet: dashes in grey, no arrow — nothing that could pass for
+   a reading. Failed with nothing to show: the condition line says so. */
+.hero.no-data .temp-big,
+.hero.no-data .tile-val { color: var(--fg-3); }
+.hero.no-data .tile-arrow,
+.forecast-card.no-data .wind-arrow { visibility: hidden; }
+.hero.wx-failed .hero-condition { color: var(--warn); text-transform: none; letter-spacing: 0; }
+/* Cached weather past WX_AGE_DIM_MIN: dimmed like a stale station chip,
+   so an old headline can't pass for the current one; the freshness chip
+   spells out the age. */
+.hero.wx-stale .hero-main,
+.hero.wx-stale .tiles3,
+.hero.wx-stale .sec-row { opacity: 0.5; }
+.hero.wx-stale .temp-big { color: var(--fg-2); }
+
+/* Stations — three cells, hairline-separated */
+.glass.stations {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 8px 4px; border-radius: 18px;
+}
+.station {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
+  padding: 1px 6px; text-align: center;
+  border-left: 1px solid rgba(255,255,255,0.07);
+}
+.station:first-child { border-left: 0; }
+.station-name {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: -apple-system, "SF Pro Display", sans-serif;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
   color: var(--fg-3);
 }
+.station-temp { font-size: 17px; font-weight: 600; color: var(--fg); line-height: 1.15; }
+.station-sub, .station-road {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 10px; color: var(--fg-2); letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+}
+/* A reading hours old (markStationStale): nothing else would give it
+   away — a frozen upstream answers 200 with a plausible temperature. */
+.station.stale { opacity: 0.55; }
+.station.stale .station-temp,
+.station.stale .station-temp > span { color: var(--fg-2) !important; }   /* beats the inline temp colour */
+/* Kurevere's road (renderKurevereRoad): yellow when wet and cold enough
+   to freeze, a coral pill when tarktee calls it slippery (ice, frost,
+   snow, slush, rain on a frozen road). */
+.station-road .nw { white-space: nowrap; }
+.station-road.caution { color: var(--warn); }
+.station-road.bad {
+  color: #ffb2a8; font-weight: 700;
+  background: rgba(236,123,110,0.18); border-radius: 6px; padding: 0 5px;
+}
+.station-age { font-size: 9px; font-weight: 600; color: var(--warn); letter-spacing: 0.3px; }
 
-/* Main row: BIG temp left, condition icon right */
-.hero-main {
-  /* Temp + condition icon sit directly on the hero card material — no
-   * inner tile, no extra border, no nested background. Cleaner read. */
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
-  align-items: center;
-  padding: 4px 4px 8px;
+/* Next 12 h */
+.card.next12 { padding: 11px 14px 9px; display: flex; flex-direction: column; }
+.next12 .card-header { margin-bottom: 6px; }
+.next12 .n12 { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; position: relative; }
+.n12-legend { display: inline-flex; align-items: center; gap: 5px; text-transform: none; letter-spacing: 0.2px; }
+.n12-legend .lg-bar { display: inline-block; width: 6px; height: 10px; border-radius: 1.5px; background: linear-gradient(180deg, rgba(160,200,70,.9), rgba(160,200,70,.25)); }
+.n12-legend .lg-line { display: inline-block; width: 14px; height: 0; border-top: 1.5px dashed rgba(255,255,255,0.85); margin-left: 6px; }
+.n12-row { display: grid; grid-template-columns: 16px repeat(12, minmax(0, 1fr)); align-items: center; }
+.n12-g { display: flex; align-items: center; color: var(--fg-3); }
+.n12-g .lic { width: 13px; height: 13px; }
+.n12-ico { height: 22px; display: flex; justify-content: center; }
+.n12-ico svg { width: 22px; height: 22px; }
+.n12-bars { position: relative; flex: 1 1 auto; min-height: 52px; max-height: 168px; margin-top: 2px; align-items: stretch; }
+.n12-col { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: 0 2px; cursor: pointer; }
+.n12-col .bt { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.92); line-height: 1; margin-bottom: 3px; white-space: nowrap; }
+.n12-col .bb { width: 100%; max-width: 18px; height: 10px; border-radius: 3px 3px 1px 1px; }
+.n12-col.sel .bb { outline: 1px solid rgba(255,255,255,0.9); outline-offset: 1px; }
+.n12-line { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.n12-rain { height: 21px; margin-top: 5px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.07); }
+.n12-wind { height: 17px; }
+.n12-num { text-align: center; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; color: var(--fg-3); }
+.n12-rain .n12-num.maybe { color: rgba(150,195,245,0.9); }
+.n12-rain .n12-num.wet { color: var(--rain); font-weight: 700; }
+.n12-wind .n12-num { color: rgba(255,255,255,0.78); }
+.n12-wind .n12-num.strong { color: var(--warn); font-weight: 700; }
+.n12-wind .n12-num.gust { color: var(--bad); font-weight: 700; }
+.n12-hrs { margin-top: 3px; }
+.n12-hrs span { text-align: center; font-size: 10px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.n12-hrs span.n12-now { color: rgba(255,255,255,0.95); font-weight: 600; }   /* 10 px = main's hourly axis */
+.n12-mid { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed rgba(255,255,255,0.28); pointer-events: none; }
+.n12-days { position: relative; height: 12px; margin-top: 1px; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--fg-3); }
+.n12-days span { position: absolute; top: 0; white-space: nowrap; }
+.n12-days span.tom { color: rgba(255,255,255,0.8); padding-left: 3px; }
+.tap-read {
+  margin-top: 5px; min-height: 14px;
+  font-size: 11px; color: var(--fg-3); text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.tap-read.on { color: rgba(255,255,255,0.95); }
+.tap-read b { font-weight: 600; }
+.empty-note { font-size: 12px; color: var(--fg-3); text-align: center; padding: 18px 0; }
 
-.temp-big {
-  font-size: 72px;
-  font-weight: 200;
-  letter-spacing: -3px;
-  line-height: 0.9;
-  color: var(--warm);
-  text-shadow: 0 0 50px var(--glow-warm);
-}
-.temp-big.cold { color: var(--cold); text-shadow: 0 0 50px var(--glow-cold); }
-.temp-big .deg { font-size: 36px; font-weight: 300; opacity: 0.7; vertical-align: top; margin-left: 2px; }
+/* .tight (nuudFit): set only while the page would otherwise need to
+   scroll — a warning bar, the app's storm banner and a stale-age tag all
+   at once. Less air between the cards and a lower floor for the chart;
+   no type changes. */
+#p-nuud.tight { gap: 6px; }
+#p-nuud.tight .hero { gap: 7px; }
+#p-nuud.tight .n12-bars { min-height: 40px; }
+#p-nuud.tight .card.next12 { padding-top: 9px; padding-bottom: 7px; }
+#p-nuud.tight .next12 .card-header { margin-bottom: 4px; }
 
-/* No weather rendered yet (.no-data, from the markup until renderWeather()
-   succeeds): dashes in neutral grey, no icon, no wind arrows — nothing that
-   could pass for a reading. .wx-failed adds the amber 'Ilmaandmed puuduvad'
-   line once a fetch has failed with nothing to show. */
-.hero.no-data .temp-big,
-.hero.no-data .pill-value,
-.hero.no-data .metric-value { color: var(--fg-3); text-shadow: none; }
-.hero.no-data .wind-arrow,
-.forecast-card.no-data .wind-arrow { visibility: hidden; }
-.hero.wx-failed .hero-condition {
-  color: var(--warn);
-  text-transform: none;
-  letter-spacing: 0;
+/* Taller phones: a little more air; short phones: tighter, and the
+   hero figure down to 60 px (iPhone SE — then the page may scroll). */
+@media (max-height: 820px) {
+  .n12-bars { min-height: 48px; }
+  .hero { gap: 8px; }
 }
-/* Cached weather past WX_AGE_DIM_MIN: the same treatment a stale station
-   chip gets, so an old headline can't pass for the current one. The age is
-   spelled out in the hero bar (.wx-age.old). */
-.hero.wx-stale .hero-main,
-.hero.wx-stale .hero-meta,
-.hero.wx-stale .hero-readings { opacity: 0.5; }
-.hero.wx-stale .temp-big { color: var(--fg-2); text-shadow: none; }
-
-.hero-icon {
-  width: 80px; height: 80px;
-  display: grid;
-  place-items: center;
-  filter:
-    drop-shadow(0 4px 8px rgba(0,0,0,0.4))
-    drop-shadow(0 0 14px rgba(233,167,107,0.18));
+@media (max-width: 380px) {
+  .hf-dew { display: none; }
 }
-.hero-icon svg { width: 100%; height: 100%; }
-
-/* Comfort indicators row — 3 pills: Tundub · Öökülm · Kastepunkt.
- * Tundub and Kastepunkt are derived comfort values from current temp/
- * humidity. Öökülm is tonight's predicted min — it sits here because
- * users think of "how cold will it get tonight" as a comfort question,
- * not a forecast they need to scrub through hour by hour. */
-.hero-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  margin: 0;
+@media (max-height: 720px) {
+  #p-nuud { gap: 6px; }
+  .temp-big { font-size: 60px; }
+  .hero { padding: 10px 12px; gap: 7px; }
+  .tile { padding: 7px 9px; gap: 2px; }
+  .verdict { padding: 5px 9px 5px 11px; }
+  .sec-row { padding-top: 6px; }
+  .glass.stations { padding: 6px 4px; }
+  .card.next12 { padding: 10px 12px 8px; }
+  .next12 .card-header { margin-bottom: 4px; }
+  .n12-bars { min-height: 40px; }
+  .next12 .tap-read:not(.on) { display: none; }
 }
-.pill {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-}
-.pill .pill-label {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.70);
-}
-.pill .pill-value {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 17px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.95);
-}
-/* Severity tint on the pill-value — used by Öökülm to convey frost
- * risk through the temperature colour itself. Default white = safe,
- * warm-amber = possible (under +1°C), soft coral = high risk (≤−2°C).
- * No separate warning-line element needed — the colour does the work. */
-.pill .pill-value.ok   { color: var(--ok); }
-.pill .pill-value.warn { color: var(--warn); }
-.pill .pill-value.bad  { color: var(--bad); }
-
-/* ─── HERO READINGS GRID ─────────────────────────────────
- * 6 current-measurement tiles inside Hetkeilm, 2 rows × 3 cols.
- * Uses the same .metric tile recipe as the standalone metric-card
- * (24h prognoos) but scoped so the visual size matches the hero
- * context — smaller value text, tighter padding, narrower tiles than
- * the wide forecast bars. The inner .metric rule below targets these
- * via .hero-readings .metric for size-specific overrides. */
-.hero-readings {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
-  margin: 4px 0 0;
-}
-.hero-readings .metric {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  padding: 10px 10px 9px;
-  min-height: 64px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-/* Match the .pill-label style — sentence-case sans-serif at 10px so
- * "Tundub kui" / "Õhuniiskus" / "Tuul" / "Sadu" all read with the same
- * typographic voice across the comfort-pill row and the readings grid. */
-.hero-readings .metric-head {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.70);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.hero-readings .metric-icon { font-size: 11px; }
-.hero-readings .metric-value {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 17px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.95);
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-  flex-wrap: wrap;
-}
-.hero-readings .metric-value .unit {
-  font-size: 10px;
-  margin-left: 1px;
-}
-.hero-readings .metric-sub {
-  font-size: 10px;
-  margin-top: 1px;
-}
-/* Wind tile in the hero readings grid is a special two-column layout:
- *   [ label / value / puhanguti sub  |  big arrow centered on right ]
- * The arrow is sized large (32px) and vertically centered to read as
- * the direction indicator at a glance. Stack everything else on the
- * left in a column; arrow lives in its own grid cell on the right. */
-.hero-readings .metric.wind-tile {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 8px;
-}
-.hero-readings .metric.wind-tile > .wind-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.hero-readings .metric.wind-tile .wind-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  line-height: 1;
-  color: var(--cold);
-  width: 36px;
-  height: 36px;
-  /* Subtle filled disc behind the arrow so it reads as a compass needle,
-   * not just a stray glyph. Same tile-tinted surface as other glass
-   * children. */
-  background:
-    radial-gradient(circle at 35% 30%, rgba(126,200,255,0.18) 0%, rgba(126,200,255,0.02) 70%);
-  border-radius: 50%;
-  /* Arrow uses transform: rotate(<wind_dir + 180>deg) set by JS — points
-   * in the direction wind is blowing TO. Smooth transition so refreshes
-   * read as gentle compass movement rather than snap. */
-  transition: transform 0.4s ease;
-}
-
-/* Radar / Satelliit — two side-by-side action buttons that open external
- * map views. Glass tiles with a soft cyan accent so they read as primary
- * actions without overpowering the temp above them. */
-.hero-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  margin: 12px 0 0;
-}
-.hero-action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 14px;
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  text-transform: none;
-  color: rgba(255,255,255,0.85);
-  text-decoration: none;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
-}
-
-.hero-action:hover { background: rgba(233, 167, 107, 0.12); border-color: rgba(233, 167, 107, 0.30); }
-.hero-action:active { transform: scale(0.98); }
 
 /* ─── METRIC GRID ──────────────────────────────────────────
  * Replaces the long list of label/value rows with a 2-col grid of small
@@ -832,73 +730,6 @@ body {
 .metric-value.bad  { color: var(--bad); }
 
 /* UV chip — adds a coloured dot to the otherwise plain number */
-/* ─── NEARBY STATIONS ─────────────────────────────────────
- * Was: 3 stations stacked vertically with dashed borders, redundant arrows.
- * Now: 3 chips in one row. Same data, 1/3 the vertical space.
- * ─────────────────────────────────────────────────────────── */
-.stations {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
-  margin-top: 12px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.08);
-}
-.station {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 8px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.032) 0%, transparent 30%),
-    rgba(255,255,255,0.020);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  text-align: center;
-}
-.station-name {
-  font-family: -apple-system, "SF Pro Display", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: rgba(255,255,255,0.65);
-  text-transform: none;
-}
-.station-temp {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--fg);
-  line-height: 1.1;
-}
-.station-sub {
-  font-size: 10px;
-  color: var(--fg-2);
-  letter-spacing: 0.3px;
-}
-/* A station whose last reading is hours old. Nothing else here would give
-   it away — a frozen upstream returns 200 with a perfectly plausible
-   temperature, and this build reads tarktee directly, so this is the only
-   thing standing between a fossil and the screen. */
-.station.stale { opacity: 0.5; }
-.station.stale .station-temp,
-.station.stale .station-temp > span { color: var(--fg-2) !important; }   /* beats the inline temp colour */
-/* Kurevere road surface: 'tee +3.2° märg' — its own line, like the age tag,
-   so the value spans survive. Coral when the road is slippery. */
-.station-road {
-  font-size: 10px;
-  color: var(--fg-2);
-  letter-spacing: 0.3px;
-}
-.station-road .nw { white-space: nowrap; }
-.station-road.caution { color: var(--warn); }
-.station-road.bad { color: var(--bad); font-weight: 600; }
-.station-age {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--warn);
-  letter-spacing: 0.3px;
-}
-
 /* ─── CARD HEADER (used by hourly, 7-day, etc.) ──────────── */
 .card-header {
   display: flex;
@@ -2249,6 +2080,14 @@ body { padding: 0; }
 .daily { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 .day { flex: 0 0 calc((100% - 18px) / 4); }
 
+/* ─── Andmed (placeholder): the build stamp and the two-tap ⟲ ride in
+   its header until that card is ported. The stamp is dim and small on
+   purpose: a version marker, never to be misread as a time. ─── */
+.data-card .card-header { align-items: center; }
+.data-head-r { display: flex; align-items: center; gap: 10px; }
+.build-stamp { font-size: 9.6px;   /* = main's 0.8em of the 12 px hero bar */ font-weight: 500; color: rgba(255,255,255,0.50); letter-spacing: 0.2px; }
+.data-head-r .hero-refresh-btn { width: 32px; height: 32px; border-radius: 9px; }
+
 /* ─── Tab bar ─── */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 800;
@@ -2319,153 +2158,122 @@ html.sim-sa .sim-home {
      (pagerInit() in the main script; #hash per page.)                    -->
 <main class="pager" id="pager">
 
-<!-- ─── 1 · NÜÜD — warnings, now, the three stations ─── -->
+<!-- ─── 1 · NÜÜD — now, the next 12 hours, the three stations ─── -->
 <section class="page" id="p-nuud" data-slug="nuud" aria-label="Nüüd">
-  <!-- ALERT — now the top card. Standalone status pill, replaces
-       the old topbar as the first thing the user sees. -->
+  <!-- Page header: clock · weekday · date, then two chips. The warning
+       chip speaks only on a quiet day ('✓ hoiatusi pole') or while the
+       first bundle loads; a warning, or not knowing, takes the full-width
+       bar below instead (renderWarningBar). The freshness chip is also
+       the refresh button: 'uuendatud 3 min', amber past WX_AGE_WARN_MIN
+       (updateWeatherAge). fitHeader() drops the date, then shortens the
+       weekday, when the chips leave too little room. -->
+  <header class="ph">
+    <div class="ph-date">
+      <span class="ph-clock mono" id="clock">—</span>
+      <span class="ph-day" id="weekday">—</span>
+      <span class="ph-dstamp" id="datestamp"></span>
+    </div>
+    <div class="ph-chips">
+      <span class="chip chip-wait" id="warn-chip">hoiatused …</span>
+      <button type="button" class="chip chip-fresh" id="refresh-btn" onclick="manualRefresh()" title="Uuenda kõik andmed">
+        <span class="chip-ico" aria-hidden="true">↻</span><span id="wx-age">laadin…</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- WARNING-BAR — official MeteoAlarm warnings for Lääne maakond, from
+       the EMHI bundle (renderWarnings() → renderWarningBar()). Shown only
+       when there is a warning (in its official colour: 1 yellow,
+       2 orange, 3 red; in effect = tinted, upcoming = outlined; its time
+       window and '+N') or when the feed can't vouch for a quiet day
+       ('? Hoiatused teadmata · andmed HH:MM'). -->
+  <div class="warn-bar" id="warning-bar" role="status" hidden></div>
   <!-- ALERT-BANNER — the forecast's own thunder / heavy rain / gust
        heads-up for the next 12 h (checkAlerts() → renderAlertBanner()),
-       separate from the official warnings below. -->
+       separate from the official warnings above. -->
   <div class="alert-banner" id="alert-banner" style="display:none"></div>
 
-  <!-- WARNING-BAR — official MeteoAlarm warnings for Lääne maakond,
-       from the EMHI bundle (renderWarnings() → renderWarningBar()).
-       Starts neutral: '✓ Hoiatused puuduvad' only once a recent bundle
-       vouches for it, '? Hoiatused teadmata' when none can. A warning
-       is coloured by its MeteoAlarm level: 1 yellow, 2 orange, 3 red. -->
-  <div class="alert wb-neutral" id="warning-bar">
-    <span class="alert-icon">…</span>
-    <span>Hoiatused: laadin</span>
+  <!-- HERO — dashes and an empty icon slot until renderWeather() has real
+       data (.no-data); never mock-up values. -->
+  <div class="glass hero no-data">
+    <div class="hero-main">
+      <div class="hero-temp-wrap">
+        <div class="temp-big mono" id="wx-temp">—<span class="deg">°</span></div>
+        <div class="hero-feels mono">tundub <span id="wx-feels">—</span>°<span class="hf-dew"> · kastepunkt <span id="wx-dew">—</span>°</span></div>
+      </div>
+      <div class="hero-side">
+        <div class="hero-icon" id="wx-cond-icon-big"></div>
+        <div class="hero-condition" id="wx-cond">—</div>
+        <div class="hero-hilo mono" id="wx-hilo"></div>
+      </div>
+    </div>
+
+    <!-- The verdict: when it rains (rainOutlook() — the one rule shared
+         with 'Saju alguseni' on the 24 h page), the wind of the next
+         hours, the night's low (renderVerdict). -->
+    <p class="verdict" id="verdict">Laen prognoosi…</p>
+
+    <div class="tiles3">
+      <div class="tile" id="tile-wind">
+        <div class="tile-head"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5h10.5a2.5 2.5 0 1 0-2.5-2.5M3 12.5h15.5a2.5 2.5 0 1 1-2.5 2.5M3 16.5h7"/></svg>Tuul</div>
+        <div class="tile-val mono"><span id="wind-now">—</span><span class="unit">m/s</span><span class="tile-arrow" id="wind-arrow" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1.5 14.2 9.2H10.4V16.5H7.6V9.2H3.8Z"/></svg></span></div>
+        <div class="tile-sub" id="wind-sub">puh. —</div>
+      </div>
+      <div class="tile" id="tile-rain">
+        <div class="tile-head"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 0 1 17 0zM12 12v6.2a2.3 2.3 0 0 1-4.6 0"/></svg><span id="rain-label">Sadu 2 h</span></div>
+        <div class="tile-val mono"><span id="rain-now">—</span><span class="unit" id="rain-unit">%</span></div>
+        <div class="tile-sub" id="rain-current-sub">—</div>
+      </div>
+      <div class="tile" id="tile-night">
+        <div class="tile-head"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14.2V4.5a2 2 0 1 1 4 0v9.7a4.2 4.2 0 1 1-4 0z"/><path d="M12 11v5"/></svg><span id="night-label">Öösel</span></div>
+        <div class="tile-val mono" id="frost-min">—</div>
+        <div class="tile-sub" id="night-sub">—</div>
+      </div>
+    </div>
+
+    <!-- One compact row: pressure + its 3 h tendency, humidity,
+         visibility (+ 'udu' when it matters), UV only while the sun is up. -->
+    <div class="sec-row">
+      <span class="sec" title="Õhurõhk"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 16.5a8.2 8.2 0 1 1 15.6 0"/><path d="M12 14l3.4-4.2"/></svg><b class="mono" id="wx-pressure">—</b><small>hPa</small><em id="wx-pressure-trend"></em></span>
+      <span class="sec" title="Õhuniiskus"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 17 9a7 7 0 1 1-10 0z"/></svg><b class="mono" id="wx-humidity">—</b><small>%</small></span>
+      <span class="sec" title="Nähtavus"><svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg><b class="mono" id="wx-vis">—</b><small>km</small><em id="wx-vis-sub"></em></span>
+      <span class="sec" id="uv-sec" title="UV-indeks"><small>UV</small><b class="mono" id="wx-uv">—</b><em id="wx-uv-label"></em></span>
+    </div>
   </div>
 
-  <!-- HERO -->
-  <div class="glass hero no-data">
-    <!-- Hero-bar: date · time · sync. Folded in from the old topbar.
-         Sits at the top of the hero card as a subtle context strip
-         so the date/time travels with "now" weather visually. -->
-    <div class="hero-bar">
-      <div class="hero-bar-date">
-        <span class="weekday" id="weekday">—</span>
-        <span class="dot-sep">·</span>
-        <span class="datestamp" id="datestamp">—</span>
-        <span class="dot-sep">·</span>
-        <span class="hero-clock mono" id="clock">—</span>
-        <span class="hero-bar-break" aria-hidden="true"></span>
-        <!-- How old the weather below is (updateWeatherAge()): quiet
-             while fresh, amber with the age spelled out past
-             WX_AGE_WARN_MIN. Then the build stamp (APP_VERSION). -->
-        <span class="wx-age" id="wx-age">ilm —</span>
-        <span class="build-stamp mono" id="build-stamp"></span>
-      </div>
-      <!-- ⟲ takes two taps (hardRefreshTap): the first shows
-           'Kinnita?', the second within 3 s clears the caches. -->
-      <div class="hero-bar-sync">
-        <button class="hero-refresh-btn" id="refresh-btn" title="Uuenda" onclick="manualRefresh()">↻</button>
-        <button class="hero-refresh-btn hero-refresh-btn-hard" id="hard-refresh-btn" title="Tühjenda vahemälu" aria-label="Tühjenda vahemälu" onclick="hardRefreshTap()">⟲<span class="confirm-label" aria-hidden="true">Kinnita?</span></button>
-      </div>
+  <!-- NEARBY STATIONS — three cells, hairline-separated. Kurevere is the
+       road-weather station, so its cell reads the road ('tee +3° märg',
+       coral when slippery — renderKurevereRoad); the EMHI two read wind
+       and the last hour's precipitation. Age tags past 90 min. -->
+  <div class="glass stations">
+    <div class="station" id="kv-block">
+      <div class="station-name">Kurevere</div>
+      <div class="station-temp mono"><span id="kv-temp">—</span>°</div>
+      <div class="station-road">tee —</div>
     </div>
-
-    <div class="hero-title">
-      <h2>Hetkeilm madisel</h2>
-      <span class="hero-condition" id="wx-cond">—</span>
+    <div class="station" id="ln-block">
+      <div class="station-name">Lääne-Nigula</div>
+      <div class="station-temp mono"><span id="ln-temp">—</span>°</div>
+      <div class="station-sub"><span id="ln-wind">—</span>&nbsp;m/s · <span class="station-precip" id="ln-precip">—</span></div>
     </div>
-
-    <div class="hero-main">
-      <!-- Dashes and an empty icon slot until renderWeather() has real
-           data. These used to be mock-up values (14°, a partly sunny
-           icon, 'Pilves selgimistega'), which a failed fetch or an
-           offline first open left on screen as if they were live. -->
-      <div class="temp-big mono" id="wx-temp">—<span class="deg">°</span></div>
-      <div class="hero-icon" id="wx-cond-icon-big"></div>
+    <div class="station" id="hp-block">
+      <div class="station-name">Haapsalu</div>
+      <div class="station-temp mono"><span id="hp-temp">—</span>°</div>
+      <div class="station-sub"><span id="hp-wind">—</span>&nbsp;m/s · <span class="station-precip" id="hp-precip">—</span></div>
     </div>
+  </div>
 
-    <div class="hero-meta">
-      <!-- Comfort indicators row — 3 pills:
-             Tundub      derived "feels like" from current temp/wind/humidity
-             Öökülm      tonight's min — predictive, but the user thinks of it
-                         as "what to expect overnight from where we are now",
-                         so it sits with the comfort indicators rather than
-                         in the forecast card
-             Kastepunkt  derived dew point from current temp/humidity         -->
-      <div class="pill">
-        <div class="pill-label">Tundub kui</div>
-        <div class="pill-value mono"><span id="wx-feels">—</span>°</div>
-      </div>
-      <div class="pill">
-        <div class="pill-label">Öökülm</div>
-        <div class="pill-value mono" id="frost-min">—</div>
-      </div>
-      <div class="pill">
-        <div class="pill-label">Kastepunkt</div>
-        <div class="pill-value mono"><span id="wx-dew">—</span>°</div>
-      </div>
+  <!-- NEXT 12 H — an icon, the temperature (bar + number, 'tundub' as a
+       dashed line over it), the chance of rain and the wind for every
+       hour, one hour axis, a midnight divider. Tap a column to read it
+       (renderN12). The card takes the height the page has left. -->
+  <div class="glass card next12 grow">
+    <div class="card-header">
+      <h2>Järgmised 12 h</h2>
+      <span class="meta n12-legend"><i class="lg-bar"></i>temp <i class="lg-line"></i>tundub</span>
     </div>
-
-    <!-- Current readings grid — 6 measurement tiles in 2 rows × 3 cols.
-         Everything here is a "right now" sensor reading. Forecasts
-         (24h sparklines, öökülm) live in the next card. Layout uses
-         the same .metric tile recipe as the old Mõõtmised card but
-         with a tighter 3-col grid that fits the hero width. -->
-    <div class="hero-readings">
-      <div class="metric wind-tile">
-        <div class="wind-text">
-          <div class="metric-head"><span class="metric-icon">⌁</span>Tuul</div>
-          <div class="metric-value mono cold">
-            <span id="wind-now">—</span><span class="unit">m/s</span>
-          </div>
-          <div class="metric-sub" id="wind-sub">puhanguti — m/s</div>
-        </div>
-        <span class="wind-arrow" id="wind-arrow">↑</span>
-      </div>
-      <div class="metric">
-        <div class="metric-head"><span class="metric-icon">◌</span>Sadu</div>
-        <div class="metric-value mono">
-          <span id="rain-now">—</span><span class="unit">mm/h</span>
-        </div>
-        <div class="metric-sub" id="rain-current-sub">—</div>
-      </div>
-      <div class="metric">
-        <div class="metric-head"><span class="metric-icon">◐</span>Õhurõhk</div>
-        <div class="metric-value mono"><span id="wx-pressure">—</span><span class="unit">hPa</span></div>
-        <div class="metric-sub" id="wx-pressure-trend">—</div>
-      </div>
-      <div class="metric">
-        <div class="metric-head"><span class="metric-icon">◔</span>Õhuniiskus</div>
-        <div class="metric-value mono"><span id="wx-humidity">—</span><span class="unit">%</span></div>
-      </div>
-      <div class="metric">
-        <div class="metric-head"><span class="metric-icon">☀</span>UV</div>
-        <div class="metric-value mono warn" id="wx-uv">—</div>
-        <div class="metric-sub warn" id="wx-uv-label">—</div>
-      </div>
-      <div class="metric">
-        <div class="metric-head"><span class="metric-icon">👁</span>Nähtavus</div>
-        <div class="metric-value mono"><span id="wx-vis">—</span><span class="unit">km</span></div>
-        <div class="metric-sub" id="wx-vis-sub">—</div>
-      </div>
-    </div>
-
-    <!-- NEARBY STATIONS — horizontal chips. Peer current readings
-         from sensors at other locations. Stays inside Hetkeilm
-         because they're all "right now" data, just elsewhere. -->
-    <div class="stations">
-      <div class="station" id="kv-block">
-        <div class="station-name">Kurevere</div>
-        <div class="station-temp mono"><span id="kv-temp">—</span>°</div>
-        <div class="station-sub mono"><span id="kv-wind">—</span> m/s · <span class="station-precip" id="kv-precip">—</span> mm</div>
-      </div>
-      <div class="station" id="ln-block">
-        <div class="station-name">Lääne-Nig.</div>
-        <div class="station-temp mono"><span id="ln-temp">—</span>°</div>
-        <div class="station-sub mono"><span id="ln-wind">—</span> m/s · <span class="station-precip" id="ln-precip">—</span> mm</div>
-      </div>
-      <div class="station" id="hp-block">
-        <div class="station-name">Haapsalu</div>
-        <div class="station-temp mono"><span id="hp-temp">—</span>°</div>
-        <div class="station-sub mono"><span id="hp-wind">—</span> m/s · <span class="station-precip" id="hp-precip">—</span> mm</div>
-      </div>
-    </div>
-
+    <div class="n12" id="n12"><div class="empty-note">Laen tunniprognoosi…</div></div>
+    <div class="tap-read" id="n12-read" aria-live="polite"></div>
   </div>
 </section>
 
@@ -2746,10 +2554,19 @@ html.sim-sa .sim-home {
   </div>
 
   <!-- ANDMED — placeholder until the Andmed card lands (per-source ages,
-       ↻ Uuenda kõik, two-tap ⟲). For now: the old footer's last-update
-       line, the sources and the build. -->
+       ↻ Uuenda kõik, two-tap ⟲). For now: the build stamp and ⟲ (moved
+       here from the old hero bar — Nüüd's header has the freshness chip,
+       which is the ↻), the old footer's last-update line, the sources. -->
   <div class="glass card data-card" id="data-card">
-    <div class="card-header"><h2>Andmed</h2></div>
+    <div class="card-header">
+      <h2>Andmed</h2>
+      <div class="data-head-r">
+        <span class="build-stamp mono" id="build-stamp"></span>
+        <!-- ⟲ takes two taps (hardRefreshTap): the first shows
+             'Kinnita?', the second within 3 s clears the caches. -->
+        <button class="hero-refresh-btn hero-refresh-btn-hard" id="hard-refresh-btn" title="Tühjenda vahemälu" aria-label="Tühjenda vahemälu" onclick="hardRefreshTap()">⟲<span class="confirm-label" aria-hidden="true">Kinnita?</span></button>
+      </div>
+    </div>
     <div class="footer">
       <div class="footer-updated" id="last-updated">Viimati uuendatud: —</div>
       Ilmaradar · <span>Open-Meteo</span> · <span>NOAA</span> · <span>Ilmateenistus</span> · <span>RainViewer</span>
@@ -2867,16 +2684,36 @@ function dayWord(ms){
   return diff === 0 ? 'täna' : diff === 1 ? 'homme' : ET_ON_DAY[d.getDay()];
 }
 
-/* ─── Clock + Estonian weekday/date in hero-bar ──────────────────── */
+/* ─── Nüüd header: clock · weekday · date ───────────────────────────
+ * One line shared with two chips (warnings, freshness). fitHeader() gives
+ * up the date first, then the full weekday for its letter (E T K N R L P,
+ * the Estonian abbreviations), whenever the chips leave too little room —
+ * at 360 px, or while a chip's text is long. Re-run whenever a chip's text
+ * changes and on a resize. */
+var ET_WD_FULL   = ['Pühapäev','Esmaspäev','Teisipäev','Kolmapäev','Neljapäev','Reede','Laupäev'];
+var ET_WD_LETTER = ['P','E','T','K','N','R','L'];
+function fitHeader(){
+  var box = document.querySelector('#p-nuud .ph-date');
+  var wd = byId('weekday'), ds = byId('datestamp');
+  if(!box || !wd || !ds) return;
+  var d = new Date();
+  var steps = [[ET_WD_FULL[d.getDay()], true], [ET_WD_FULL[d.getDay()], false],
+               [ET_WD_LETTER[d.getDay()], true], [ET_WD_LETTER[d.getDay()], false]];
+  ds.textContent = d.getDate() + '.' + pad(d.getMonth() + 1);
+  for(var i = 0; i < steps.length; i++){
+    wd.textContent = steps[i][0];
+    ds.style.display = steps[i][1] ? '' : 'none';
+    if(box.scrollWidth <= box.clientWidth + 1) break;
+  }
+}
+
+/* ─── Clock (Nüüd header + the ?sim=standalone status bar) ─────────── */
 (function(){
-  var ET_DAYS = ['Pühapäev','Esmaspäev','Teisipäev','Kolmapäev','Neljapäev','Reede','Laupäev'];
-  var ET_MONTHS = ['jaanuar','veebruar','märts','aprill','mai','juuni','juuli','august','september','oktoober','november','detsember'];
   function tick(){
     var d = new Date();
     var clk = byId('clock'); if(clk) clk.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
     var sc = byId('sim-clock'); if(sc) sc.textContent = d.getHours() + ':' + pad(d.getMinutes());
-    var wd = byId('weekday'); if(wd) wd.textContent = ET_DAYS[d.getDay()];
-    var ds = byId('datestamp'); if(ds) ds.textContent = d.getDate() + '. ' + ET_MONTHS[d.getMonth()];
+    fitHeader();
     updateSunCountdown();
     updateHeroDayNight();   // sunset / sunrise between two weather renders
     updateMoonIfPassEnded();
@@ -2987,31 +2824,41 @@ function hardRefresh(){
   } catch(e){ done(); }
 }
 
-/* ─── Weather data age in the hero bar ─────────────────────────────
+/* ─── Weather data age: the freshness chip in the Nüüd header ─────────
  * The only age cue used to be 'Viimati uuendatud' in the footer, three
  * screens down: a cache hours old rendered under a clock that kept ticking
- * and looked live. #wx-age is the visible version. Past WX_AGE_WARN_MIN
- * (nine missed 5-min fetches) it turns amber and spells out the age; past
- * WX_AGE_DIM_MIN the hero readings are dimmed as well. (Ported from wa1.) */
+ * and looked live. The chip (#refresh-btn, text #wx-age) says how old the
+ * weather is — 'uuendatud äsja', 'uuendatud 3 min' — and is the ↻ button
+ * too. Past WX_AGE_WARN_MIN (nine missed 5-min fetches) it turns amber;
+ * past WX_AGE_DIM_MIN the hero readings are dimmed as well. The exact time
+ * is in its title. (Ported from wa1.) */
 var WX_AGE_WARN_MIN = 45;
 var WX_AGE_DIM_MIN  = 120;
 function updateWeatherAge(){
-  var el = byId('wx-age');
+  var el = byId('wx-age'), chip = byId('refresh-btn');
   var hero = document.querySelector('.glass.hero');
   if(!el) return;
+  var txt, old, title = 'Uuenda kõik andmed';
   if(!WX_RENDERED || !LAST_FETCH_MS){
-    el.textContent = 'ilm —';
-    el.className = 'wx-age';
-    return;
+    old = !!(hero && hero.classList.contains('wx-failed'));
+    txt = old ? 'ilm puudub' : 'laadin…';
+  } else {
+    var ageMin = Math.max(0, (Date.now() - LAST_FETCH_MS) / 60000);
+    old = ageMin > WX_AGE_WARN_MIN;
+    txt = 'uuendatud ' + (ageMin < 1 ? 'äsja' : ageMin < 60 ? Math.floor(ageMin) + ' min'
+        : ageMin < 1440 ? Math.floor(ageMin / 60) + ' t' : Math.floor(ageMin / 1440) + ' p');
+    title = 'Ilm uuendatud ' + stampText(LAST_FETCH_MS) + ' · puuduta, et uuendada';
+    if(hero){
+      if(ageMin > WX_AGE_DIM_MIN) hero.classList.add('wx-stale');
+      else hero.classList.remove('wx-stale');
+    }
   }
-  var ageMin = (Date.now() - LAST_FETCH_MS) / 60000;
-  var old = ageMin > WX_AGE_WARN_MIN;
-  el.textContent = 'ilm ' + stampText(LAST_FETCH_MS) + (old ? ' · ' + ageText(ageMin) : '');
-  el.className = 'wx-age' + (old ? ' old' : '');
-  if(hero){
-    if(ageMin > WX_AGE_DIM_MIN) hero.classList.add('wx-stale');
-    else hero.classList.remove('wx-stale');
+  if(chip){
+    if(old) chip.classList.add('old'); else chip.classList.remove('old');
+    chip.title = title;
+    chip.setAttribute('aria-label', txt + ' · uuenda');
   }
+  if(el.textContent !== txt){ el.textContent = txt; fitHeader(); }
 }
 
 /* The 30-s tick: every age on screen keeps counting while a feed is down,
@@ -3021,6 +2868,8 @@ function updateStaleIndicator(){
   refreshStationAges();
   renderAlertBanner();      // first: the bar's all-clear wording depends on it
   renderWarningBar();
+  refreshRainTexts();       // 'Vihm ~kl 14' → 'Sajab', '~40 min' keeps counting
+  nuudFit();
   if(!LAST_FETCH_MS) return;
   var el = byId('last-updated');
   if(!el) return;
@@ -3135,6 +2984,9 @@ function paintHeroSky(s){
   if(heroIconEl && (s.code != null || isNum(s.cloud))){
     heroIconEl.innerHTML = weatherCodeToSVG(heroSkyCode(s.code, s.precip, s.cloud, s.isDay), s.isDay);
   }
+  // UV only while the sun is up — the same day/night as the word and icon.
+  var uvSec = byId('uv-sec');
+  if(uvSec) uvSec.hidden = !s.isDay;
 }
 /* Day or night is otherwise only decided when renderWeather() runs, and
  * offline the last run can be hours old. The 30-s tick calls this and
@@ -3354,17 +3206,18 @@ function renderPrecipTypes(codes, isDayArr, precipArr){
 }
 
 /* ─── UV severity ─────────────────────────────────────────────── */
-/* The UV tile: value and word, or '—' for null (never an invented 0). */
+/* UV in Nüüd's secondary row: value and word, or '—' for null (never an
+   invented 0). */
 function paintUv(uv){
   var info = uvLabel(uv);
   var uvEl = byId('wx-uv'), uvLabelEl = byId('wx-uv-label');
   if(uvEl){
     uvEl.textContent = uv === null ? '—' : uv.toFixed(0);
-    uvEl.className = 'metric-value mono ' + (info.cls || '');
+    uvEl.className = 'mono' + (info.cls ? ' ' + info.cls : '');
   }
   if(uvLabelEl){
-    uvLabelEl.textContent = info.text;
-    uvLabelEl.className = 'metric-sub ' + (info.cls || '');
+    uvLabelEl.textContent = uv === null ? '' : info.text;
+    uvLabelEl.className = info.cls || '';
   }
 }
 function uvLabel(uv){
@@ -3418,7 +3271,7 @@ function renderVisibility(){
   var km, word;
   if(useObs){
     km = obs.km;
-    word = visWord(km, obs.phenomenon, null) + ' · jaam';
+    word = visWord(km, obs.phenomenon, null);
   } else {
     var m = WX_VIS_MODEL ? WX_VIS_MODEL.m : null;
     km = isNum(m) ? m / 1000 : null;
@@ -3426,8 +3279,15 @@ function renderVisibility(){
   }
   if(valEl) valEl.textContent = visText(isNum(km) ? km * 1000 : null);
   if(subEl){
-    subEl.textContent = word;
-    subEl.title = useObs ? (obs.name || 'EMHI jaam') + ' mõõtmine ' + formatTime(new Date(obs.ms)) : 'Prognoosimudel';
+    // The secondary row names only what matters — fog, mist, poor
+    // visibility — in the caution colour; 'hea' / 'mõõdukas' stay silent.
+    // The whole reading and its source are in the title.
+    var notable = word === 'udu' || word === 'uduvine' || word === 'halb' || word === 'väga halb';
+    subEl.textContent = notable ? word : '';
+    subEl.className = notable ? 'warn' : '';
+    var sec = subEl.parentNode;
+    if(sec) sec.title = 'Nähtavus: ' + word + ' · ' + (useObs
+      ? (obs.name || 'EMHI jaam') + ' mõõtmine ' + formatTime(new Date(obs.ms)) : 'prognoosimudel');
   }
 }
 
@@ -3450,7 +3310,9 @@ function parseLocalIsoFlexible(iso){
  *
  * Window: now → 09:00 tomorrow; before 05:00, now → 09:00 today (the
  * night we're in). Returns null if the hourly series can't answer, so the
- * caller falls back rather than inventing a number. */
+ * caller falls back rather than inventing a number. TONIGHT_MIN_MS is set
+ * to the hour of that minimum (the Nüüd tile's 'min ~kl 06'), or null. */
+var TONIGHT_MIN_MS = null;
 function tonightMinTemp(hourly){
   if(!hourly || !hourly.time || !hourly.temperature_2m) return null;
   var now = Date.now();
@@ -3461,7 +3323,7 @@ function tonightMinTemp(hourly){
   if(end.getHours() >= 5) end.setDate(end.getDate() + 1);
   end.setHours(9, 0, 0, 0);
   var endMs = end.getTime();
-  var lo = null;
+  var lo = null, loMs = null;
   for(var i = 0; i < hourly.time.length; i++){
     var t = parseLocalIsoFlexible(hourly.time[i]);
     if(!t) continue;
@@ -3470,8 +3332,9 @@ function tonightMinTemp(hourly){
     if(ms > endMs) break;
     var v = hourly.temperature_2m[i];
     if(v === null || v === undefined || isNaN(v)) continue;
-    if(lo === null || v < lo) lo = v;
+    if(lo === null || v < lo){ lo = v; loMs = ms; }
   }
+  TONIGHT_MIN_MS = loMs;
   return lo;
 }
 
@@ -3641,11 +3504,13 @@ function renderAlertBanner(){
   if(!key){
     banner.style.display = 'none';
     banner.textContent = '';
+    if(typeof nuudFit === 'function') nuudFit();
     return;
   }
   banner.className = 'alert-banner' + (urgent ? ' urgent' : '');
   banner.style.display = '';
   banner.textContent = txt;
+  if(typeof nuudFit === 'function') nuudFit();
 }
 function alertBannerShown(){
   var b = byId('alert-banner');
@@ -3663,8 +3528,6 @@ function renderWeather(data, savedAt){
     var temp = round1(cur.temperature_2m);
     // Secondary fields may be null (wxPayloadOk only insists on the core
     // ones): '—' rather than round1(null)'s invented 0.
-    var feels = isNum(cur.apparent_temperature) ? round1(cur.apparent_temperature) : '—';
-    var dew = isNum(cur.dew_point_2m) ? round1(cur.dew_point_2m) : '—';
     var humidity = isNum(cur.relative_humidity_2m) ? Math.round(cur.relative_humidity_2m) : '—';
     var pressure = isNum(cur.surface_pressure) ? Math.round(cur.surface_pressure) : '—';
     var wind = round1(cur.wind_speed_10m);
@@ -3687,11 +3550,13 @@ function renderWeather(data, savedAt){
     // Feed the radar map's wind overlay (arrow + drifting particles)
     if(typeof updateWindOverlay === 'function') updateWindOverlay(dir, wind, gust);
 
-    // Big temp
+    // Big temp — white; blue below zero, warm from 25° (the page's
+    // semantic colours: a temperature is only coloured when it means
+    // something).
     var tempEl = byId('wx-temp');
     if(tempEl){
-      tempEl.innerHTML = temp + '<span class="deg">°</span>';
-      tempEl.className = 'temp-big mono ' + (temp < 0 ? 'cold' : 'warm');
+      tempEl.innerHTML = fmtT(temp, 1) + '<span class="deg">°</span>';
+      tempEl.className = 'temp-big mono' + (temp < 0 ? ' cold' : temp >= 25 ? ' hot' : '');
     }
 
     // Condition phrase and hero icon — one painter, which the 30-s tick
@@ -3699,64 +3564,48 @@ function renderWeather(data, savedAt){
     HERO_SKY = { cur: cur, code: curCode, precip: precip, cloud: cloud, isDay: heroIsDay(cur) };
     paintHeroSky(HERO_SKY);
 
-    // Pills
-    if(byId('wx-feels')) byId('wx-feels').textContent = feels;
-    if(byId('wx-dew')) byId('wx-dew').textContent = dew;
+    // 'tundub 10° · kastepunkt 11°' under the figure
+    if(byId('wx-feels')) byId('wx-feels').textContent = isNum(cur.apparent_temperature) ? fmtT(cur.apparent_temperature, 0) : '—';
+    if(byId('wx-dew')) byId('wx-dew').textContent = isNum(cur.dew_point_2m) ? fmtT(cur.dew_point_2m, 0) : '—';
+    // Today's high / low beside it — today's, not the first daily entry
+    // (a cached payload from before midnight starts with yesterday).
+    var hiloEl = byId('wx-hilo');
+    if(hiloEl && data.daily && data.daily.time){
+      var di0 = dailyStartIdx(data.daily);
+      var dMax = data.daily.temperature_2m_max ? data.daily.temperature_2m_max[di0] : null;
+      var dMin = data.daily.temperature_2m_min ? data.daily.temperature_2m_min[di0] : null;
+      hiloEl.innerHTML = isNum(dMax) && isNum(dMin)
+        ? 'täna <b>' + fmtT(dMax, 0) + '°</b> / ' + fmtT(dMin, 0) + '°' : '';
+    }
 
-    // Wind — hero tile current reading + forecast card header value
+    // Tuul: the value (coloured from 7 m/s up), the arrow pointing where
+    // it blows TO, then the gusts and where it comes FROM ('puh. 3.8 · kirre').
     var windEl = byId('wind-now');
     if(windEl){
       windEl.textContent = wind.toFixed(1);
-      // Clamp alpha to 1 — bar colors use partial alpha for background
-      // blending but foreground text needs full opacity to be legible.
-      if(typeof windBarColor === 'function'){
-        var wc = windBarColor(wind).replace(/[\d.]+\)$/, '1)');
-        windEl.style.color = wc;
-      }
+      windEl.style.color = wind >= 7 && typeof windBarColor === 'function' ? solidColor(windBarColor(wind)) : '';
     }
     if(byId('wind-forecast-now')) byId('wind-forecast-now').textContent = wind.toFixed(1);
-    var windSubText = 'puhanguti ' + (gust === null ? '—' : gust.toFixed(1)) + ' m/s';
-    if(byId('wind-sub')) byId('wind-sub').textContent = windSubText;
+    var windSubEl = byId('wind-sub');
+    if(windSubEl){
+      windSubEl.innerHTML = 'puh. <b' + (gust !== null && gust >= 15 ? ' class="warn"' : '') + '>'
+        + (gust === null ? '—' : gust.toFixed(1)) + '</b>' + (isNum(dir) ? ' · ' + windFromWord(dir) : '');
+    }
     var arrowRotation = 'rotate(' + (dir + 180) + 'deg)';
     var wa = byId('wind-arrow'); if(wa) wa.style.transform = arrowRotation;
     var wfa = byId('wind-forecast-arrow'); if(wfa) wfa.style.transform = arrowRotation;
 
-    // Sadu — hero tile current reading only (forecast card has spark sub-line)
-    var rainEl = byId('rain-now');
-    if(rainEl){
-      rainEl.textContent = precip.toFixed(1);
-      // Only apply rain color when it's actually raining — the ramp's
-      // low-end alpha is calibrated for bar backgrounds not foreground
-      // text, so dry (0.0) would be near-invisible. When dry use default
-      // white; when raining use the ramp color but clamp alpha to 1.
-      if(precip >= 0.05 && typeof rainBarColor === 'function'){
-        var rc = rainBarColor(precip, 'mm/h').replace(/[\d.]+\)$/, '1)');
-        rainEl.style.color = rc;
-      } else {
-        rainEl.style.color = '';
-      }
-    }
-    var rainCurSub = byId('rain-current-sub');
-    if(rainCurSub){
-      if(precip < 0.05) rainCurSub.textContent = 'kuiv';
-      else if(precip < 0.5) rainCurSub.textContent = 'nõrk sadu';
-      else if(precip < 2) rainCurSub.textContent = 'mõõdukas';
-      else if(precip < 7) rainCurSub.textContent = 'tugev';
-      else rainCurSub.textContent = 'paduvihm';
-    }
-
     // Pressure — 3 h tendency from the hourly series, ±1 hPa either side
-    // counts as steady. The arrow and the word come from the same branch so
-    // they can't disagree; '—' when the series can't answer (00:00–03:00,
-    // old cache) rather than a default guess.
+    // counts as steady. Only the arrow is shown in the secondary row; the
+    // word and the figure are in its title. Nothing when the series can't
+    // answer (00:00–03:00, old cache) rather than a default guess.
     if(byId('wx-pressure')) byId('wx-pressure').textContent = pressure;
-    var diffP = pressureTendency3h(data.hourly), pressureTrend = '—';
-    if(diffP !== null){
-      if(diffP >= 1) pressureTrend = '↗ tõuseb';
-      else if(diffP <= -1) pressureTrend = '↘ langeb';
-      else pressureTrend = '→ stabiilne';
+    var diffP = pressureTendency3h(data.hourly), trendEl = byId('wx-pressure-trend');
+    if(trendEl){
+      trendEl.textContent = diffP === null ? '' : diffP >= 1 ? '↗' : diffP <= -1 ? '↘' : '→';
+      trendEl.title = diffP === null ? ''
+        : (diffP >= 1 ? 'tõuseb' : diffP <= -1 ? 'langeb' : 'stabiilne') + ' · ' + (diffP >= 0 ? '+' : '') + diffP.toFixed(1) + ' hPa / 3 h';
     }
-    if(byId('wx-pressure-trend')) byId('wx-pressure-trend').textContent = pressureTrend;
 
     // Humidity
     if(byId('wx-humidity')) byId('wx-humidity').textContent = humidity;
@@ -3772,35 +3621,35 @@ function renderWeather(data, savedAt){
     WX_VIS_MODEL = { m: data.hourly.visibility ? data.hourly.visibility[curIdx] : null, code: curCode };
     renderVisibility();
 
-    // Öökülm — tonight's min temp in the comfort-pills row
-    // (Tundub · Öökülm · Kastepunkt). Just the temperature value;
-    // severity is conveyed through the pill-value's text colour
-    // (ok = default white, warn = amber, bad = soft coral) so the
-    // pill stays compact without an extra warning line.
-    // The night ahead, not today's already-past minimum. Falls back to the
-    // daily figure only if the hourly series can't answer.
+    // Öösel — the night ahead, not today's already-past minimum (the daily
+    // figure only if the hourly series can't answer). Gardening thresholds
+    // as before: below +4° frost on the ground is possible (blue), at or
+    // below 0° it is frost (blue, 'Öökülm', cover the plants).
     var minTonight = tonightMinTemp(data.hourly);
     if(minTonight === null){
-      minTonight = data.daily && data.daily.temperature_2m_min
-        ? data.daily.temperature_2m_min[0] : null;
+      var dmins = data.daily && data.daily.temperature_2m_min;
+      minTonight = dmins ? dmins[dailyStartIdx(data.daily)] : null;
+      TONIGHT_MIN_MS = null;
     }
-    var frostMinEl = byId('frost-min');
-    if(minTonight !== null && !isNaN(minTonight) && frostMinEl){
-      var minR = round1(minTonight);
-      frostMinEl.textContent = (minR >= 0 ? '+' : '') + minR + '°';
-      // Gardening frost thresholds:
-      //   ≥ +4°  green  — safe, no frost risk
-      //   +1–+3° amber  — caution, ground frost possible, protect tender plants
-      //   ≤  0°  red    — frost certain, plants at risk
-      frostMinEl.className = 'pill-value mono';
-      if(minTonight <= 0)       frostMinEl.classList.add('bad');
-      else if(minTonight < 4)   frostMinEl.classList.add('warn');
-      else                      frostMinEl.classList.add('ok');
+    var frostMinEl = byId('frost-min'), nightSub = byId('night-sub'), nightLab = byId('night-label');
+    if(isNum(minTonight)){
+      if(frostMinEl){
+        frostMinEl.textContent = fmtT(minTonight, 1, true) + '°';
+        frostMinEl.className = 'tile-val mono' + (minTonight < 4 ? ' frost' : '');
+      }
+      if(nightLab) nightLab.textContent = minTonight <= 0 ? 'Öökülm' : 'Öösel';
+      if(nightSub) nightSub.innerHTML = minTonight <= 0 ? '<span class="cold">kata taimed</span>'
+        : minTonight < 4 ? '<span class="cold">maapinnal külm</span>'
+        : TONIGHT_MIN_MS ? 'min ~kl ' + pad(new Date(TONIGHT_MIN_MS).getHours()) : 'öine miinimum';
     }
 
     renderHourly(data.hourly);
     renderDaily(data.daily, data.hourly);
-    updateRainStart(data.hourly, precip, data.daily);
+    updateRainStart(data.hourly, cur);
+    renderRainTile(data.hourly, cur);
+    renderVerdict();
+    renderN12();
+    nuudFit();
     checkAlerts(data.hourly, cur);
 
     // Sparklines (replace mock data with real)
@@ -4179,103 +4028,407 @@ function renderDaily(daily, hourly){
 }
 
 /* ═══════════════════════════════════════════════════════════════
- * RENDER — Saju alguseni countdown
+ * RAIN — one rule for every "when does it rain" on screen
  *
- * Open-Meteo's hourly precipitation[i] is the sum over the hour ENDING at
- * time[i], i.e. (t−1h, t] — rain stamped 20:00 starts at 19:00. Reading it
- * as an hour-start value made the countdown an hour late (and skipped the
- * hour already under way). A slot now counts from t − 1h. (wa1 fix, ported.)
+ * The Nüüd verdict ('Kuiv kuni …'), the Sadu tile, the wet hours of the
+ * 12-hour grid and 'Saju alguseni' on the 24 h page all ask rainOutlook(),
+ * so they can no longer disagree about the same data (the three layout
+ * prototypes did: one said dry till Monday while another counted down).
  *
- * Threshold. RAIN_MIN_MM (0.5 mm, chosen 2026-05-31) stays the bar for the
- * icons and the 7-day strip, but tested per HOUR it misses drizzle: ECMWF's
- * autumn drizzle arrives as 0.1–0.2 mm hours, so no single hour passed the
- * old 0.2 mm test and the line said '— pole oodata' beside 7-day tiles
- * showing 0.9 and 2.1 mm. The countdown now takes a slot as the START of
- * rain when something falls in it (≥ RAIN_START_TRACE_MM, the model's
- * 0.1 mm step) AND either
- *   • the RAIN_START_WINDOW_H hours from its start add up to RAIN_MIN_MM
- *     (a drizzly spell, 0.2 + 0.2 + 0.1, counts from its first wet hour), or
- *   • its day's total reaches RAIN_MIN_MM — the day the 7-day strip shows
- *     an amount for (it prints '—' below RAIN_MIN_MM), so a day of steady
- *     0.1 mm hours (0.9 mm) is not skipped while its tile says 0.9.
- * A lone trace on an otherwise dry day (today's two 0.1 mm hours) doesn't.
+ * Real rain (owner's decision, 2026-09-30): an hour counts when the model
+ * gives it ≥ RAIN_REAL_MM (0.3 mm in the hour = 0.3 mm/h) or a chance of
+ * ≥ RAIN_REAL_PROB (50 %). A 0.1 mm trace or a 30 % chance is not rain for
+ * these texts. This replaces the countdown's own rule (a 0.1 mm trace
+ * plus a 3-hour or whole-day sum of RAIN_MIN_MM). RAIN_MIN_MM (0.5 mm)
+ * stays the bar for the icons and the 7-day amounts — a different
+ * question: is it worth drawing.
  *
- * rateNow is the current rate in mm/h (currentPrecipRate()). While it is
- * raining — rateNow ≥ RAIN_MIN_MM, or anything falling inside a wet slot —
- * there is nothing to count down to: 'Sajab praegu · lõpp ~HH:MM', the
- * start of the first slot with nothing in it. More than RAIN_NAME_DAY_H
- * ahead the line names the day and hour ('Sadu: neljapäeval ~kl 13')
- * instead of '~45 h 34 min', which has to be turned back into a day in
- * your head and is not minute-precise anyway.
+ * Hourly precipitation and its probability describe the hour ENDING at
+ * time[i], the slot (t − 1 h, t]: rain stamped 20:00 falls from 19:00.
+ * The slot under way is the first with time[i] > now; it starts now.
+ *
+ * Raining NOW: the current block's rate (currentPrecipRate() — a 15-min
+ * sum turned into mm/h) is real rain itself, or something is falling and
+ * the slot under way is a real-rain hour. The current block is believed
+ * only while it is about now (≤ 1 h off, as in checkAlerts()): a cached
+ * one can be a day old. The rain ends where the first slot after it that
+ * is not real rain begins; unknown when the model already has this hour
+ * dry ('Sajab praegu' and no time).
  * ═══════════════════════════════════════════════════════════════ */
-var RAIN_START_TRACE_MM = 0.1;
-var RAIN_START_WINDOW_H = 3;
-var RAIN_NAME_DAY_H     = 6;
-function rainSlotStartsWet(hourly, i, daily){
-  var mm = hourly.precipitation;
-  if(!((mm[i] || 0) >= RAIN_START_TRACE_MM)) return false;
-  var sum = 0;
-  for(var k = i; k < i + RAIN_START_WINDOW_H && k < mm.length; k++) sum += (mm[k] || 0);
-  if(round1(sum) >= RAIN_MIN_MM) return true;
-  if(daily && daily.time && daily.precipitation_sum){
-    // Grouped by the hourly timestamp's date, as Open-Meteo's daily sum is.
-    var di = daily.time.indexOf(String(hourly.time[i]).slice(0, 10));
-    if(di >= 0 && round1(daily.precipitation_sum[di] || 0) >= RAIN_MIN_MM) return true;
-  }
-  return false;
+var RAIN_REAL_MM    = 0.3;   // mm in the hour
+var RAIN_REAL_PROB  = 50;    // %
+var RAIN_NAME_DAY_H = 6;     // the countdown names the day and hour beyond this
+function isRealRainSlot(hourly, i){
+  var mm = hourly.precipitation ? hourly.precipitation[i] : null;
+  var pr = hourly.precipitation_probability ? hourly.precipitation_probability[i] : null;
+  return (isNum(mm) && mm >= RAIN_REAL_MM) || (isNum(pr) && pr >= RAIN_REAL_PROB);
 }
-function updateRainStart(hourly, rateNow, daily){
-  var el = byId('rain-start');
-  if(!el || !hourly || !hourly.time || !hourly.precipitation) return;
-  var labelEl = byId('rain-start-label');
-  var now = Date.now(), cur = -1, start = null;
-  if(!isNum(rateNow)) rateNow = 0;
-  for(var i = 0; i < hourly.time.length; i++){
-    var t = parseLocalIsoFlexible(hourly.time[i]);
-    if(!t || t.getTime() <= now) continue;      // slot already over
-    if(cur < 0) cur = i;                        // the slot we're in
-    if(rainSlotStartsWet(hourly, i, daily)){ start = i; break; }
+/* The current block, only while it describes now (≤ 1 h off); else null. */
+function currentIfRecent(cur){
+  var t = cur && cur.time ? parseLocalIsoFlexible(cur.time) : null;
+  return t && Math.abs(Date.now() - t.getTime()) < 3600000 ? cur : null;
+}
+function slotStartMs(hourly, i){
+  var t = parseLocalIsoFlexible(hourly.time[i]);
+  return t ? t.getTime() - 3600000 : null;
+}
+/* { state, rate, cur, start, startMs, endMs, snow, horizonMs }
+ *   'raining' — falling now; endMs = when it stops (null: can't say)
+ *   'slot'    — the hour under way is a real-rain hour; nothing falls yet
+ *   'ahead'   — the first real-rain hour starts at startMs
+ *   'none'    — no real rain to the end of the forecast (horizonMs)
+ * cur / start are slot indexes (−1: none); snow: that slot's code is snow. */
+function rainOutlook(hourly, current){
+  var o = { state: 'none', rate: null, cur: -1, start: -1, startMs: null, endMs: null, snow: false, horizonMs: null };
+  if(!hourly || !hourly.time || !hourly.precipitation) return o;
+  var now = Date.now(), T = hourly.time;
+  for(var i = 0; i < T.length; i++){
+    var t = parseLocalIsoFlexible(T[i]);
+    if(!t || t.getTime() <= now) continue;         // slot already over
+    if(o.cur < 0) o.cur = i;                       // the slot we're in
+    if(isRealRainSlot(hourly, i)){ o.start = i; break; }
   }
-  el.classList.remove('rain-none');
-  var raining = rateNow >= RAIN_MIN_MM || (rateNow > 0 && start !== null && start === cur);
-  if(raining){
-    // The end is the start of the first slot with nothing in it. If the
-    // model has this very hour dry, "raining now" is all we can honestly say.
-    var end = null;
-    for(var j = cur; cur >= 0 && j < hourly.time.length; j++){
-      if((hourly.precipitation[j] || 0) < RAIN_START_TRACE_MM){
-        var te = parseLocalIsoFlexible(hourly.time[j]);
-        if(te) end = te.getTime() - 3600000;
+  var last = parseLocalIsoFlexible(T[T.length - 1]);
+  o.horizonMs = last ? last.getTime() : null;
+  var cur = currentIfRecent(current);
+  o.rate = cur ? currentPrecipRate(cur) : null;
+  var codeAt = function(k){ return hourly.weathercode && k >= 0 ? hourly.weathercode[k] : null; };
+  var rate = o.rate || 0;
+  if(rate >= RAIN_REAL_MM || (rate > 0 && o.start >= 0 && o.start === o.cur)){
+    o.state = 'raining';
+    for(var j = o.cur; o.cur >= 0 && j < T.length; j++){
+      if(!isRealRainSlot(hourly, j)){
+        var e = slotStartMs(hourly, j);
+        if(e !== null && e > now) o.endMs = e;
         break;
       }
     }
-    var endAhead = end !== null && end > now;
-    if(labelEl) labelEl.textContent = endAhead ? 'Sajab praegu · lõpp' : 'Sajab praegu';
-    el.textContent = !endAhead ? ''
-      : dayWord(end) === 'täna' ? '~' + formatTime(new Date(end))
-      : dayWord(end) + ' ~kl ' + pad(new Date(end).getHours());
+    var cc = cur.weather_code != null ? cur.weather_code : cur.weathercode;
+    o.snow = isSnowCode(cc != null ? cc : codeAt(o.cur));
+    return o;
+  }
+  if(o.start < 0) return o;
+  o.state = o.start === o.cur ? 'slot' : 'ahead';
+  o.startMs = Math.max(now, slotStartMs(hourly, o.start));
+  o.snow = isSnowCode(codeAt(o.start));
+  return o;
+}
+
+/* Whole days from today to the day of ms (0 today, 1 tomorrow, …). */
+function dayOffset(ms){
+  var d = new Date(ms), t = new Date();
+  return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate())
+                   - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+}
+/* '~kl 14' today, 'homme ~kl 02', 'neljapäeval ~kl 13'. */
+function clockWords(ms){
+  var dw = dayWord(ms);
+  return (dw === 'täna' ? '' : dw + ' ') + '~kl ' + pad(new Date(ms).getHours());
+}
+/* 'pühapäeva õhtuni' — the part of the day rain arrives in. The small
+   hours belong to the night before, as people say it. */
+var ET_DAY_GEN = ['pühapäeva','esmaspäeva','teisipäeva','kolmapäeva','neljapäeva','reede','laupäeva'];
+function untilDayPart(ms){
+  var h = new Date(ms).getHours(), dayMs = h < 5 ? ms - 86400000 : ms, dd = dayOffset(dayMs);
+  var name = dd <= 0 ? 'tänase' : dd === 1 ? 'homse' : ET_DAY_GEN[new Date(dayMs).getDay()];
+  var part = (h < 5 || h >= 22) ? 'ööni' : h < 10 ? 'hommikuni' : h < 13 ? 'lõunani' : h < 17 ? 'pärastlõunani' : 'õhtuni';
+  return name + ' ' + part;
+}
+/* The verdict's rain phrase from rainOutlook(): { text, soon }. */
+function rainPhrase(o){
+  var now = Date.now();
+  if(o.state === 'raining'){
+    return { text: (o.snow ? 'Sajab lund' : 'Sajab') + (o.endMs !== null ? ', kuiv ' + clockWords(o.endMs) : ''), soon: true };
+  }
+  if(o.state === 'slot') return { text: (o.snow ? 'Lumi' : 'Vihm') + ' alla tunni', soon: true };
+  if(o.state === 'ahead'){
+    var inH = (o.startMs - now) / 3600000;
+    if(dayOffset(o.startMs) >= 7) return { text: 'Kuiv terve nädala', soon: false };
+    if(inH < 3) return { text: (o.snow ? 'Lumi ' : 'Vihm ') + clockWords(o.startMs), soon: true };
+    if(inH < 12) return { text: 'Kuiv kuni ' + clockWords(o.startMs), soon: false };
+    return { text: 'Kuiv kuni ' + untilDayPart(o.startMs), soon: false };
+  }
+  return { text: o.horizonMs !== null && o.horizonMs - now >= 6 * 86400000 ? 'Kuiv terve nädala' : 'Kuiv prognoosi lõpuni', soon: false };
+}
+
+/* ─── 'Saju alguseni' (24 h page header) — the same outlook ───────────
+ * 'Sajab praegu · lõpp ~15:00', 'alla tunni', '~2 h 10 min', beyond
+ * RAIN_NAME_DAY_H the day and hour ('Sadu: neljapäeval ~kl 13') instead of
+ * '~45 h 34 min', and '— pole oodata' in a neutral colour. */
+function updateRainStart(hourly, current){
+  var el = byId('rain-start');
+  if(!el || !hourly || !hourly.time || !hourly.precipitation) return;
+  var labelEl = byId('rain-start-label');
+  var o = rainOutlook(hourly, current), now = Date.now();
+  el.classList.remove('rain-none');
+  if(o.state === 'raining'){
+    if(labelEl) labelEl.textContent = o.endMs !== null ? 'Sajab praegu · lõpp' : 'Sajab praegu';
+    el.textContent = o.endMs === null ? ''
+      : dayWord(o.endMs) === 'täna' ? '~' + formatTime(new Date(o.endMs))
+      : dayWord(o.endMs) + ' ~kl ' + pad(new Date(o.endMs).getHours());
     return;
   }
   if(labelEl) labelEl.textContent = 'Saju alguseni:';
-  if(start === null){
+  if(o.state === 'none'){
     el.textContent = '— pole oodata';
     el.classList.add('rain-none');      // a neutral colour, not the attention amber
     return;
   }
-  var tStart = parseLocalIsoFlexible(hourly.time[start]).getTime() - 3600000;
-  var diff = tStart - now;
-  // The slot we're in is forecast wet but nothing is falling yet: the
-  // hourly sum can't say when inside the hour it starts.
-  if(diff <= 0){ el.textContent = 'alla tunni'; return; }
+  // The slot under way is a rain hour but nothing falls yet: the hourly
+  // figures can't say when inside the hour it starts.
+  if(o.state === 'slot'){ el.textContent = 'alla tunni'; return; }
+  var diff = o.startMs - now;
   if(diff < RAIN_NAME_DAY_H * 3600000){
-    var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
+    var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000);
     el.textContent = h <= 0 ? ('~' + m + ' min') : ('~' + h + ' h ' + m + ' min');
     return;
   }
-  // 'Saju alguseni: neljapäeval ~kl 13' — the day already says "next
-  // rain", so the label shortens to keep the header on one line.
+  // The day already says "next rain", so the label shortens.
   if(labelEl) labelEl.textContent = 'Sadu:';
-  el.textContent = dayWord(tStart) + ' ~kl ' + pad(new Date(tStart).getHours());
+  el.textContent = dayWord(o.startMs) + ' ~kl ' + pad(new Date(o.startMs).getHours());
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * RENDER — Nüüd: the verdict, the Sadu tile, the next 12 hours
+ * ═══════════════════════════════════════════════════════════════ */
+/* '+9.0' / '−2.3' / '0.0': a real minus, and '+' when asked. */
+function fmtT(t, dp, plus){
+  if(!isNum(t)) return '—';
+  var s = dp ? round1(Math.abs(t)).toFixed(dp) : String(Math.round(Math.abs(t)));
+  if(parseFloat(s) === 0) return s;
+  return (t < 0 ? '−' : (plus ? '+' : '')) + s;
+}
+/* Where the wind blows FROM, in Estonian: põhi, kirre, ida, kagu, … */
+var ET_WIND_FROM = ['põhi','kirre','ida','kagu','lõuna','edel','lääs','loe'];
+function windFromWord(deg){ return isNum(deg) ? ET_WIND_FROM[Math.round((((deg % 360) + 360) % 360) / 45) % 8] : ''; }
+function solidColor(rgba){ return rgba.replace(/[\d.]+\)$/, '1)'); }
+
+/* One line under the hero: rain (rainOutlook), the wind of the next three
+ * hours, the night's low. Caution-yellow while rain is near, gusts reach
+ * EMHI's 15 m/s, or an official warning stands. Re-run on the 30-s tick,
+ * so 'Vihm ~kl 14' turns into 'Sajab' without waiting for a fetch. */
+function renderVerdict(){
+  var el = byId('verdict'), d = WX_LAST;
+  if(!el || !d || !d.hourly || !d.hourly.time) return;
+  var H = d.hourly, now = Date.now(), parts = [];
+  var o = rainOutlook(H, d.current), rp = rainPhrase(o), warn = rp.soon;
+  parts.push(rp.soon ? '<span class="v-key">' + rp.text + '</span>' : rp.text);
+  // Wind: the hour under way and the next three (instants); gusts are the
+  // maxima of the slots ahead (hour-ending, like precipitation).
+  var cur = currentIfRecent(d.current), wmax = 0, gmax = 0, seen = false;
+  if(cur && isNum(cur.wind_speed_10m)){ wmax = cur.wind_speed_10m; seen = true; }
+  if(cur && isNum(cur.wind_gusts_10m)) gmax = cur.wind_gusts_10m;
+  var idx = findCurrentHourIdx(H.time);
+  for(var k = 0; k <= 3; k++){
+    var i = idx + k;
+    if(i >= H.time.length) break;
+    if(H.wind_speed_10m && isNum(H.wind_speed_10m[i])){ wmax = Math.max(wmax, H.wind_speed_10m[i]); seen = true; }
+    if(k > 0 && H.wind_gusts_10m && isNum(H.wind_gusts_10m[i])) gmax = Math.max(gmax, H.wind_gusts_10m[i]);
+  }
+  if(seen){
+    var ww = wmax < 1.5 ? 'tuulevaikne' : wmax < 5.5 ? 'tuul nõrk' : wmax < 9.5 ? 'tuul mõõdukas'
+           : wmax < 14.5 ? 'tuul tugev' : wmax < 19.5 ? 'tuul väga tugev' : 'torm';
+    if(gmax >= 15){ ww += ', <span class="v-key">puhangud ' + Math.round(gmax) + ' m/s</span>'; warn = true; }
+    else if(gmax >= 11) ww += ', puhangud ' + Math.round(gmax);
+    parts.push(ww);
+  }
+  var tn = tonightMinTemp(H);
+  if(isNum(tn)){
+    if(tn <= 0) parts.push('<span class="v-cold">öökülm ' + fmtT(tn, 0) + '°</span>');
+    else if(tn < 4) parts.push('<span class="v-cold">öösel ' + fmtT(tn, 0, true) + '°</span>');
+    else parts.push('öösel ' + fmtT(tn, 0, true) + '°');
+  }
+  if(typeof WARN_LIST !== 'undefined' && WARN_LIST && activeWarnings(now).length) warn = true;
+  var html = '<span class="v-part">' + parts.join(' <span class="v-sep">·</span></span> <span class="v-part">') + '</span>';
+  if(el.innerHTML !== html) el.innerHTML = html;
+  el.className = 'verdict' + (warn ? ' warn' : '');
+}
+
+/* The Sadu tile: while it rains, the rate now; otherwise the best chance
+ * over the hour under way and the next, with what the outlook says about
+ * them — never 'kuiv' beside a real chance. */
+function renderRainTile(H, current){
+  var val = byId('rain-now'), unit = byId('rain-unit'), sub = byId('rain-current-sub'), lab = byId('rain-label');
+  if(!val || !H || !H.time) return;
+  var o = rainOutlook(H, current), now = Date.now();
+  if(o.state === 'raining'){
+    var r = o.rate || 0;
+    if(lab) lab.textContent = 'Sadu nüüd';
+    val.textContent = round1(r).toFixed(1);
+    val.style.color = 'var(--rain)';
+    if(unit) unit.textContent = 'mm/h';
+    if(sub) sub.innerHTML = '<span class="rain">' + (o.snow ? 'lumi · ' : '')
+      + (r < 0.5 ? 'nõrk' : r < 2 ? 'mõõdukas' : r < 7 ? 'tugev' : 'paduvihm') + '</span>';
+    return;
+  }
+  if(lab) lab.textContent = 'Sadu 2 h';
+  var pmax = null, mm = 0;
+  for(var k = o.cur; o.cur >= 0 && k < o.cur + 2 && k < H.time.length; k++){
+    var pr = H.precipitation_probability ? H.precipitation_probability[k] : null;
+    if(isNum(pr)) pmax = pmax === null ? pr : Math.max(pmax, pr);
+    if(isNum(H.precipitation[k])) mm += H.precipitation[k];
+  }
+  if(o.cur < 0){ val.textContent = '—'; val.style.color = ''; if(sub) sub.textContent = '—'; return; }
+  if(pmax !== null){ val.textContent = Math.round(pmax); if(unit) unit.textContent = '%'; }
+  else { val.textContent = round1(mm).toFixed(1); if(unit) unit.textContent = 'mm'; }
+  var soon = o.state === 'slot' || (o.state === 'ahead' && o.startMs - now < 2 * 3600000);
+  val.style.color = soon ? 'var(--rain)' : '';
+  if(!sub) return;
+  if(o.state === 'slot') sub.innerHTML = '<span class="rain">alla tunni</span>';
+  else if(soon) sub.innerHTML = '<span class="rain">algab ~kl ' + pad(new Date(o.startMs).getHours()) + '</span>';
+  else if(mm >= 0.1) sub.textContent = round1(mm).toFixed(1) + ' mm, nõrk';
+  else sub.textContent = pmax !== null && pmax >= 20 ? 'pigem kuiv' : 'kuiv';
+}
+
+/* ─── Next 12 hours ───────────────────────────────────────────────────
+ * One column per hour, 'nüüd' first: an icon, the temperature (bar and
+ * number, 'tundub' as a dashed line), the chance of rain and the wind.
+ * Temperature and wind are instants at time[i]; the icon, the rain and
+ * the gusts belong to the slot ENDING an hour later (time[i + 1]), so
+ * each column describes the hour that starts at its label. A rain number
+ * is blue when that hour is real rain (isRealRainSlot — the verdict's
+ * rule). Tap a column: its values in the line under the grid, for 8 s. */
+var N12 = null, N12_T = null, N12_HINT = 'Puuduta tundi — näed selle väärtusi';
+function renderN12(){
+  var el = byId('n12'), d = WX_LAST;
+  if(!el || !d || !d.hourly || !d.hourly.time) return;
+  var H = d.hourly, idx = findCurrentHourIdx(H.time), n = Math.min(12, H.time.length - idx - 1);
+  if(n < 2) return;
+  var c = { t: [], f: [], code: [], day: [], prob: [], mm: [], wet: [], w: [], g: [], hr: [] };
+  for(var k = 0; k < n; k++){
+    var i = idx + k, j = i + 1, tm = parseLocalIsoFlexible(H.time[i]);
+    c.t.push(H.temperature_2m[i]);
+    c.f.push(H.apparent_temperature ? H.apparent_temperature[i] : null);
+    c.code.push(H.weathercode ? H.weathercode[j] : null);
+    c.day.push(H.is_day ? H.is_day[j] === 1 : true);
+    c.prob.push(H.precipitation_probability ? H.precipitation_probability[j] : null);
+    c.mm.push(isNum(H.precipitation[j]) ? H.precipitation[j] : 0);
+    c.wet.push(isRealRainSlot(H, j));
+    c.w.push(H.wind_speed_10m[i]);
+    c.g.push(H.wind_gusts_10m ? H.wind_gusts_10m[j] : null);
+    c.hr.push(tm ? tm.getHours() : null);
+  }
+  N12 = c;
+  var umb = '<svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 0 1 17 0zM12 12v6.2a2.3 2.3 0 0 1-4.6 0"/></svg>';
+  var wnd = '<svg class="lic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5h10.5a2.5 2.5 0 1 0-2.5-2.5M3 12.5h15.5a2.5 2.5 0 1 1-2.5 2.5M3 16.5h7"/></svg>';
+  var ico = '<span class="n12-g"></span>', bars = '<span class="n12-g"></span>',
+      rain = '<span class="n12-g">' + umb + '</span>', wind = '<span class="n12-g">' + wnd + '</span>',
+      hrs = '<span class="n12-g"></span>', midK = -1;
+  for(k = 0; k < n; k++){
+    ico += '<span class="n12-ico">' + (c.code[k] != null ? skyIconSVG(c.code[k], c.mm[k], c.day[k]) : '') + '</span>';
+    bars += '<span class="n12-col" data-k="' + k + '"><span class="bt">' + fmtT(c.t[k], 0) + '°</span>'
+          + '<span class="bb" style="background:' + barGrad(tempBarColor(c.t[k])) + '"></span></span>';
+    var pr = c.prob[k];
+    rain += '<span class="n12-num' + (c.wet[k] ? ' wet' : isNum(pr) && pr >= 20 ? ' maybe' : '') + '">'
+          + (isNum(pr) ? Math.round(pr) : '—') + '</span>';
+    var wv = c.w[k], gv = c.g[k];
+    wind += '<span class="n12-num' + (isNum(gv) && gv >= 15 ? ' gust' : isNum(wv) && wv >= 7 ? ' strong' : '') + '">'
+          + (isNum(wv) ? Math.round(wv) : '—') + '</span>';
+    hrs += '<span' + (k === 0 ? ' class="n12-now">nüüd' : '>' + (c.hr[k] === null ? '' : pad(c.hr[k]))) + '</span>';
+    if(k > 0 && c.hr[k] === 0) midK = k;
+  }
+  var midL = 'calc(16px + (100% - 16px) * ' + (midK / n).toFixed(4) + ')';
+  el.innerHTML = '<div class="n12-row n12-icons">' + ico + '</div>'
+    + '<div class="n12-row n12-bars" id="n12-bars">' + bars + '<svg class="n12-line" id="n12-line" aria-hidden="true"></svg></div>'
+    + '<div class="n12-row n12-rain" title="Sajutõenäosus %">' + rain + '</div>'
+    + '<div class="n12-row n12-wind" title="Tuul m/s">' + wind + '</div>'
+    + '<div class="n12-row n12-hrs">' + hrs + '</div>'
+    // 'täna' needs two columns before midnight, 'homme' two after — at
+    // 23:40 midnight is the second column and 'täna' would overprint it.
+    + (midK > 0 && n - midK >= 2 ? '<div class="n12-days">' + (midK >= 2 ? '<span style="left:16px">täna</span>' : '')
+       + '<span class="tom" style="left:' + midL + '">homme</span></div>' : '')
+    + (midK > 0 ? '<i class="n12-mid" style="left:' + midL + '"></i>' : '');
+  n12Layout();
+  var hint = byId('n12-read');
+  if(hint && !hint.classList.contains('on')) hint.textContent = N12_HINT;
+  if(!el.__tap){
+    el.__tap = true;
+    el.addEventListener('click', function(e){
+      var box = byId('n12-bars');
+      if(!box || !N12) return;
+      var r = box.getBoundingClientRect(), x = e.clientX - r.left - 16;
+      var kk = Math.floor(x / (r.width - 16) * N12.t.length);
+      if(kk >= 0 && kk < N12.t.length) n12Select(kk);
+    });
+  }
+}
+function barGrad(rgba){
+  var base = rgba.replace(/[\d.]+\)$/, function(m){ return (parseFloat(m) * 0.3).toFixed(2) + ')'; });
+  return 'linear-gradient(180deg,' + rgba + ' 0%,' + base + ' 100%)';
+}
+/* Bar heights and the 'tundub' line need the real box height (the card
+   takes what the page has left), so they are set after layout — and again
+   on a resize. */
+function n12Layout(){
+  var c = N12, box = byId('n12-bars'), svg = byId('n12-line');
+  if(!c || !box || !svg) return;
+  var W = box.clientWidth - 16, Hh = box.clientHeight;
+  if(W <= 0 || Hh <= 0) return;
+  var all = c.t.concat(c.f).filter(isNum);
+  if(!all.length) return;
+  var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+  if(hi - lo < 8){ var mid = (hi + lo) / 2; lo = mid - 4; hi = mid + 4; }
+  var BAR_MIN = Math.max(8, Hh * 0.12), BAR_RANGE = Hh - 18 - BAR_MIN;
+  function barPx(v){ return BAR_MIN + (v - lo) / (hi - lo) * BAR_RANGE; }
+  var bbs = box.querySelectorAll('.bb');
+  for(var k = 0; k < bbs.length; k++) bbs[k].style.height = (isNum(c.t[k]) ? barPx(c.t[k]) : 0).toFixed(1) + 'px';
+  var n = c.t.length, pts = [], dots = '';
+  for(k = 0; k < n; k++){
+    if(!isNum(c.f[k])) continue;
+    var x = 16 + (k + 0.5) / n * W, y = Hh - barPx(c.f[k]);
+    pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+    dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2" fill="rgba(255,255,255,0.92)"/>';
+  }
+  svg.setAttribute('viewBox', '0 0 ' + (W + 16) + ' ' + Hh);
+  svg.innerHTML = pts.length < 2 ? '' :
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="rgba(10,12,16,0.7)" stroke-width="3.5" stroke-linejoin="round"/>'
+    + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="1.5" stroke-dasharray="3 3" stroke-linejoin="round"/>' + dots;
+}
+function n12Select(k){
+  var c = N12;
+  if(!c) return;
+  var cols = document.querySelectorAll('#n12 .n12-col');
+  for(var i = 0; i < cols.length; i++) cols[i].classList.toggle('sel', i === k);
+  var ro = byId('n12-read');
+  if(!ro) return;
+  ro.className = 'tap-read on';
+  ro.innerHTML = '<b>' + (k === 0 ? 'nüüd' : 'kl ' + pad(c.hr[k])) + '</b> · ' + fmtT(c.t[k], 0) + '°'
+    + (isNum(c.f[k]) ? ' (tundub ' + fmtT(c.f[k], 0) + '°)' : '')
+    + ' · sadu ' + (isNum(c.prob[k]) ? Math.round(c.prob[k]) + ' %' : '—') + (c.mm[k] >= 0.1 ? ', ' + round1(c.mm[k]).toFixed(1) + ' mm' : '')
+    + ' · tuul ' + (isNum(c.w[k]) ? Math.round(c.w[k]) : '—') + (isNum(c.g[k]) ? '–' + Math.round(c.g[k]) : '') + ' m/s';
+  clearTimeout(N12_T);
+  N12_T = setTimeout(function(){
+    var cs = document.querySelectorAll('#n12 .n12-col');
+    for(var i = 0; i < cs.length; i++) cs[i].classList.remove('sel');
+    ro.className = 'tap-read';
+    ro.textContent = N12_HINT;
+  }, 8000);
+}
+
+/* Nüüd is one screen: when what it has to say today (a warning bar, the
+   storm banner, age tags) would push it past the tab bar, it tightens
+   (.tight) instead of scrolling; only a phone too short even then (SE)
+   scrolls. Measured, so any mix of bars is covered. Batched to a frame. */
+var NUUD_FIT_RAF = 0;
+function nuudFit(){
+  if(NUUD_FIT_RAF) return;
+  NUUD_FIT_RAF = requestAnimationFrame(function(){
+    NUUD_FIT_RAF = 0;
+    var pg = byId('p-nuud');
+    if(!pg) return;
+    pg.classList.remove('tight');
+    if(pg.scrollHeight > pg.clientHeight + 1) pg.classList.add('tight');
+    n12Layout();
+  });
+}
+
+/* The rain texts again from the payload on screen: the verdict, the Sadu
+   tile and the countdown count on while a feed is down (30-s tick). */
+function refreshRainTexts(){
+  if(!WX_LAST || !WX_LAST.hourly) return;
+  renderVerdict();
+  renderRainTile(WX_LAST.hourly, WX_LAST.current);
+  updateRainStart(WX_LAST.hourly, WX_LAST.current);
 }
 
 function fetchWeatherAndForecast(){
@@ -4350,6 +4503,12 @@ function showWeatherEmpty(failed){
   var savedAt = cacheSavedAt('wx.weather');
   var cond = byId('wx-cond');
   if(cond) cond.textContent = 'Ilmaandmed puuduvad' + (savedAt ? ' · viimati ' + stampText(savedAt) : '');
+  // Nüüd's forecast pieces say so too, instead of 'Laen…' for ever.
+  var v = byId('verdict');
+  if(v){ v.textContent = 'Prognoos puudub — proovin uuesti'; v.className = 'verdict none'; }
+  var n = byId('n12');
+  if(n && !N12) n.innerHTML = '<div class="empty-note">Tunniprognoos puudub</div>';
+  updateWeatherAge();
 }
 function clearWeatherEmpty(){
   WX_EMPTY_CARDS.forEach(function(sel){
@@ -4710,8 +4869,9 @@ function renderStation(prefix, vals){
   if(el){
     if(ok(vals.temp)){
       var t = round1(vals.temp);
-      el.textContent = (t >= 0 ? '+' : '') + t.toFixed(1);
-      el.style.color = t < 0 ? 'var(--cold)' : 'var(--warm)';
+      el.textContent = fmtT(t, 1, true);          // '+3.2' / '−0.4', a real minus
+      // Coloured only when it means something: below zero, or 25° and up.
+      el.style.color = t < 0 ? 'var(--cold)' : t >= 25 ? 'var(--warm)' : '';
     }else{
       el.textContent = '—';
       el.style.color = '';
@@ -4720,10 +4880,11 @@ function renderStation(prefix, vals){
   var pe = byId(prefix + '-precip');
   if(pe){
     if(ok(vals.precip)){
+      // The last hour's amount: 'kuiv' when nothing fell, else '0.4 mm' in
+      // the rain colour (the unit travels with the figure now).
       var p = round1(vals.precip);
-      pe.textContent = p.toFixed(1);
-      // Match the 7-day's .day-rain.wet blue when there's measurable precip
-      pe.style.color = p >= 0.05 ? 'rgba(100, 160, 235, 0.95)' : '';
+      pe.textContent = p >= 0.05 ? p.toFixed(1) + ' mm' : 'kuiv';
+      pe.style.color = p >= 0.05 ? 'var(--rain, rgba(100, 160, 235, 0.95))' : '';
     }else{
       pe.textContent = '—';
       pe.style.color = '';
@@ -4755,7 +4916,7 @@ function markStationStale(prefix, ageMin, forceStale){
   if(stale) block.classList.add('stale');
   else block.classList.remove('stale');
   if(!tagged && !stale){
-    if(tag && tag.parentNode) tag.parentNode.removeChild(tag);
+    if(tag && tag.parentNode){ tag.parentNode.removeChild(tag); if(typeof nuudFit === 'function') nuudFit(); }
     return;
   }
   if(!tag){
@@ -4763,6 +4924,7 @@ function markStationStale(prefix, ageMin, forceStale){
     tag.className = 'station-age mono';
     // Above the fetch-status line, if there is one.
     block.insertBefore(tag, block.querySelector('.station-status'));
+    if(typeof nuudFit === 'function') nuudFit();
   }
   tag.textContent = ageMin !== null ? ageText(ageMin) : 'vana';
 }
@@ -4886,7 +5048,7 @@ function renderKurevereRoad(a){
     line = document.createElement('div');
     block.insertBefore(line, block.querySelector('.station-age') || block.querySelector('.station-status'));
   }
-  line.className = 'station-road mono' + (rs.cls ? ' ' + rs.cls : '');
+  line.className = 'station-road' + (rs.cls ? ' ' + rs.cls : '');
   line.innerHTML = '<span class="nw"></span>';
   line.firstChild.textContent = 'tee' + (rs.temp !== null ? ' ' + roadTempText(rs.temp) : '');
   if(rs.word){
@@ -5125,49 +5287,76 @@ function tabWarnDot(level){
   dot.className = 'tab-dot' + (level > 1 ? ' l' + Math.min(level, 3) : '');
 }
 
-/* The bar above the hero, from WARN_LIST + WARN_FEED. Runs on every fetch
- * and on the 30-s tick, so 'kuni …' stays right, expired warnings drop off
- * and an ageing bundle turns 'teadmata' on time. The DOM is only rewritten
- * when the text changes; text goes in with textContent. */
+/* Nüüd's warning state, from WARN_LIST + WARN_FEED — four states:
+ *   quiet (the feed vouches, nothing in effect or ahead) → the small
+ *     '✓ hoiatusi pole' chip in the header, green; beside the forecast's
+ *     own storm banner it reads '✓ ametlikke pole', neutral
+ *   warning → the full-width bar in its official colour, tinted while in
+ *     effect, outlined while ahead, with its time window ('kuni 12:00',
+ *     '21:00 – homme 07:00') and '+N' for the others; the dot on the Nüüd
+ *     tab in the same colour, seen from every page
+ *   unknown (bundle old, missing or warnings_ok:false) → the bar, neutral
+ *     and dashed: '? Hoiatused teadmata · andmed 08:12'
+ *   loading (no fetch has finished this session) → the chip 'hoiatused …'
+ * Runs on every fetch and on the 30-s tick, so 'kuni …' stays right,
+ * expired warnings drop off and an ageing bundle turns 'teadmata' on time.
+ * The DOM is only rewritten when something changes; text goes in with
+ * textContent. */
 function renderWarningBar(){
   if(!WARN_FEED) return;            // the first clock tick runs before this is set
-  var el = byId('warning-bar');
+  var el = byId('warning-bar'), chip = byId('warn-chip');
   if(!el) return;
   var now = Date.now(), list = activeWarnings(now);
-  var cls, icon, text, more = '';
+  var st, lvl = 0, soon = false, ev = '', when = '', more = '', chipCls = '', chipTxt = '';
   if(list.length){
-    var top = list[0], soon = top.startMs !== null && top.startMs > now;
-    var win = warnWindowText(top, now);
-    cls = 'alert wb-lvl' + top.level + (soon ? ' wb-soon' : ' wb-now');
-    icon = '⚠';
-    text = top.title + (win ? ' · ' + win : '');
+    var top = list[0];
+    st = 'warn'; lvl = top.level; ev = top.title;
+    soon = top.startMs !== null && top.startMs > now;
+    when = warnWindowText(top, now);
     if(list.length > 1) more = '+' + (list.length - 1);
   }else if(warnFeedVouches(now)){
     // Green only for a quiet day. Next to the forecast's own storm banner
     // it must not read as 'nothing to worry about': say what it knows.
-    if(alertBannerShown()){ cls = 'alert wb-neutral'; icon = '✓'; text = 'Ametlikke hoiatusi pole'; }
-    else { cls = 'alert'; icon = '✓'; text = 'Hoiatused puuduvad'; }
+    st = 'calm';
+    if(alertBannerShown()){ chipCls = 'chip'; chipTxt = '✓ ametlikke pole'; }
+    else { chipCls = 'chip ok'; chipTxt = '✓ hoiatusi pole'; }
   }else if(!WARN_FEED.tried){
-    cls = 'alert wb-neutral'; icon = '…'; text = 'Hoiatused: laadin';
+    st = 'wait'; chipCls = 'chip chip-wait'; chipTxt = 'hoiatused …';
   }else{
-    cls = 'alert wb-neutral'; icon = '?';
-    text = 'Hoiatused teadmata · ' + (WARN_FEED.ms !== null ? 'andmed ' + stampText(WARN_FEED.ms) : 'andmeid pole');
+    st = 'unk'; ev = 'Hoiatused teadmata';
+    when = WARN_FEED.ms !== null ? 'andmed ' + stampText(WARN_FEED.ms) : 'andmeid pole';
   }
-  tabWarnDot(list.length ? list[0].level : 0);
-  var key = cls + '|' + icon + '|' + text + '|' + more;
+  tabWarnDot(lvl);
+  var key = [st, lvl, soon, ev, when, more, chipCls, chipTxt].join('|');
   if(key === WARN_BAR_KEY) return;
   WARN_BAR_KEY = key;
-  el.className = cls;
-  el.removeAttribute('style');
-  el.innerHTML = '<span class="alert-icon"></span><span class="wb-text"></span>';
-  el.firstChild.textContent = icon;
-  el.childNodes[1].textContent = text;
-  if(more){
-    var m = document.createElement('span');
-    m.className = 'wb-more';
-    m.textContent = more;
-    el.appendChild(m);
+  if(chip){
+    chip.hidden = !chipTxt;
+    if(chipTxt){ chip.className = chipCls; chip.textContent = chipTxt; }
   }
+  if(st === 'warn' || st === 'unk'){
+    el.hidden = false;
+    el.className = 'warn-bar ' + (st === 'unk' ? 'unk' : 'l' + lvl + (soon ? ' soon' : ''));
+    el.title = st === 'unk' ? 'Hoiatuste andmed on vanad või puuduvad — see ei tähenda, et hoiatusi pole'
+      : ['', 'Kollane', 'Oranž', 'Punane'][lvl] + ' hoiatus · Lääne maakond' + (soon ? ' · algab ' + warnWhen(list[0].startMs, now) : '');
+    el.innerHTML = (st === 'unk' ? '<span class="wb-q" aria-hidden="true">?</span>' : '<span class="wb-lvl" aria-hidden="true"></span>')
+      + '<span class="wb-body"><span class="wb-ev"></span> <span class="wb-when"></span></span>';
+    el.querySelector('.wb-ev').textContent = ev;
+    el.querySelector('.wb-when').textContent = when;
+    if(more){
+      var m = document.createElement('span');
+      m.className = 'wb-more';
+      m.textContent = more;
+      m.setAttribute('aria-label', 'veel ' + (list.length - 1) + ' hoiatust');
+      el.appendChild(m);
+    }
+  }else{
+    el.hidden = true;
+    el.innerHTML = '';
+  }
+  fitHeader();
+  renderVerdict();          // its edge turns caution while a warning stands
+  nuudFit();
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -6459,6 +6648,17 @@ function pagerInit(){
   requestAnimationFrame(function(){ if(PAGER.shown >= 0) el.scrollLeft = PAGER.shown * pagerW(); });
 }
 pagerInit();
+
+/* The 12-hour grid's bars are sized to the height its card was given, and
+   that changes with the page around it (a warning bar arriving, a
+   rotation); the header's fit changes with the width. */
+(function(){
+  var n12 = byId('n12');
+  if(n12 && typeof ResizeObserver === 'function'){
+    new ResizeObserver(function(){ n12Layout(); }).observe(n12);
+  }
+  window.addEventListener('resize', function(){ fitHeader(); nuudFit(); });
+})();
 
 // Sun times BEFORE the cache paint: heroIsDay() falls back to the cached
 // payload's is_day only while they are missing, and currentSkyText used to
