@@ -234,6 +234,19 @@ print('orphans:', sorted(refs - ids))"
 
 A local `python3 -m http.server 8123` runs persistently in `~/wa2/` for phone preview — when on regular WiFi the iPhone reaches the Mac at `http://192.168.1.209:8123` (Mac LAN IP), not the hotspot-only `172.20.10.8`.
 
+## Recent changes (2026-09-30c — status bar "black", v3.0.1)
+
+On the owner's iPhone (440 × 956 pt, iOS 26) the installed app had a
+62-pt black band under the tab bar and a blurred first row. Cause: with
+`apple-mobile-web-app-status-bar-style` = `black-translucent`, iOS laid the
+app out as if the status bar took space (viewport 894 pt) but drew it from
+the top of the screen, and blurred content under its status-bar edge
+effect (reaching ~100 pt down). Now `black`: the app starts below a solid
+black status bar, its height is the screen's, `env(safe-area-inset-top)` is
+0. **Don't switch back to black-translucent.** If an installed icon keeps
+the old behaviour, remove it from the home screen and add it again (iOS
+may keep the launch settings from install time).
+
 ## Recent changes (2026-09-30b — five-page swipe redesign, v3.0.0)
 
 The owner asked for the phone app as full-screen pages swiped sideways

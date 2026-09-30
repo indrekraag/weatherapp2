@@ -8,7 +8,12 @@
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Madise">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- "black", not "black-translucent" (2026-09-30): drawing under the status
+     bar made iOS lay the app out 62 pt short (a black band under the tab
+     bar on the owner's iPhone) and blur the first row under its own
+     status-bar edge effect. With "black" the app starts below the status
+     bar, its height is the screen's, and env(safe-area-inset-top) is 0. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#02050a">
 <!-- The real manifest.json (PNG icons at 192/512 + maskable). The inline
      data: manifest this replaced carried JPEG data-URI icons that Chrome
@@ -2204,8 +2209,8 @@ html.sim-sa .sim-home {
  *     redesign; APP_BUILT — 'DD.MM HH:MM' Tallinn time of the commit. A
  *     stale stamp makes a successful deploy look like it never landed.
  *     Bump SHELL_CACHE in sw.js only when sw.js itself changes. */
-var APP_VERSION = 'v3.0.0';
-var APP_BUILT   = '30.09 11:04';
+var APP_VERSION = 'v3.0.1';
+var APP_BUILT   = '30.09 15:36';
 
 var CONFIG = { lat:58.81627, lng:23.74447, label:'Madise', weatherRefreshMs:5*60*1000 };
 var TODAY_SUNRISE_MS = null, TODAY_SUNSET_MS = null;
