@@ -273,6 +273,9 @@ black status bar, its height is the screen's, `env(safe-area-inset-top)` is
 0. **Don't switch back to black-translucent.** If an installed icon keeps
 the old behaviour, remove it from the home screen and add it again (iOS
 may keep the launch settings from install time).
+**Confirmed on the owner's iPhone (2026-09-30, v3.0.3):** after removing
+and re-adding the icon the bottom band was gone and, with `.top-cap`, the
+top blur too — both fixed.
 
 ## Recent changes (2026-09-30b — five-page swipe redesign, v3.0.0)
 
