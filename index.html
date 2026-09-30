@@ -6699,11 +6699,19 @@ function initRadar(){
     radarSetStatus('', 'Laen radaripilte…');
   }
 
+  // Locked from the start (mapLockSet): no one-finger drag — on its page
+  // that swipe turns the PAGE — and every zoom (pinch, double tap, wheel)
+  // around the centre, which is Madise. No +/− block: pinch and the zoom
+  // presets do that, and its corner is where 'Liiguta' sits.
   RADAR.map = L.map('radar-map', {
     center: [CONFIG.lat, CONFIG.lng],
     zoom: 7,
-    zoomControl: true,
+    zoomControl: false,
     attributionControl: true,
+    dragging: false,
+    touchZoom: 'center',
+    doubleClickZoom: 'center',
+    scrollWheelZoom: 'center',
     tap: true
   });
 
@@ -6758,23 +6766,11 @@ function initRadar(){
   RADAR.map.on('zoomstart', radarZoomStart);
   RADAR.map.on('zoomend', radarZoomEnd);
 
-  // The loop runs by itself only while someone can see it: the card on
-  // screen (it sits far below the fold on a phone, where it used to play
-  // — and fetch — all the time), the page visible, and no reduced-motion
-  // request. The older frames' tiles wait for the card's first appearance.
-  var card = document.getElementById('radar-card');
-  if(card && typeof IntersectionObserver === 'function'){
-    RADAR.inView = false;
-    RADAR.everInView = false;
-    new IntersectionObserver(function(entries){
-      RADAR.inView = entries[entries.length - 1].isIntersecting;
-      if(RADAR.inView && !RADAR.everInView){
-        RADAR.everInView = true;
-        radarBuildMissing();
-      }
-      radarAutoplay();
-    }).observe(card);
-  }
+  // The loop runs by itself only while someone can see it: the Radar page
+  // on screen (the pager tells radarPageShown() when it arrives or leaves),
+  // the app visible, and no reduced-motion request. The older frames'
+  // tiles wait for the page's first appearance.
+  RADAR.inView = RADAR.everInView = (typeof pagerShowing === 'function') ? pagerShowing('radar') : true;
   document.addEventListener('visibilitychange', radarOnVisibility);
   if(RADAR_RM){
     if(RADAR_RM.addEventListener) RADAR_RM.addEventListener('change', radarAutoplay);
@@ -7222,8 +7218,8 @@ function radarOnVisibility(){
 }
 
 /* A scrub takes the loop's place for IDLE_MS: then the newest frame comes
- * back and the loop resumes (or rests) per radarAutoplay(). Map touches
- * are left alone — pan and zoom behaviour is for the layout redesign. */
+ * back and the loop resumes (or rests) per radarAutoplay(). (A moved or
+ * zoomed map has its own 60-s return: mapIdleArm.) */
 function radarNoteScrub(){
   RADAR.scrubMs = Date.now();
   if(RADAR.idleTimer) clearTimeout(RADAR.idleTimer);
@@ -7234,6 +7230,70 @@ function radarIdleReturn(){
   RADAR.scrubMs = 0;
   if(!RADAR.playing && !RADAR.userPaused) radarRestOnLatest();
   radarAutoplay();
+}
+
+/* ─── The Radar page arrives or leaves ─────────────────────────────────
+ * Called by the pager (pagerSettle) when it comes to rest on the Radar page
+ * or leaves it. Arriving: Leaflet re-measures its box (the viewport may
+ * have changed while the page was off screen), the overlay is redrawn, the
+ * older frames start loading the first time, and the loop may run.
+ * Leaving: the loop rests on the newest frame and the map goes back to
+ * Madise, locked. */
+function radarPageShown(on){
+  RADAR.inView = !!on;
+  if(!RADAR.map) return;
+  if(on){
+    RADAR.map.invalidateSize();
+    if(!RADAR.everInView){ RADAR.everInView = true; radarBuildMissing(); }
+    if(typeof drawOverlay === 'function') drawOverlay();
+  } else {
+    mapLockSet(true);
+  }
+  radarAutoplay();
+}
+
+/* ─── 'Liiguta' — the map's one-finger drag, off by default ─────────────
+ * Locked (the default): a one-finger swipe on the map turns the page, and
+ * every zoom — pinch, double tap, wheel — is around the centre, which is
+ * Madise, so the map cannot drift off it. Pinch always works. 'Liiguta'
+ * unlocks panning (and zooming around the fingers). 'Valmis', leaving the
+ * page, or MAP_IDLE_MS without a touch locks it again AND puts it back on
+ * the Madise preset (the zoom preset last tapped, EE by default) — the
+ * prototypes re-locked but left the map wherever it had been dragged. The
+ * same idle return undoes a pinch made while locked. */
+var MAP_IDLE_MS = 60 * 1000;
+var MAP_LOCK = { locked: true, idleT: null };
+function mapLockSet(lock){
+  if(!RADAR.map) return;
+  var m = RADAR.map;
+  MAP_LOCK.locked = !!lock;
+  if(lock) m.dragging.disable(); else m.dragging.enable();
+  var how = lock ? 'center' : true;     // Leaflet reads these per gesture
+  m.options.touchZoom = how;
+  m.options.doubleClickZoom = how;
+  m.options.scrollWheelZoom = how;
+  var b = document.getElementById('map-move'), t = document.getElementById('map-move-text');
+  if(b){ b.classList.toggle('on', !lock); b.setAttribute('aria-pressed', lock ? 'false' : 'true'); }
+  if(t) t.textContent = lock ? 'Liiguta' : 'Valmis';
+  if(lock) mapSnapHome();
+  mapIdleArm();
+}
+/* Is the map anywhere but Madise, centred, at the preset zoom? */
+function mapOffHome(){
+  var m = RADAR.map;
+  if(!m) return false;
+  var c = m.latLngToContainerPoint([CONFIG.lat, CONFIG.lng]), sz = m.getSize();
+  return m.getZoom() !== RX.presetZoom || Math.abs(c.x - sz.x / 2) > 2 || Math.abs(c.y - sz.y / 2) > 2;
+}
+function mapSnapHome(){
+  if(RADAR.map && mapOffHome()) RADAR.map.setView([CONFIG.lat, CONFIG.lng], RX.presetZoom, { animate: false });
+}
+/* (Re)start the idle clock whenever the map is touched or moved, as long
+ * as there is something for it to undo. */
+function mapIdleArm(){
+  if(MAP_LOCK.idleT){ clearTimeout(MAP_LOCK.idleT); MAP_LOCK.idleT = null; }
+  if(!RADAR.map || (MAP_LOCK.locked && !mapOffHome())) return;
+  MAP_LOCK.idleT = setTimeout(function(){ MAP_LOCK.idleT = null; mapLockSet(true); }, MAP_IDLE_MS);
 }
 
 // Start the radar card once the page is fully loaded
@@ -7262,6 +7322,7 @@ window.addEventListener('DOMContentLoaded', function(){
  * ═══════════════════════════════════════════════════════════════════════ */
 var RX = {
   active: false,
+  presetZoom: 7,          // the zoom preset last tapped (EE) — where mapSnapHome returns
   satLayer: null,
   baseLayer: null,
   windDir: null,
@@ -7280,7 +7341,7 @@ function initRadarExtras(){
   rxBaseMap('satellite');
 
   // Keep in-map control rows from triggering map drag/zoom on tap
-  ['precip-legend','zoom-presets'].forEach(function(id){
+  ['precip-legend','zoom-presets','map-move'].forEach(function(id){
     var el = document.getElementById(id);
     if(el && L.DomEvent){
       L.DomEvent.disableClickPropagation(el);
@@ -7325,7 +7386,19 @@ function initRadarExtras(){
   setInterval(drawOverlay, 60 * 1000);
 
   // Default to the EE (whole-Estonia) view
-  RADAR.map.setView([CONFIG.lat, CONFIG.lng], 7, { animate: false });
+  RADAR.map.setView([CONFIG.lat, CONFIG.lng], RX.presetZoom, { animate: false });
+
+  // 'Liiguta' (mapLockSet); any touch or move of the map restarts its
+  // idle clock (mapIdleArm).
+  var mv = document.getElementById('map-move');
+  if(mv) mv.addEventListener('click', function(e){ e.stopPropagation(); mapLockSet(!MAP_LOCK.locked); });
+  RADAR.map.on('moveend zoomend', mapIdleArm);
+  if(mapDiv){
+    mapDiv.addEventListener('touchstart', mapIdleArm, { passive: true });
+    mapDiv.addEventListener('mousedown', mapIdleArm);
+    mapDiv.addEventListener('wheel', mapIdleArm, { passive: true });
+  }
+  mapLockSet(true);
 
   // renderWeather() feeds the wind into this overlay only if
   // updateWindOverlay already exists — and it lives in this later script,
@@ -7370,6 +7443,7 @@ function rxBaseMap(mode){
 
 function rxZoom(z){
   if(!RADAR.map) return;
+  RX.presetZoom = z;
   RADAR.map.setView([CONFIG.lat, CONFIG.lng], z, { animate: false });
   document.querySelectorAll('#zoom-presets .zoom-btn').forEach(function(btn){
     var txt = btn.textContent.trim();
