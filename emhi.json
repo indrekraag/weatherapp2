@@ -1,23 +1,23 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-01T02:45:13+00:00",
-  "fetched_at": "2026-10-01T02:45:13.417799+00:00",
+  "observation_time": "2026-10-01T03:00:11+00:00",
+  "fetched_at": "2026-10-01T03:00:11.803130+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
       "wmocode": "26124",
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
-      "phenomenon": "Mist",
-      "visibility": 1.6,
+      "phenomenon": "Cloudy with clear spells",
+      "visibility": 2.0,
       "precipitations": 0.0,
       "airpressure": 1038.6,
-      "relativehumidity": 100.0,
-      "airtemperature": 9.1,
-      "winddirection": 121.0,
+      "relativehumidity": 99.9,
+      "airtemperature": 9.0,
+      "winddirection": 109.0,
       "windspeed": 1.4,
-      "windspeedmax": 2.1,
+      "windspeedmax": 2.8,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,12 +33,12 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1038.5,
+      "airpressure": 1038.4,
       "relativehumidity": 100.0,
       "airtemperature": 10.1,
-      "winddirection": 127.0,
-      "windspeed": 1.4,
-      "windspeedmax": 2.4,
+      "winddirection": 129.0,
+      "windspeed": 2.0,
+      "windspeedmax": 2.9,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -47,7 +47,17 @@
       "globalradiation": -2.381
     }
   },
-  "warnings": [],
+  "warnings": [
+    {
+      "event": "Fog Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-10-01T02:00:00+00:00",
+      "expires": "2026-10-01T08:00:00+00:00",
+      "urgency": "Immediate",
+      "certainty": "Observed"
+    }
+  ],
   "warnings_ok": true,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
