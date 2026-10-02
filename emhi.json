@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-02T01:15:12+00:00",
-  "fetched_at": "2026-10-02T01:15:12.847299+00:00",
+  "observation_time": "2026-10-02T01:30:12+00:00",
+  "fetched_at": "2026-10-02T01:30:13.089836+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,14 +10,14 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Fog",
-      "visibility": 6.0,
+      "visibility": 7.0,
       "precipitations": 0.0,
       "airpressure": 1036.8,
       "relativehumidity": 100.0,
-      "airtemperature": 8.2,
-      "winddirection": 126.0,
-      "windspeed": 1.5,
-      "windspeedmax": 2.1,
+      "airtemperature": 8.5,
+      "winddirection": 120.0,
+      "windspeed": 1.6,
+      "windspeedmax": 2.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,12 +33,12 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1036.6,
+      "airpressure": 1036.7,
       "relativehumidity": 100.0,
-      "airtemperature": 8.5,
-      "winddirection": 142.0,
-      "windspeed": 0.8,
-      "windspeedmax": 1.2,
+      "airtemperature": 8.7,
+      "winddirection": 137.0,
+      "windspeed": 1.0,
+      "windspeedmax": 1.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -47,7 +47,17 @@
       "globalradiation": -3.077
     }
   },
-  "warnings": [],
+  "warnings": [
+    {
+      "event": "Fog Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-10-02T00:00:00+00:00",
+      "expires": "2026-10-02T08:00:00+00:00",
+      "urgency": "Immediate",
+      "certainty": "Observed"
+    }
+  ],
   "warnings_ok": true,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
