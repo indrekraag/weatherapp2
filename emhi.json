@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-08T23:56:49+00:00",
-  "fetched_at": "2026-10-08T23:56:49.274794+00:00",
+  "observation_time": "2026-10-09T00:00:13+00:00",
+  "fetched_at": "2026-10-09T00:00:13.293578+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
