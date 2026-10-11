@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-11T06:00:11+00:00",
-  "fetched_at": "2026-10-11T06:00:11.263394+00:00",
+  "observation_time": "2026-10-11T06:10:06+00:00",
+  "fetched_at": "2026-10-11T06:10:06.955347+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,17 +12,17 @@
       "phenomenon": "Fog",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1006.0,
+      "airpressure": 1005.9,
       "relativehumidity": 99.6,
-      "airtemperature": 7.1,
-      "winddirection": 88.0,
-      "windspeed": 2.2,
-      "windspeedmax": 2.9,
+      "airtemperature": 7.4,
+      "winddirection": 81.0,
+      "windspeed": 2.3,
+      "windspeedmax": 3.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 2.0,
+      "sunshineduration": 12.0,
       "globalradiation": null
     },
     "26123": {
@@ -35,16 +35,16 @@
       "precipitations": 0.0,
       "airpressure": 1005.9,
       "relativehumidity": 100.0,
-      "airtemperature": 7.0,
-      "winddirection": 104.0,
-      "windspeed": 1.9,
+      "airtemperature": 7.2,
+      "winddirection": 105.0,
+      "windspeed": 1.5,
       "windspeedmax": 2.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.1,
+      "uvindex": 0.2,
       "sunshineduration": null,
-      "globalradiation": -1.72
+      "globalradiation": 25.554
     }
   },
   "warnings": [],
