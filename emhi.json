@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-11T10:45:11+00:00",
-  "fetched_at": "2026-10-11T10:45:11.299794+00:00",
+  "observation_time": "2026-10-11T11:00:12+00:00",
+  "fetched_at": "2026-10-11T11:00:13.054484+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,17 +12,17 @@
       "phenomenon": "Light shower",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1006.9,
+      "airpressure": 1006.8,
       "relativehumidity": 88.6,
-      "airtemperature": 10.8,
-      "winddirection": 109.0,
-      "windspeed": 1.8,
-      "windspeedmax": 2.9,
+      "airtemperature": 11.4,
+      "winddirection": 103.0,
+      "windspeed": 3.5,
+      "windspeedmax": 5.1,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 75.0,
+      "sunshineduration": 78.0,
       "globalradiation": null
     },
     "26123": {
@@ -34,20 +34,39 @@
       "visibility": null,
       "precipitations": 0.0,
       "airpressure": 1006.6,
-      "relativehumidity": 96.1,
-      "airtemperature": 10.4,
-      "winddirection": 105.0,
-      "windspeed": 2.1,
-      "windspeedmax": 2.9,
+      "relativehumidity": 96.5,
+      "airtemperature": 10.5,
+      "winddirection": 110.0,
+      "windspeed": 2.9,
+      "windspeedmax": 3.7,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.8,
+      "uvindex": 1.0,
       "sunshineduration": null,
       "globalradiation": 157.702
     }
   },
-  "warnings": [],
+  "warnings": [
+    {
+      "event": "Thunderstorms Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-10-11T19:00:00+00:00",
+      "expires": "2026-10-12T06:00:00+00:00",
+      "urgency": "Expected",
+      "certainty": "Likely"
+    },
+    {
+      "event": "Rain Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-10-11T19:00:00+00:00",
+      "expires": "2026-10-12T18:00:00+00:00",
+      "urgency": "Expected",
+      "certainty": "Likely"
+    }
+  ],
   "warnings_ok": true,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
