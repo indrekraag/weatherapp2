@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-23T00:09:04+00:00",
-  "fetched_at": "2026-10-23T00:09:04.383634+00:00",
+  "observation_time": "2026-10-23T00:15:10+00:00",
+  "fetched_at": "2026-10-23T00:15:10.833642+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -42,7 +42,7 @@
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.0,
+      "uvindex": null,
       "sunshineduration": null,
       "globalradiation": -2.296
     }
