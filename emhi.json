@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-24T16:22:26+00:00",
-  "fetched_at": "2026-10-24T16:22:26.888229+00:00",
+  "observation_time": "2026-10-24T16:30:09+00:00",
+  "fetched_at": "2026-10-24T16:30:09.828023+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -48,7 +48,7 @@
     }
   },
   "warnings": [],
-  "warnings_ok": true,
+  "warnings_ok": false,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
     "Lääne county",
