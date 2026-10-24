@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-24T18:00:12+00:00",
-  "fetched_at": "2026-10-24T18:00:13.190888+00:00",
+  "observation_time": "2026-10-24T18:15:12+00:00",
+  "fetched_at": "2026-10-24T18:15:12.154364+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,12 +12,12 @@
       "phenomenon": "Variable clouds",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1017.4,
-      "relativehumidity": 89.3,
+      "airpressure": 1017.7,
+      "relativehumidity": 89.5,
       "airtemperature": 7.7,
-      "winddirection": 141.0,
-      "windspeed": 5.4,
-      "windspeedmax": 6.8,
+      "winddirection": 152.0,
+      "windspeed": 5.5,
+      "windspeedmax": 6.1,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,22 +33,32 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1017.4,
-      "relativehumidity": 87.9,
-      "airtemperature": 8.4,
-      "winddirection": 154.0,
-      "windspeed": 3.4,
-      "windspeedmax": 5.4,
+      "airpressure": 1017.3,
+      "relativehumidity": 88.1,
+      "airtemperature": 8.3,
+      "winddirection": 147.0,
+      "windspeed": 3.6,
+      "windspeedmax": 5.9,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": 0.0,
       "sunshineduration": null,
-      "globalradiation": -3.238
+      "globalradiation": -2.609
     }
   },
-  "warnings": [],
-  "warnings_ok": false,
+  "warnings": [
+    {
+      "event": "Wind Level 1",
+      "severity": "Moderate",
+      "areaDesc": "Lääne county",
+      "onset": "2026-10-25T17:00:00+00:00",
+      "expires": "2026-10-26T10:00:00+00:00",
+      "urgency": "Future",
+      "certainty": "Likely"
+    }
+  ],
+  "warnings_ok": true,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
     "Lääne county",
