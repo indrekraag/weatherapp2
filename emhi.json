@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-24T19:45:10+00:00",
-  "fetched_at": "2026-10-24T19:45:11.118132+00:00",
+  "observation_time": "2026-10-24T20:00:10+00:00",
+  "fetched_at": "2026-10-24T20:00:11.264375+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -12,12 +12,12 @@
       "phenomenon": "Overcast",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1017.2,
-      "relativehumidity": 91.1,
+      "airpressure": 1017.0,
+      "relativehumidity": 92.0,
       "airtemperature": 7.4,
-      "winddirection": 117.0,
-      "windspeed": 4.0,
-      "windspeedmax": 6.3,
+      "winddirection": 118.0,
+      "windspeed": 3.8,
+      "windspeedmax": 5.5,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,12 +33,12 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1016.7,
-      "relativehumidity": 90.6,
-      "airtemperature": 7.8,
-      "winddirection": 132.0,
-      "windspeed": 3.5,
-      "windspeedmax": 6.1,
+      "airpressure": 1016.8,
+      "relativehumidity": 91.4,
+      "airtemperature": 7.7,
+      "winddirection": 136.0,
+      "windspeed": 3.8,
+      "windspeedmax": 5.7,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -47,18 +47,8 @@
       "globalradiation": -1.906
     }
   },
-  "warnings": [
-    {
-      "event": "Wind Level 1",
-      "severity": "Moderate",
-      "areaDesc": "Lääne county",
-      "onset": "2026-10-25T17:00:00+00:00",
-      "expires": "2026-10-26T10:00:00+00:00",
-      "urgency": "Future",
-      "certainty": "Likely"
-    }
-  ],
-  "warnings_ok": true,
+  "warnings": [],
+  "warnings_ok": false,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
     "Lääne county",
