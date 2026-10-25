@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-25T00:45:12+00:00",
-  "fetched_at": "2026-10-25T00:45:12.892416+00:00",
+  "observation_time": "2026-10-25T01:00:11+00:00",
+  "fetched_at": "2026-10-25T01:00:11.715274+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -10,14 +10,14 @@
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
       "phenomenon": "Cloudy with clear spells",
-      "visibility": 42.0,
+      "visibility": 38.0,
       "precipitations": 0.0,
       "airpressure": 1014.0,
-      "relativehumidity": 94.6,
-      "airtemperature": 6.9,
-      "winddirection": 125.0,
-      "windspeed": 4.0,
-      "windspeedmax": 6.6,
+      "relativehumidity": 95.1,
+      "airtemperature": 6.8,
+      "winddirection": 132.0,
+      "windspeed": 4.5,
+      "windspeedmax": 5.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -33,12 +33,12 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1013.8,
-      "relativehumidity": 94.8,
-      "airtemperature": 7.6,
-      "winddirection": 140.0,
-      "windspeed": 3.4,
-      "windspeedmax": 5.2,
+      "airpressure": 1013.6,
+      "relativehumidity": 94.3,
+      "airtemperature": 7.8,
+      "winddirection": 132.0,
+      "windspeed": 2.5,
+      "windspeedmax": 4.6,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -47,18 +47,8 @@
       "globalradiation": -2.318
     }
   },
-  "warnings": [
-    {
-      "event": "Wind Level 1",
-      "severity": "Moderate",
-      "areaDesc": "Lääne county",
-      "onset": "2026-10-25T17:00:00+00:00",
-      "expires": "2026-10-26T10:00:00+00:00",
-      "urgency": "Future",
-      "certainty": "Likely"
-    }
-  ],
-  "warnings_ok": true,
+  "warnings": [],
+  "warnings_ok": false,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
     "Lääne county",
