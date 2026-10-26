@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-10-26T09:45:13+00:00",
-  "fetched_at": "2026-10-26T09:45:13.931888+00:00",
+  "observation_time": "2026-10-26T10:00:13+00:00",
+  "fetched_at": "2026-10-26T10:00:14.214062+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -13,11 +13,11 @@
       "visibility": 50.0,
       "precipitations": 0.0,
       "airpressure": 1005.9,
-      "relativehumidity": 84.9,
+      "relativehumidity": 85.3,
       "airtemperature": 11.0,
-      "winddirection": 170.0,
-      "windspeed": 4.8,
-      "windspeedmax": 6.0,
+      "winddirection": 172.0,
+      "windspeed": 5.5,
+      "windspeedmax": 7.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
@@ -34,29 +34,20 @@
       "visibility": null,
       "precipitations": 0.0,
       "airpressure": 1005.7,
-      "relativehumidity": 82.8,
+      "relativehumidity": 81.1,
       "airtemperature": 11.4,
-      "winddirection": 188.0,
-      "windspeed": 2.7,
+      "winddirection": 183.0,
+      "windspeed": 5.9,
       "windspeedmax": 8.4,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.5,
+      "uvindex": 0.6,
       "sunshineduration": null,
       "globalradiation": 121.805
     }
   },
   "warnings": [
-    {
-      "event": "Wind Level 1",
-      "severity": "Moderate",
-      "areaDesc": "Lääne county",
-      "onset": "2026-10-26T07:00:00+00:00",
-      "expires": "2026-10-26T10:00:00+00:00",
-      "urgency": "Immediate",
-      "certainty": "Observed"
-    },
     {
       "event": "Wind Level 1",
       "severity": "Moderate",
