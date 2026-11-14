@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-11-14T03:09:44+00:00",
-  "fetched_at": "2026-11-14T03:09:44.503368+00:00",
+  "observation_time": "2026-11-14T10:15:51+00:00",
+  "fetched_at": "2026-11-14T10:15:51.566538+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -11,18 +11,18 @@
       "longitude": 23.81566666709052,
       "phenomenon": "Light shower",
       "visibility": 50.0,
-      "precipitations": 0.4,
-      "airpressure": 989.2,
-      "relativehumidity": 78.4,
-      "airtemperature": 3.8,
-      "winddirection": 289.0,
-      "windspeed": 6.1,
-      "windspeedmax": 7.5,
+      "precipitations": 0.2,
+      "airpressure": 999.0,
+      "relativehumidity": 77.3,
+      "airtemperature": 4.5,
+      "winddirection": 281.0,
+      "windspeed": 8.7,
+      "windspeedmax": 11.0,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 0.0,
+      "sunshineduration": 35.0,
       "globalradiation": null
     },
     "26123": {
@@ -32,19 +32,19 @@
       "longitude": 23.55527777777778,
       "phenomenon": null,
       "visibility": null,
-      "precipitations": 0.1,
-      "airpressure": 989.8,
-      "relativehumidity": 80.0,
-      "airtemperature": 4.3,
-      "winddirection": 296.0,
-      "windspeed": 8.5,
-      "windspeedmax": 10.8,
+      "precipitations": 0.0,
+      "airpressure": 999.6,
+      "relativehumidity": 74.8,
+      "airtemperature": 4.9,
+      "winddirection": 281.0,
+      "windspeed": 7.2,
+      "windspeedmax": 9.7,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.0,
+      "uvindex": 0.2,
       "sunshineduration": null,
-      "globalradiation": -2.695
+      "globalradiation": 128.438
     }
   },
   "warnings": [
@@ -53,9 +53,9 @@
       "severity": "Moderate",
       "areaDesc": "Lääne county",
       "onset": "2026-11-14T05:00:00+00:00",
-      "expires": "2026-11-14T15:00:00+00:00",
-      "urgency": "Expected",
-      "certainty": "Likely"
+      "expires": "2026-11-14T17:00:00+00:00",
+      "urgency": "Immediate",
+      "certainty": "Observed"
     }
   ],
   "warnings_ok": true,
