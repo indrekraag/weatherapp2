@@ -1,28 +1,28 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-11-15T07:10:42+00:00",
-  "fetched_at": "2026-11-15T07:10:43.091216+00:00",
+  "observation_time": "2026-11-15T14:43:16+00:00",
+  "fetched_at": "2026-11-15T14:43:17.194738+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
       "wmocode": "26124",
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
-      "phenomenon": "Light shower",
+      "phenomenon": "Cloudy with clear spells",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1008.6,
-      "relativehumidity": 90.5,
-      "airtemperature": 6.5,
-      "winddirection": 215.0,
+      "airpressure": 1008.7,
+      "relativehumidity": 79.7,
+      "airtemperature": 7.8,
+      "winddirection": 205.0,
       "windspeed": 5.9,
       "windspeedmax": 7.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 0.0,
+      "sunshineduration": 52.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1008.6,
-      "relativehumidity": 89.1,
-      "airtemperature": 7.2,
-      "winddirection": 214.0,
-      "windspeed": 4.4,
-      "windspeedmax": 7.2,
+      "airpressure": 1008.5,
+      "relativehumidity": 79.7,
+      "airtemperature": 7.4,
+      "winddirection": 196.0,
+      "windspeed": 2.4,
+      "windspeedmax": 4.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": 0.0,
       "sunshineduration": null,
-      "globalradiation": 9.232
+      "globalradiation": 11.858
     }
   },
   "warnings": [
@@ -53,9 +53,9 @@
       "severity": "Moderate",
       "areaDesc": "Lääne county",
       "onset": "2026-11-15T05:00:00+00:00",
-      "expires": "2026-11-16T05:00:00+00:00",
-      "urgency": "Expected",
-      "certainty": "Likely"
+      "expires": "2026-11-16T17:00:00+00:00",
+      "urgency": "Immediate",
+      "certainty": "Observed"
     }
   ],
   "warnings_ok": true,
