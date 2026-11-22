@@ -1,8 +1,8 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-11-22T02:25:22+00:00",
-  "fetched_at": "2026-11-22T02:25:22.862067+00:00",
+  "observation_time": "2026-11-22T09:59:38+00:00",
+  "fetched_at": "2026-11-22T09:59:38.250683+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
@@ -11,18 +11,18 @@
       "longitude": 23.81566666709052,
       "phenomenon": "Light shower",
       "visibility": 50.0,
-      "precipitations": 0.0,
-      "airpressure": 993.0,
-      "relativehumidity": 97.3,
-      "airtemperature": 0.9,
-      "winddirection": 26.0,
-      "windspeed": 2.7,
-      "windspeedmax": 4.3,
+      "precipitations": 0.2,
+      "airpressure": 995.6,
+      "relativehumidity": 92.7,
+      "airtemperature": 2.1,
+      "winddirection": 16.0,
+      "windspeed": 5.2,
+      "windspeedmax": 7.2,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 0.0,
+      "sunshineduration": 2.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,18 +33,18 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 993.2,
-      "relativehumidity": 95.3,
-      "airtemperature": 1.4,
-      "winddirection": 26.0,
-      "windspeed": 3.5,
-      "windspeedmax": 5.1,
+      "airpressure": 995.9,
+      "relativehumidity": 86.9,
+      "airtemperature": 2.6,
+      "winddirection": 6.0,
+      "windspeed": 4.5,
+      "windspeedmax": 6.9,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
-      "uvindex": 0.0,
+      "uvindex": 0.2,
       "sunshineduration": null,
-      "globalradiation": -3.052
+      "globalradiation": 34.151
     }
   },
   "warnings": [
@@ -52,10 +52,10 @@
       "event": "Glazed ice Level 1",
       "severity": "Moderate",
       "areaDesc": "Lääne county",
-      "onset": "2026-11-21T00:00:00+00:00",
+      "onset": "2026-11-22T14:00:00+00:00",
       "expires": "2026-11-24T21:00:00+00:00",
-      "urgency": "Immediate",
-      "certainty": "Observed"
+      "urgency": "Expected",
+      "certainty": "Likely"
     }
   ],
   "warnings_ok": true,
