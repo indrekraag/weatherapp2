@@ -1,28 +1,28 @@
 {
   "source": "EMHI / Estonian Weather Service",
   "source_url": "https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php",
-  "observation_time": "2026-11-26T04:36:33+00:00",
-  "fetched_at": "2026-11-26T04:36:33.890964+00:00",
+  "observation_time": "2026-11-26T14:26:39+00:00",
+  "fetched_at": "2026-11-26T14:26:39.820388+00:00",
   "stations": {
     "26124": {
       "name": "Lääne-Nigula",
       "wmocode": "26124",
       "latitude": 58.951083333359826,
       "longitude": 23.81566666709052,
-      "phenomenon": "Overcast",
+      "phenomenon": "Clear",
       "visibility": 50.0,
       "precipitations": 0.0,
-      "airpressure": 1023.0,
-      "relativehumidity": 91.4,
-      "airtemperature": 0.7,
-      "winddirection": 354.0,
-      "windspeed": 4.0,
-      "windspeedmax": 5.3,
+      "airpressure": 1026.9,
+      "relativehumidity": 83.1,
+      "airtemperature": -1.2,
+      "winddirection": 349.0,
+      "windspeed": 1.6,
+      "windspeedmax": 1.8,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": null,
-      "sunshineduration": 0.0,
+      "sunshineduration": 188.0,
       "globalradiation": null
     },
     "26123": {
@@ -33,31 +33,21 @@
       "phenomenon": null,
       "visibility": null,
       "precipitations": 0.0,
-      "airpressure": 1023.1,
-      "relativehumidity": 90.9,
-      "airtemperature": 1.2,
-      "winddirection": 10.0,
-      "windspeed": 4.1,
-      "windspeedmax": 5.6,
+      "airpressure": 1027.1,
+      "relativehumidity": 86.6,
+      "airtemperature": -0.7,
+      "winddirection": 15.0,
+      "windspeed": 2.2,
+      "windspeedmax": 2.8,
       "waterlevel": null,
       "waterlevel_eh2000": null,
       "watertemperature": null,
       "uvindex": 0.0,
       "sunshineduration": null,
-      "globalradiation": -1.825
+      "globalradiation": 5.716
     }
   },
-  "warnings": [
-    {
-      "event": "Glazed ice Level 1",
-      "severity": "Moderate",
-      "areaDesc": "Lääne county",
-      "onset": "2026-11-25T02:00:00+00:00",
-      "expires": "2026-11-26T12:00:00+00:00",
-      "urgency": "Immediate",
-      "certainty": "Observed"
-    }
-  ],
+  "warnings": [],
   "warnings_ok": true,
   "warnings_source": "MeteoAlarm / Estonian Environment Agency CAP feed",
   "warnings_target_counties": [
